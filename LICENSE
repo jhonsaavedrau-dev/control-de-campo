@@ -1,21 +1,52 @@
-MIT License
+Copyright (c) 2026 Jhon Saavedra. Todos los derechos reservados.
+Copyright (c) 2026 Jhon Saavedra. All rights reserved.
 
-Copyright (c) 2026 Jhon Saavedra
+---------------------------------------------------------------------------
+ESPAÑOL
+---------------------------------------------------------------------------
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+El código de este repositorio se publica ÚNICAMENTE para que pueda ser leído
+y evaluado: por quien esté considerando contratarme, por quien quiera entender
+cómo trabajo, o por quien tenga curiosidad.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Publicarlo NO otorga ninguna licencia de uso.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Sin mi permiso escrito y previo, no se permite:
+
+  - usar este código, ni entero ni por partes, en ningún proyecto;
+  - copiarlo, modificarlo o crear obras derivadas de él;
+  - redistribuirlo, publicarlo ni sublicenciarlo;
+  - venderlo ni usarlo con fines comerciales;
+  - entrenar modelos de aprendizaje automático con él.
+
+Leer el código, clonarlo para revisarlo y ejecutarlo localmente con el fin de
+evaluarlo sí está permitido.
+
+Si te sirve algo de lo que hay aquí, escríbeme. La respuesta puede ser que sí.
+
+    jhonsaavedrau@gmail.com
+
+---------------------------------------------------------------------------
+ENGLISH
+---------------------------------------------------------------------------
+
+The source code in this repository is published SOLELY so that it can be read
+and evaluated: by people considering hiring me, by anyone wanting to understand
+how I work, or by the merely curious.
+
+Publishing it grants NO license to use it.
+
+Without my prior written permission, you may not:
+
+  - use this code, in whole or in part, in any project;
+  - copy it, modify it, or create derivative works from it;
+  - redistribute, publish, or sublicense it;
+  - sell it or use it for commercial purposes;
+  - train machine learning models on it.
+
+Reading the code, cloning it for review, and running it locally for the purpose
+of evaluation is permitted.
+
+If something here is useful to you, write to me. The answer may well be yes.
+
+    jhonsaavedrau@gmail.com
