@@ -10,3 +10,6 @@ build/
 .DS_Store
 Thumbs.db
 *.tsbuildinfo
+
+# La base de trabajo se genera sola a partir de data/seed.json
+.data/
