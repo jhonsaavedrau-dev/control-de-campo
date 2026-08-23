@@ -1,0 +1,248 @@
+[
+ {
+  "nivel": 1,
+  "nombre": "00_IDENTIDAD",
+  "id": "1a1GDUwwH03WGyivOpgbKBZb4ysTRR0JM",
+  "carpeta": true
+ },
+ {
+  "nivel": 2,
+  "nombre": "Formato_Intervencion_PBI.docx",
+  "id": "1rT6ERSwNWXBK6yv8XypA-GFfQCHZSONc",
+  "carpeta": false
+ },
+ {
+  "nivel": 2,
+  "nombre": "FORMATO_SOLICITUD Y ORDEN DE SERVICIO.xlsx",
+  "id": "1zl--k5xfOCNzTcOVhWa0SzBGXsccVQQ8",
+  "carpeta": false
+ },
+ {
+  "nivel": 2,
+  "nombre": "foto_planta.jpeg",
+  "id": "1mqsAxfwGx_joCtQDv7DInk_Qj40uZWWP",
+  "carpeta": false
+ },
+ {
+  "nivel": 2,
+  "nombre": "logo pbi.jpg",
+  "id": "11BM2qCOw5SyWY6WeQYd_64cKH_WqMqeL",
+  "carpeta": false
+ },
+ {
+  "nivel": 2,
+  "nombre": "logo_pbi.png",
+  "id": "1pOrGRTQKP_4seIEnZElwTQ0DY3fs1av4",
+  "carpeta": false
+ },
+ {
+  "nivel": 1,
+  "nombre": "SD_001_PLANTA_LA_PAZ",
+  "id": "1Diup_UuAWgEm9sbVUAutCXGD8NfQ2JK4",
+  "carpeta": true
+ },
+ {
+  "nivel": 2,
+  "nombre": "01_EQUIPOS",
+  "id": "1w7xbyq_ectdtaos-eswQiAL6hLD8Mc-m",
+  "carpeta": true
+ },
+ {
+  "nivel": 3,
+  "nombre": "2025-03-16_Backup_ComAp",
+  "id": "1N37SDzvdbLAdaORiBr4YJ6vvl1XJuO3L",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "ecu library 9.1.0 new features list.pdf",
+  "id": "1emb3e2mcqYoYbXo1zQEt83W2OxzqXgSs",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "electronic control units support guide 9.1.0.pdf",
+  "id": "1yFOY2KSWUHrf7mwuN9eAc4zHTbzEMaXq",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "foto_controlador (1).png",
+  "id": "1XBuyuuH3AozZFS3XNSWZ9YrN6oflNSom",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "foto_controlador (6).png",
+  "id": "1YHZxtPx-Jr4pZ9u_ORwXvUrmdl721-Dt",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "foto_controlador.png",
+  "id": "1N1BvjALvxdwgh6-l9MhdM3tF2qkB6OFE",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "foto_controlador_3412_n3 (4).png",
+  "id": "1qwH7QgrXzp1pMjTy0L9hnsCOegfMKzwq",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "foto_controlador_3412_n3(1).png",
+  "id": "1ex5-F59hDrFU0TBOVbLevXVhpPuj0kRB",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "foto_controlador_3412_n3(2).png",
+  "id": "1LqWE3ydnkisEm62TPMprfgbGzuQzPwBi",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "foto_controlador_3412_n3.png",
+  "id": "1r_RxcToYdoxWXGfqbSFjfSA5da59otGr",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "foto_controlador_c15 (8).png",
+  "id": "1Ka4uj-KQIGKDdCU8K0KhQnbMozLn2Qth",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "foto_controlador_c15.png",
+  "id": "11CrI8bjXyDlExsMu39y1aAU3uV5CzYth",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "foto_equipo_3412_n1 (7).png",
+  "id": "1krC1cHUBNrZA-MixvgMhYBaDz65NpuK1",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "foto_equipo_3412_n1.png",
+  "id": "1sjMiFwQRe875oMs5USuQT-3NHuMnkmJ0",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "foto_equipo_3412_n2.png",
+  "id": "1GX1vQPmYexMiVVoR6-x4q4Acmn494l2X",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "foto_equipo_3412_n3.png",
+  "id": "1n2p0in56uUddH2lzZTvIN4hPzSYEPguC",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "foto_equipo_c15.jpg",
+  "id": "1HvCUJK0hNoG2t2pzsHc3RKd_STVcQI6m",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "foto_equipo_c18.jpg",
+  "id": "1aM4y70ztuxA5aRCYGkSv87Csyg_uAaFe",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "foto_planta (2).jpeg",
+  "id": "1Wn9v-EII1en8ln9zdP8sIzxwtZwdiomQ",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "foto_planta (3).jpeg",
+  "id": "1GItiWNGwnk84xeUnUzdAthM0Gi_5j8VF",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "foto_planta (5).jpeg",
+  "id": "1o1lBeJJQn9OIPnXx7xj5HdPIwKO0P5Sa",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "foto_planta (9).jpeg",
+  "id": "1RhTpRldxohgeS4yTGZx5k7rxjRjKrggd",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "foto_planta.jpeg",
+  "id": "1fn8EzUQA7vQtI_uXWzp7oqOBHF68iopn",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "INT-2026-0023_GE-003_Preventivo.pdf",
+  "id": "10k15TPQFcDfQwdyUZjmaRWCiZ5C3UdqM",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "INT-2026-0030_GE-001_Preventivo.pdf",
+  "id": "1oY4SzBFakSlqr--wBgnJNiDv2xKLCfwo",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "inteligen4 200 2.2.0 global guide.pdf",
+  "id": "1660CztvOaCbvS8TPfWCSVUq9EHSZORhN",
+  "carpeta": false
+ },
+ {
+  "nivel": 3,
+  "nombre": "inteligen4 200 2.3.0 new features list.pdf",
+  "id": "1GgyI9SHoSUc_1DHgr1TPzmksi64J2U--",
+  "carpeta": false
+ },
+ {
+  "nivel": 1,
+  "nombre": "SD_002_PLANTA_BUENA_VISTA",
+  "id": "160uQ3ONmRccOb8yPwsM-En_M09E2vF-k",
+  "carpeta": true
+ },
+ {
+  "nivel": 1,
+  "nombre": "SD_003_PLANTA_CORRALES",
+  "id": "1XcLGPZ0xIDopg2Yy9DLSgAKLHEm63f84",
+  "carpeta": true
+ },
+ {
+  "nivel": 1,
+  "nombre": "SD_004_PLANTA_EVECA",
+  "id": "17Ath_6sx_kCTe3Lb6oOgkdlYMBepyW4Q",
+  "carpeta": true
+ },
+ {
+  "nivel": 1,
+  "nombre": "SD_005_PLANTA_LA_PUNTA",
+  "id": "10Gqs3CBqsygTtIuvY12Q4aPQFDCxe2D_",
+  "carpeta": true
+ },
+ {
+  "nivel": 1,
+  "nombre": "SD_006_PLANTA_SAN_ROQUE",
+  "id": "1o4Qi7hFFPJk1erXBlexbfWt2LM9_onPR",
+  "carpeta": true
+ },
+ {
+  "nivel": 1,
+  "nombre": "Sistema_Control_Campo_Generacion_Final.xlsx",
+  "id": "1NcYBQRqJ94OyB6RMlCNMysPCEGUIIvq4",
+  "carpeta": false
+ }
+]

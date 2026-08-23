@@ -10,7 +10,7 @@ const LLAVE = "pbi.pendientes.v1";
 
 export type Pendiente = {
   ruta: string;
-  datos: Record<string, string>;
+  datos: Record<string, unknown>;
   creado: string;
 };
 
@@ -29,7 +29,7 @@ function escribir(cola: Pendiente[]) {
 }
 
 export function guardarPendiente(
-  datos: Record<string, string>,
+  datos: Record<string, unknown>,
   ruta = "/api/intervenciones",
 ) {
   const cola = leer();

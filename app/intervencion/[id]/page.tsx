@@ -1,9 +1,21 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { obtenerIntervencion } from "@/lib/db";
 import { Encabezado, PieDePagina } from "@/components/Marco";
-import { Distintivo, tonoDeEstado, fecha, hora } from "@/components/Piezas";
-import { IcoVolver, IcoDocumento } from "@/components/Iconos";
+import { fechaLarga, numero } from "@/components/Piezas";
+import { ETIQUETA_TIPO } from "@/lib/tipos";
+import AccionesActa from "@/components/AccionesActa";
+import type {
+  TipoIntervencion, EstadoEquipo, ResultadoIntervencion, TipoCombustible,
+} from "@/lib/tipos";
+
+/**
+ * Acta de intervención — réplica del formato oficial
+ * `Formato_Intervencion_PBI.docx` (8 secciones, con sus casillas).
+ * Lo que se imprime tiene que poder compararse hoja contra hoja con el
+ * formato en papel que la empresa ya usa.
+ */
 
 export default async function ActaIntervencion({
   params,
@@ -14,172 +26,262 @@ export default async function ActaIntervencion({
   const registro = await obtenerIntervencion(decodeURIComponent(id).toUpperCase());
   if (!registro) notFound();
 
-  const { intervencion: i, controlador: c, equipo: e, sede: s } = registro;
+  const { intervencion: i, equipo: e, sede: s, controlador: c } = registro;
 
   return (
     <>
-      <Encabezado imprimible />
+      <Encabezado atras={{ href: `/equipo/${i.id_equipo}`, texto: i.id_equipo }} />
 
-      <main className="flex-1 max-w-[860px] w-full mx-auto px-4 py-5 space-y-4">
-        <div className="no-imprimir">
-          <Link
-            href={`/controlador/${i.controladorId}`}
-            className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-marino-600 hover:underline"
-          >
-            <IcoVolver className="w-4 h-4" />
-            Volver a la ficha de {i.controladorId}
-          </Link>
-        </div>
+      <main className="flex-1 w-full max-w-[820px] mx-auto px-3 py-4 sm:px-4 sm:py-5">
+        <div className="acta">
+          {/* Encabezado del formato */}
+          <table className="tabla">
+            <tbody>
+              <tr>
+                <td className="celda w-[110px] text-center align-middle">
+                  <Image
+                    src="/logo-pbi.png"
+                    alt="PBI"
+                    width={90}
+                    height={45}
+                    className="mx-auto h-auto w-[90px]"
+                    priority
+                  />
+                </td>
+                <td className="celda text-center align-middle">
+                  <div className="font-[family-name:var(--font-placa)] font-semibold text-[15px] tracking-wide">
+                    FORMATO DE INTERVENCIÓN DE EQUIPO
+                  </div>
+                </td>
+                <td className="celda w-[180px] text-[10.5px] leading-relaxed align-middle">
+                  <div>Código: ______________</div>
+                  <div>Versión: ______________</div>
+                  <div>Fecha: {fechaLarga(i.fecha)}</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
-        <div className="bg-[#e7f8ee] border border-[#b7e6c9] text-[#12703a] rounded-lg px-4 py-3 text-[13px] no-imprimir">
-          Intervención registrada con el consecutivo <strong>{i.id}</strong>. Usa el
-          botón <strong>Imprimir</strong> de arriba y elige «Guardar como PDF» para
-          obtener el acta.
-        </div>
+          <Seccion n="1" titulo="DATOS DE LA INTERVENCIÓN" />
+          <table className="tabla">
+            <tbody>
+              <Fila campo="ID / No. intervención" dato={i.id_intervencion} mono />
+              <Fila campo="Cliente" dato={s?.cliente} />
+              <Fila campo="Ubicación" dato={[s?.nombre, s?.ubicacion].filter(Boolean).join(" · ")} />
+              <Fila campo="Equipo / TAG" dato={[e?.id_equipo, e?.nombre].filter(Boolean).join(" · ")} mono />
+              <Fila campo="Fecha" dato={`${fechaLarga(i.fecha)}   ${i.hora}`} />
+              <Fila campo="Técnico responsable" dato={i.tecnico_nombre} />
+              <tr>
+                <td className="celda etiqueta">Tipo de intervención</td>
+                <td className="celda">
+                  <Casillas
+                    opciones={
+                      [
+                        ["preventiva", "Preventiva"],
+                        ["correctiva", "Correctiva"],
+                        ["diagnostico", "Diagnóstico"],
+                        ["inspeccion", "Inspección"],
+                        ["otra", "Otra"],
+                      ] as [TipoIntervencion, string][]
+                    }
+                    valor={i.tipo_intervencion}
+                  />
+                </td>
+              </tr>
+              <Fila campo="Orden de servicio" dato={i.orden_servicio} />
+              <Fila campo="Permiso de trabajo" dato={i.permiso_trabajo} />
+            </tbody>
+          </table>
 
-        <section className="tarjeta">
-          {/* Encabezado tipo formato corporativo */}
-          <div className="border-b-2 border-marino-900 grid grid-cols-[auto_minmax(0,1fr)_auto]">
-            <div className="bg-marino-900 px-5 py-4 flex items-center">
-              <svg viewBox="0 0 40 44" className="w-8 h-9" aria-hidden="true">
-                <path d="M22 0 4 24h11L9 44 36 17H23L34 0Z" fill="#ffc629" />
-                <path d="M14 0 0 20h7L3 34 18 16H9L17 0Z" fill="#ffc629" opacity="0.55" />
-              </svg>
-              <div className="ml-2 leading-none">
-                <div className="text-white font-extrabold text-lg">PBI</div>
-                <div className="text-[6.5px] text-white/70 font-semibold tracking-[0.14em] mt-0.5">
-                  GENERACIÓN DE ENERGÍA
-                </div>
-              </div>
-            </div>
-            <div className="px-5 py-4 text-center flex flex-col justify-center">
-              <div className="text-[15px] font-extrabold text-marino-900 tracking-wide">
-                SOLICITUD Y/O ORDEN DE SERVICIO
-              </div>
-              <div className="text-[11px] text-[#667085] mt-1">
-                Acta de intervención · Sistema de Control de Campo
-              </div>
-            </div>
-            <div className="px-5 py-4 text-[10.5px] text-[#475467] border-l border-[#e9edf4] flex flex-col justify-center gap-1">
-              <div>
-                Código: <strong className="text-marino-900">FOR-MTO-06</strong>
-              </div>
-              <div>
-                Versión: <strong className="text-marino-900">04</strong>
-              </div>
-              <div>
-                Registro: <strong className="text-marino-900">{i.id}</strong>
-              </div>
-            </div>
-          </div>
+          <Seccion n="2" titulo="EQUIPO" />
+          <table className="tabla">
+            <tbody>
+              <tr>
+                <td className="celda etiqueta">Tipo de equipo</td>
+                <td className="celda">
+                  <Casillas
+                    opciones={[
+                      ["grupo", "Grupo electrógeno"],
+                      ["controlador", "Controlador"],
+                    ]}
+                    valor="grupo"
+                  />
+                </td>
+              </tr>
+              <Fila campo="Fabricante" dato={i.fabricante_equipo} />
+              <Fila campo="Modelo" dato={i.modelo_equipo} />
+              <Fila campo="Número de serie" dato={i.serial_equipo} mono />
+              <Fila campo="Horas de operación" dato={numero(i.horometro, " h")} mono />
+            </tbody>
+          </table>
 
-          <Bloque titulo="1. SOLICITUD">
-            <Rejilla>
-              <Celda etiqueta="Fecha">
-                {fecha(i.fecha)} {hora(i.fecha)}
-              </Celda>
-              <Celda etiqueta="Dependencia que solicita">
-                <PorDefinir />
-              </Celda>
-              <Celda etiqueta="Nombre del solicitante">
-                <PorDefinir />
-              </Celda>
-              <Celda etiqueta="Orden de servicio">
-                <PorDefinir />
-              </Celda>
-              <Celda etiqueta="Permiso de trabajo">
-                <PorDefinir />
-              </Celda>
-              <Celda etiqueta="Power Center">
-                <PorDefinir />
-              </Celda>
-              <Celda etiqueta="Tipo de servicio">{i.tipo}</Celda>
-              <Celda etiqueta="Nombre del equipo a intervenir">
-                {e?.id} · {e?.nombre}
-              </Celda>
-              <Celda etiqueta="Horómetro aprox.">{i.horometro || "—"}</Celda>
-            </Rejilla>
-          </Bloque>
+          <Seccion n="3" titulo="INTERVENCIÓN" />
+          <table className="tabla">
+            <tbody>
+              <Fila campo="Motivo" dato={i.motivo} alto />
+              <Fila campo="Estado inicial" dato={i.estado_inicial} alto />
+              <Fila campo="Actividades realizadas" dato={i.actividades_realizadas} alto />
+              <tr>
+                <td className="celda etiqueta">Estado final</td>
+                <td className="celda">
+                  <Casillas
+                    opciones={
+                      [
+                        ["operativo", "Operativo"],
+                        ["operativo_con_observaciones", "Operativo con observaciones"],
+                        ["fuera_de_servicio", "Fuera de servicio"],
+                        ["pendiente", "Pendiente"],
+                      ] as [EstadoEquipo, string][]
+                    }
+                    valor={i.estado_final}
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
-          <Bloque titulo="2. EQUIPO Y CONTROLADOR">
-            <Rejilla>
-              <Celda etiqueta="Sede">{s?.nombre ?? "—"}</Celda>
-              <Celda etiqueta="Equipo">
-                {e ? `${e.fabricante} ${e.modelo} · ${e.potenciaNominal}` : "—"}
-              </Celda>
-              <Celda etiqueta="Serial equipo">{e?.serial ?? "—"}</Celda>
-              <Celda etiqueta="Controlador">{c?.id ?? "—"}</Celda>
-              <Celda etiqueta="Referencia controlador">
-                {c ? `${c.fabricante} ${c.modelo}` : "—"}
-              </Celda>
-              <Celda etiqueta="Serial controlador">{c?.serial ?? "—"}</Celda>
-            </Rejilla>
-          </Bloque>
+          <Seccion n="4" titulo="GRUPO ELECTRÓGENO" />
+          <table className="tabla">
+            <tbody>
+              <Fila campo="Motor" dato={i.motor_obs || e?.motor} />
+              <Fila campo="Alternador" dato={i.alternador_obs || e?.alternador} />
+              <tr>
+                <td className="celda etiqueta">Combustible</td>
+                <td className="celda">
+                  <Casillas
+                    opciones={
+                      [
+                        ["diesel", "Diésel"],
+                        ["glp", "GLP"],
+                        ["gas", "Gas"],
+                        ["otro", "Otro"],
+                      ] as [TipoCombustible, string][]
+                    }
+                    valor={i.combustible}
+                  />
+                </td>
+              </tr>
+              <Fila campo="Potencia" dato={numero(i.potencia_kw, " kW")} mono />
+              <Fila campo="Horas" dato={numero(i.horas_operacion, " h")} mono />
+              <Fila campo="Estado / observaciones" dato={i.estado_equipo_obs} alto />
+            </tbody>
+          </table>
 
-          <Bloque titulo="3. DESCRIPCIÓN DE LA ACTIVIDAD REQUERIDA">
-            <Parrafo>{i.trabajoRealizado}</Parrafo>
-          </Bloque>
+          <Seccion n="5" titulo="CONTROLADOR" />
+          <table className="tabla">
+            <tbody>
+              <Fila campo="Marca" dato={i.marca_controlador} />
+              <Fila campo="Modelo" dato={i.modelo_controlador} />
+              <Fila campo="Número de serie" dato={i.serial_controlador} mono />
+              <Fila campo="Firmware" dato={i.firmware_controlador} mono />
+              <Fila campo="Alarmas / eventos" dato={i.alarmas_eventos} alto />
+              <Fila campo="Parámetros modificados" dato={i.parametros_modificados} alto />
+              <Fila campo="Configuración realizada" dato={i.configuracion_realizada} alto />
+              <Fila campo="Observaciones" dato={i.observaciones_controlador} alto />
+            </tbody>
+          </table>
 
-          <Bloque titulo="4. MANTENIMIENTO">
-            <Rejilla>
-              <Celda etiqueta="Persona que desarrolló la actividad">{i.tecnico}</Celda>
-              <Celda etiqueta="Persona que recibió">
-                <PorDefinir />
-              </Celda>
-              <Celda etiqueta="Repuestos utilizados">
-                <PorDefinir />
-              </Celda>
-              <Celda etiqueta="Horas hombre utilizadas">
-                <PorDefinir />
-              </Celda>
-              <Celda etiqueta="Tipo de mano de obra">
-                <PorDefinir />
-              </Celda>
-              <Celda etiqueta="¿Se realizó backup?">{i.backup}</Celda>
-            </Rejilla>
+          <Seccion n="6" titulo="RESULTADO Y RECOMENDACIONES" />
+          <table className="tabla">
+            <tbody>
+              <tr>
+                <td className="celda etiqueta">Resultado</td>
+                <td className="celda">
+                  <Casillas
+                    opciones={
+                      [
+                        ["satisfactorio", "Satisfactorio"],
+                        ["satisfactorio_con_observaciones", "Satisfactorio con observaciones"],
+                        ["no_satisfactorio", "No satisfactorio"],
+                      ] as [ResultadoIntervencion, string][]
+                    }
+                    valor={i.resultado}
+                  />
+                </td>
+              </tr>
+              <Fila campo="Recomendaciones" dato={i.recomendaciones} alto />
+              <Fila campo="Pendientes" dato={i.pendientes} alto />
+            </tbody>
+          </table>
 
-            <div className="mt-4 space-y-3">
-              <div>
-                <Rotulo>Actividades realizadas</Rotulo>
-                <Parrafo>{i.trabajoRealizado}</Parrafo>
-              </div>
-              <div>
-                <Rotulo>Novedad encontrada</Rotulo>
-                <Parrafo>{i.novedad || "Sin novedades"}</Parrafo>
-              </div>
-              <div>
-                <Rotulo>Observaciones</Rotulo>
-                <Parrafo>{i.observaciones || "—"}</Parrafo>
-              </div>
-              <div className="flex items-center gap-3 pt-1">
-                <Rotulo>Resultado</Rotulo>
-                <Distintivo tono={tonoDeEstado(i.resultado)}>{i.resultado}</Distintivo>
-              </div>
-            </div>
-          </Bloque>
+          <Seccion n="7" titulo="EVIDENCIA FOTOGRÁFICA" />
+          <table className="tabla">
+            <tbody>
+              <tr>
+                <td className="celda h-[150px] w-1/2 text-center align-middle text-[11px] text-[color:var(--color-sin-info)]">
+                  FOTO / EVIDENCIA
+                </td>
+                <td className="celda h-[150px] w-1/2 text-center align-middle text-[11px] text-[color:var(--color-sin-info)]">
+                  FOTO / EVIDENCIA
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
-          <Bloque titulo="5. CIERRE" ultimo>
-            <Rejilla>
-              <Celda etiqueta="Fecha de cierre">{fecha(i.fecha)}</Celda>
-              <Celda etiqueta="Consecutivo">{i.id}</Celda>
-            </Rejilla>
-            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-8">
-              <Firma rotulo="Ejecutó la actividad" nombre={i.tecnico} />
-              <Firma rotulo="Recibió a satisfacción" nombre="" />
-            </div>
-          </Bloque>
-        </section>
+          <Seccion n="8" titulo="CIERRE" />
+          <table className="tabla">
+            <tbody>
+              <tr>
+                <td className="celda text-center font-semibold text-[11px] w-1/2">
+                  TÉCNICO RESPONSABLE
+                </td>
+                <td className="celda text-center font-semibold text-[11px] w-1/2">
+                  RESPONSABLE DEL CLIENTE
+                </td>
+              </tr>
+              <tr>
+                <td className="celda">
+                  <Firma nombre={i.tecnico_nombre} fecha={fechaLarga(i.fecha)} />
+                </td>
+                <td className="celda">
+                  <Firma
+                    nombre={i.recibido_por || i.responsable_cliente}
+                    fecha={i.recibido_por ? fechaLarga(i.fecha) : ""}
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
-        <div className="tarjeta p-4 no-imprimir">
-          <div className="flex items-start gap-3">
-            <IcoDocumento className="w-5 h-5 text-[#98a2b3] mt-0.5 shrink-0" />
-            <p className="text-[12.5px] text-[#475467] leading-relaxed">
-              Las casillas marcadas como <em>Por definir</em> son las del formato
-              FOR-MTO-06 que todavía no sabemos de dónde se alimentan (Power Center,
-              orden de servicio, permiso de trabajo, repuestos, horas hombre, mano de
-              obra y quién recibe). En cuanto me pases el Excel del formato y me digas
-              qué va en cada una, el acta queda idéntica a la oficial.
+          {i.observaciones_finales ? (
+            <p className="text-[11px] mt-2 leading-relaxed">
+              <strong>Observaciones finales:</strong> {i.observaciones_finales}
             </p>
+          ) : null}
+        </div>
+
+        <AccionesActa
+          idIntervencion={i.id_intervencion}
+          urlDrive={i.pdf_drive_url}
+        />
+
+        <div
+          className="no-imprimir mt-4 border rounded px-4 py-3"
+          style={{ borderColor: "var(--color-borde)", background: "var(--color-panel)" }}
+        >
+          <p className="text-[12px] leading-relaxed" style={{ color: "var(--color-tenue)" }}>
+            Este documento replica <strong>Formato_Intervencion_PBI</strong> con
+            sus 8 secciones y sus casillas. El PDF se genera solo al guardar la
+            intervención y se archiva en <code>06_INTERVENCIONES</code> del
+            equipo. Si el archivado falla, el acta queda guardada en este equipo
+            y se puede reintentar con el botón de arriba.
+          </p>
+          <div className="flex gap-4 mt-2">
+            <Link
+              href={`/intervenciones?equipo=${i.id_equipo}`}
+              className="font-[family-name:var(--font-mono)] text-[11px]"
+              style={{ color: "var(--color-activo)" }}
+            >
+              Historial del equipo →
+            </Link>
+            {c ? (
+              <span
+                className="font-[family-name:var(--font-mono)] text-[11px]"
+                style={{ color: "var(--color-sin-info)" }}
+              >
+                Controlador {c.id_controlador}
+              </span>
+            ) : null}
           </div>
         </div>
       </main>
@@ -189,75 +291,59 @@ export default async function ActaIntervencion({
   );
 }
 
-function Bloque({
-  titulo, children, ultimo,
+/* ---------- Piezas del formato ---------- */
+
+function Seccion({ n, titulo }: { n: string; titulo: string }) {
+  return (
+    <div className="seccion-acta">
+      {n}. {titulo}
+    </div>
+  );
+}
+
+function Fila({
+  campo, dato, mono, alto,
 }: {
-  titulo: string; children: React.ReactNode; ultimo?: boolean;
+  campo: string; dato?: string | null; mono?: boolean; alto?: boolean;
+}) {
+  const vacio = !dato || String(dato).trim() === "";
+  return (
+    <tr>
+      <td className="celda etiqueta">{campo}</td>
+      <td
+        className={`celda ${mono ? "font-[family-name:var(--font-mono)]" : ""} ${
+          alto ? "align-top py-2.5" : ""
+        }`}
+        style={vacio ? { color: "var(--color-sin-info)" } : undefined}
+      >
+        {vacio ? "—" : dato}
+      </td>
+    </tr>
+  );
+}
+
+function Casillas<T extends string>({
+  opciones, valor,
+}: {
+  opciones: [T, string][]; valor: T | null | undefined;
 }) {
   return (
-    <section className={ultimo ? "" : "border-b border-[#e9edf4]"}>
-      <h2 className="bg-[#f7f9fc] border-b border-[#e9edf4] px-5 py-2 text-[11.5px] font-extrabold tracking-wide text-marino-900">
-        {titulo}
-      </h2>
-      <div className="px-5 py-4">{children}</div>
-    </section>
+    <span className="flex flex-wrap gap-x-4 gap-y-1">
+      {opciones.map(([v, etiqueta]) => (
+        <span key={v} className="whitespace-nowrap">
+          <span className="casilla">{v === valor ? "☑" : "☐"}</span> {etiqueta}
+        </span>
+      ))}
+    </span>
   );
 }
 
-function Rejilla({ children }: { children: React.ReactNode }) {
+function Firma({ nombre, fecha }: { nombre: string; fecha: string }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3">
-      {children}
-    </div>
-  );
-}
-
-function Celda({
-  etiqueta, children,
-}: {
-  etiqueta: string; children: React.ReactNode;
-}) {
-  return (
-    <div className="border-b border-dotted border-[#d3dae6] pb-1.5">
-      <div className="text-[10.5px] text-[#667085] font-semibold uppercase tracking-wide">
-        {etiqueta}
-      </div>
-      <div className="text-[13px] font-semibold text-marino-900 mt-0.5">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function Rotulo({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="text-[10.5px] text-[#667085] font-semibold uppercase tracking-wide mb-1">
-      {children}
-    </div>
-  );
-}
-
-function Parrafo({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[13px] text-[#1d2939] leading-relaxed border border-[#eef1f6] rounded-md px-3 py-2 bg-[#fcfdff] min-h-[42px]">
-      {children}
-    </p>
-  );
-}
-
-function PorDefinir() {
-  return <span className="text-[#b4bcca] font-normal italic">Por definir</span>;
-}
-
-function Firma({ rotulo, nombre }: { rotulo: string; nombre: string }) {
-  return (
-    <div>
-      <div className="h-12" />
-      <div className="border-t border-marino-900" />
-      <div className="text-[11px] text-[#667085] mt-1.5">{rotulo}</div>
-      <div className="text-[13px] font-semibold text-marino-900">
-        {nombre || " "}
-      </div>
+    <div className="text-[10.5px] leading-[2.1]">
+      <div>Firma: ______________________________</div>
+      <div>Nombre: {nombre || "____________________________"}</div>
+      <div>Fecha: {fecha || "____ / ____ / ______"}</div>
     </div>
   );
 }

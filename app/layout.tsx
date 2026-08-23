@@ -1,17 +1,36 @@
 import type { Metadata, Viewport } from "next";
+import { Barlow_Semi_Condensed, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import Sincronizador from "@/components/Sincronizador";
 
+const placa = Barlow_Semi_Condensed({
+  subsets: ["latin"],
+  weight: ["500", "600"],
+  variable: "--fuente-placa",
+});
+
+const cuerpo = IBM_Plex_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--fuente-cuerpo",
+});
+
+const mono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--fuente-mono",
+});
+
 export const metadata: Metadata = {
-  title: "Sistema de Control de Campo · PBI",
+  title: "Control de Generación · PBI",
   description:
-    "Gestión y control de equipos de generación, controladores e intervenciones.",
+    "Sistema de Control de Campo — Gestión Energy SAS. Fichas de equipos, controladores e intervenciones.",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#0d1a3a",
+  themeColor: "#f4f5f6",
 };
 
 export default function RootLayout({
@@ -20,8 +39,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es">
-      <body className="min-h-screen flex flex-col bg-lienzo">
+    <html
+      lang="es"
+      className={`${placa.variable} ${cuerpo.variable} ${mono.variable}`}
+    >
+      <body className="min-h-screen flex flex-col">
         {children}
         <Sincronizador />
       </body>

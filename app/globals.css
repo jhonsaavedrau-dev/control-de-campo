@@ -1,19 +1,50 @@
 @import "tailwindcss";
 
+/* ============================================================
+   SISTEMA DE CONTROL DE CAMPO PBI
+   Control de Generación — Gestión Energy SAS
+
+   Modo campo (claro, alto contraste) para el técnico en el
+   celular; modo oficina (oscuro) reservado al panel de
+   supervisión. Reglas: sin degradados, sin sombras
+   decorativas, sin resplandor. Esquinas casi rectas.
+   ============================================================ */
+
 @theme {
-  --color-marino-900: #0d1a3a;
+  /* --- Modo campo (por defecto) --- */
+  --color-lienzo: #f4f5f6;
+  --color-panel: #ffffff;
+  --color-campo: #f7f8f9;
+  --color-borde: #dde1e5;
+  --color-borde-suave: #e9ebed;
+  --color-tinta: #12161b;
+  --color-tenue: #5b6472;
+
+  --color-activo: #0f8a7e;
+  --color-accion: #f2a93b;
+
+  --color-operativo: #2e9e5b;
+  --color-pendiente: #b5720c;
+  --color-critico: #d2302f;
+  --color-sin-info: #78818c;
+
+  /* --- Modo oficina (panel de supervisión) --- */
+  --color-consola: #10151b;
+  --color-consola-panel: #1a2129;
+  --color-consola-campo: #151a20;
+  --color-consola-borde: #2b3541;
+  --color-consola-tinta: #e8ebef;
+  --color-consola-tenue: #8b96a3;
+  --color-consola-activo: #4fd1c5;
+
+  /* --- Identidad PBI (marca y documentos) --- */
+  --color-marino: #0d1a3a;
   --color-marino-800: #122252;
-  --color-marino-700: #172c63;
-  --color-marino-600: #1e3a7b;
-  --color-marino-50: #eef2fb;
-
   --color-amarillo: #ffc629;
-  --color-amarillo-600: #e0a800;
 
-  --color-lienzo: #eef1f6;
-
-  --font-sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial,
-    sans-serif;
+  --font-placa: var(--fuente-placa), "Barlow Semi Condensed", sans-serif;
+  --font-sans: var(--fuente-cuerpo), "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: var(--fuente-mono), "IBM Plex Mono", ui-monospace, monospace;
 }
 
 html {
@@ -22,72 +53,259 @@ html {
 
 body {
   font-family: var(--font-sans);
-  color: #111827;
+  color: var(--color-tinta);
   -webkit-font-smoothing: antialiased;
 }
 
-/* Etiqueta gris / valor oscuro: el patrón de datos de la ficha. */
-.etiqueta {
-  color: #667085;
-  font-size: 0.8125rem;
-  font-weight: 500;
+/* --- Placa de equipo: el encabezado que el técnico reconoce --- */
+.placa {
+  background: var(--color-panel);
+  border-bottom: 1px solid var(--color-borde);
+  border-left: 3px solid var(--color-sin-info);
+  padding: 16px 20px;
 }
-.valor {
-  color: #0d1a3a;
-  font-size: 0.8125rem;
+.placa-operativo { border-left-color: var(--color-operativo); }
+.placa-pendiente { border-left-color: var(--color-pendiente); }
+.placa-critico   { border-left-color: var(--color-critico); }
+
+.ruta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-tenue);
+  margin-bottom: 8px;
+}
+
+.equipo-id {
+  font-family: var(--font-placa);
   font-weight: 600;
-  text-align: right;
+  font-size: 26px;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
 }
 
-.tarjeta {
-  background: #fff;
-  border: 1px solid #e3e8f0;
-  border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(13, 26, 58, 0.05);
-  overflow: hidden;
+.equipo-sub {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-tenue);
+  margin-top: 3px;
 }
 
-.tarjeta-titulo {
-  background: var(--color-marino-800);
-  color: #fff;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  padding: 0.75rem 1rem;
+/* --- Rótulo de sección con línea de continuación --- */
+.rotulo {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-tenue);
+  margin: 20px 0 8px;
+}
+.rotulo:first-child { margin-top: 0; }
+.rotulo::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-borde);
 }
 
-.campo {
-  display: block;
-  width: 100%;
-  border: 1px solid #d3dae6;
-  border-radius: 8px;
-  padding: 0.6rem 0.75rem;
-  font-size: 0.9rem;
-  background: #fff;
-  color: #0d1a3a;
+/* --- Ficha de datos: rejilla de hairlines --- */
+.datos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--color-borde);
+  border: 1px solid var(--color-borde);
+  border-radius: 4px;
+  overflow: hidden;
 }
-.campo:focus {
-  outline: 2px solid var(--color-marino-600);
+.datos-1 { grid-template-columns: 1fr; }
+
+.dato {
+  background: var(--color-panel);
+  padding: 8px 12px;
+}
+.dato-etiqueta {
+  font-size: 10px;
+  color: var(--color-tenue);
+  margin-bottom: 3px;
+}
+.dato-valor {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  word-break: break-word;
+}
+
+/* --- Insignia de estado: filo de color, no burbuja --- */
+.insignia {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding-left: 8px;
+  border-left: 2px solid var(--color-sin-info);
+  color: var(--color-sin-info);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.insignia-operativo { color: var(--color-operativo); border-left-color: var(--color-operativo); }
+.insignia-pendiente { color: var(--color-pendiente); border-left-color: var(--color-pendiente); }
+.insignia-critico   { color: var(--color-critico);   border-left-color: var(--color-critico); }
+
+/* --- Acciones --- */
+.accion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  border: none;
+  border-radius: 6px;
+  padding: 14px;
+  background: var(--color-accion);
+  color: #151109;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+}
+.accion:disabled { opacity: 0.55; }
+
+.accion-secundaria {
+  background: transparent;
+  border: 1px solid var(--color-borde);
+  color: var(--color-tinta);
+}
+
+/* --- Formulario --- */
+.entrada {
+  width: 100%;
+  background: var(--color-campo);
+  border: 1px solid var(--color-borde);
+  border-radius: 4px;
+  padding: 10px 12px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--color-tinta);
+}
+.entrada:focus {
+  outline: 2px solid var(--color-activo);
   outline-offset: -1px;
   border-color: transparent;
 }
-.campo-etiqueta {
+textarea.entrada { min-height: 64px; resize: vertical; }
+
+.entrada-rotulo {
   display: block;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: #344054;
-  margin-bottom: 0.35rem;
+  font-size: 11px;
+  color: var(--color-tenue);
+  margin-bottom: 6px;
+}
+.req { color: var(--color-accion); }
+
+/* --- Pastillas de selección (tipo de intervención) --- */
+.pastilla {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-borde);
+  border-radius: 4px;
+  color: var(--color-tenue);
+  background: var(--color-panel);
+  cursor: pointer;
+  text-align: center;
+}
+.pastilla-activa {
+  border-color: var(--color-activo);
+  color: var(--color-activo);
+}
+
+/* --- Bitácora de intervenciones --- */
+.bitacora {
+  border: 1px solid var(--color-borde);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.bitacora-fila {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--color-panel);
+  border-bottom: 1px solid var(--color-borde);
+}
+.bitacora-fila:last-child { border-bottom: none; }
+.bitacora-fecha {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-tenue);
+  width: 56px;
+  flex-shrink: 0;
+}
+
+/* --- Contenedor tipo dispositivo --- */
+.panel {
+  background: var(--color-panel);
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 @media print {
-  .no-imprimir {
-    display: none !important;
-  }
-  html,
-  body {
-    background: #fff;
-  }
+  .no-imprimir { display: none !important; }
+  html, body { background: #fff; }
+}
+
+/* ============================================================
+   ACTA — réplica del Formato_Intervencion_PBI (8 secciones)
+   Blanco y negro, para que impresa se compare hoja contra hoja
+   con el formato en papel.
+   ============================================================ */
+
+.acta {
+  background: #fff;
+  border: 1px solid #000;
+  padding: 14px;
+  color: #000;
+}
+
+.acta .tabla {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.acta .celda {
+  border: 1px solid #000;
+  padding: 5px 8px;
+  font-size: 11.5px;
+  vertical-align: middle;
+  word-break: break-word;
+}
+
+.acta .etiqueta {
+  width: 190px;
+  font-weight: 600;
+  background: #f2f2f2;
+}
+
+.seccion-acta {
+  background: #000;
+  color: #fff;
+  font-family: var(--font-placa);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  padding: 4px 8px;
+  margin-top: 10px;
+}
+
+.casilla {
+  font-size: 13px;
+  line-height: 1;
+}
+
+@media print {
+  @page { size: A4; margin: 12mm; }
+  .acta { border: none; padding: 0; }
+  .seccion-acta { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .acta .etiqueta { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  main { max-width: none !important; padding: 0 !important; }
 }

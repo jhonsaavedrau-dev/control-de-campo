@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { contarPendientes, sincronizar } from "@/lib/pendientes";
 
 /**
- * Barra flotante que solo aparece cuando hay algo sin subir o
- * cuando el dispositivo se quedó sin conexión.
+ * Barra de estado de conexión. Solo aparece cuando hay algo sin subir
+ * o cuando el dispositivo se quedó sin señal — en campo eso importa
+ * más que cualquier otra cosa en pantalla.
  */
 export default function Sincronizador() {
   const router = useRouter();
@@ -34,8 +35,6 @@ export default function Sincronizador() {
 
     window.addEventListener("online", alConectar);
     window.addEventListener("offline", alDesconectar);
-
-    // Por si ya había señal al abrir con cosas en cola.
     if (navigator.onLine) void alConectar();
 
     return () => {
@@ -47,28 +46,47 @@ export default function Sincronizador() {
 
   if (enLinea && pendientes === 0) return null;
 
+  const sinSenal = !enLinea;
+
   return (
-    <div className="no-imprimir fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-4 w-full max-w-[520px]">
+    <div className="no-imprimir fixed bottom-0 inset-x-0 z-50">
       <div
-        className={`rounded-xl border shadow-lg px-4 py-3 text-[13px] font-medium flex items-center gap-3 ${
-          enLinea
-            ? "bg-[#fff5e0] border-[#ffe0a3] text-[#7a4f00]"
-            : "bg-marino-900 border-marino-700 text-white"
-        }`}
+        className="max-w-[640px] mx-auto m-3 rounded border px-4 py-3 flex items-center gap-3"
+        style={
+          sinSenal
+            ? {
+                background: "var(--color-consola)",
+                borderColor: "var(--color-consola-borde)",
+                color: "var(--color-consola-tinta)",
+              }
+            : {
+                background: "var(--color-panel)",
+                borderColor: "var(--color-pendiente)",
+                color: "var(--color-tinta)",
+              }
+        }
       >
         <span
-          className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-            enLinea ? "bg-[#e0a800]" : "bg-[#f97066]"
-          }`}
+          className="w-2 h-2 rounded-full shrink-0"
+          style={{
+            background: sinSenal
+              ? "var(--color-critico)"
+              : "var(--color-pendiente)",
+          }}
         />
-        <span className="flex-1">
-          {!enLinea
-            ? "Sin conexión. Puedes seguir registrando: todo se guarda en este dispositivo."
-            : subiendo
-              ? "Subiendo registros guardados…"
-              : `${pendientes} registro${pendientes === 1 ? "" : "s"} sin subir.`}
-        </span>
-        {enLinea && !subiendo && pendientes > 0 ? (
+        <div className="flex-1 min-w-0">
+          <div className="font-[family-name:var(--font-mono)] text-[11px] uppercase tracking-wide opacity-70">
+            {sinSenal ? "Sin conexión" : "Pendiente de subir"}
+          </div>
+          <div className="text-[12.5px] mt-0.5">
+            {sinSenal
+              ? "Puedes seguir registrando: todo queda guardado en este equipo."
+              : subiendo
+                ? "Subiendo registros guardados…"
+                : `${pendientes} registro${pendientes === 1 ? "" : "s"} esperando señal.`}
+          </div>
+        </div>
+        {!sinSenal && !subiendo && pendientes > 0 ? (
           <button
             onClick={async () => {
               setSubiendo(true);
@@ -77,9 +95,10 @@ export default function Sincronizador() {
               setPendientes(contarPendientes());
               router.refresh();
             }}
-            className="shrink-0 bg-[#e0a800] hover:bg-[#c79400] text-white rounded-lg px-3 py-1.5 text-[12px] font-bold transition-colors"
+            className="shrink-0 rounded px-3 py-1.5 font-[family-name:var(--font-mono)] text-[11px]"
+            style={{ background: "var(--color-accion)", color: "#151109" }}
           >
-            Subir ahora
+            SUBIR
           </button>
         ) : null}
       </div>

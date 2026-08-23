@@ -13,3 +13,7 @@ Thumbs.db
 
 # La base de trabajo se genera sola a partir de data/seed.json
 .data/
+
+# Credenciales de Google Drive - NUNCA se suben
+credenciales-drive.json
+service-account*.json
