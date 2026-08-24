@@ -5,6 +5,7 @@ import {
 } from "@react-pdf/renderer";
 import type { Intervencion, Equipo, Sede, Controlador } from "./tipos";
 import { ETIQUETA_TIPO } from "./tipos";
+import { sinAcentos } from "./estructura-drive";
 
 /**
  * Acta de intervención en PDF — réplica del formato oficial
@@ -146,10 +147,9 @@ export type FotoActa = { ruta: string };
 
 export function nombreArchivoActa(i: Intervencion) {
   const tipo = ETIQUETA_TIPO[i.tipo_intervencion] ?? "Intervencion";
-  return `${i.id_intervencion}_${i.id_equipo}_${tipo}.pdf`
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "");
+  return sinAcentos(`${i.id_intervencion}_${i.id_equipo}_${tipo}.pdf`);
 }
+
 
 function Acta({
   intervencion: i,
