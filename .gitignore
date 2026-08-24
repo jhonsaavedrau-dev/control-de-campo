@@ -26,3 +26,6 @@ vercel-variables.txt
 
 # Credenciales iniciales de usuarios
 usuarios-iniciales.txt
+
+# La guia se genera desde /api/guia
+Guia-tecnico-Control-de-Generacion.pdf
