@@ -17,3 +17,9 @@ Thumbs.db
 # Credenciales de Google Drive - NUNCA se suben
 credenciales-drive.json
 service-account*.json
+
+# Variables preparadas para el despliegue
+vercel-variables.txt
+.vercel
+
+.vercel

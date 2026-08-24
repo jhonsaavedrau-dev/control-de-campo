@@ -23,13 +23,15 @@ export type ResultadoArchivado =
 async function guardarRespaldo(nombre: string, pdf: Buffer) {
   const candidatas = [
     path.join(process.cwd(), ".data", "actas"),
-    path.join(os.tmpdir(), "actas-pbi"),
+    // La carpeta temporal se resuelve en tiempo de ejecución: publicado
+    // en la nube es el único sitio escribible.
+    path.join(/* turbopackIgnore: true */ os.tmpdir(), "actas-pbi"),
   ];
   let ultimoError: unknown;
   for (const carpeta of candidatas) {
     try {
       await nodeFs.mkdir(carpeta, { recursive: true });
-      const destino = path.join(carpeta, nombre);
+      const destino = path.join(/* turbopackIgnore: true */ carpeta, nombre);
       await nodeFs.writeFile(destino, pdf);
       return destino;
     } catch (e) {
