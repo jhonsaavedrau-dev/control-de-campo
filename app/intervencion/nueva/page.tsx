@@ -3,6 +3,7 @@ import { obtenerFichaEquipo } from "@/lib/db";
 import { Encabezado, PieDePagina } from "@/components/Marco";
 import FormularioIntervencion from "@/components/FormularioIntervencion";
 import { claseBordePlaca, numero } from "@/components/Piezas";
+import { usuarioActual } from "@/lib/sesion";
 
 export default async function NuevaIntervencion({
   searchParams,
@@ -10,7 +11,10 @@ export default async function NuevaIntervencion({
   searchParams: Promise<{ equipo?: string }>;
 }) {
   const { equipo = "" } = await searchParams;
-  const ficha = await obtenerFichaEquipo(equipo.toUpperCase());
+  const [ficha, usuario] = await Promise.all([
+    obtenerFichaEquipo(equipo.toUpperCase()),
+    usuarioActual(),
+  ]);
   if (!ficha) notFound();
 
   const { equipo: e, sede: s, controlador: c } = ficha;
@@ -36,7 +40,7 @@ export default async function NuevaIntervencion({
             idEquipo={e.id_equipo}
             idControlador={c?.id_controlador ?? ""}
             horometroActual={e.horometro_actual}
-            tecnicoSugerido=""
+            tecnicoSugerido={usuario?.nombre ?? ""}
           />
         </div>
       </main>

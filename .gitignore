@@ -23,3 +23,6 @@ vercel-variables.txt
 .vercel
 
 .vercel
+
+# Credenciales iniciales de usuarios
+usuarios-iniciales.txt
