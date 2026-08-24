@@ -4,6 +4,7 @@ import type {
   Backup, Documento,
 } from "./tipos";
 import type { EntradaIntervencion } from "./db-json";
+import { depurarChecklist } from "./checklist";
 
 /**
  * Misma capa de datos, contra PostgreSQL (Supabase).
@@ -298,6 +299,7 @@ export async function crearIntervencion(
     motivo: datos.motivo ?? "",
     estado_inicial: datos.estado_inicial ?? "",
     actividades_realizadas: datos.actividades_realizadas,
+    checklist: depurarChecklist(datos.checklist),
     estado_final: datos.estado_final ?? null,
     motor_obs: datos.motor_obs ?? "",
     alternador_obs: datos.alternador_obs ?? "",

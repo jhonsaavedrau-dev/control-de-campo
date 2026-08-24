@@ -207,6 +207,8 @@ export type Intervencion = {
   motivo: string;
   estado_inicial: string;
   actividades_realizadas: string;
+  /** Tareas marcadas en el formulario; complementa al texto libre. */
+  checklist: string[];
   estado_final: EstadoEquipo | null;
 
   // 4. Grupo electrógeno

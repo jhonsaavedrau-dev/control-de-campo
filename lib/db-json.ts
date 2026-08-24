@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { depurarChecklist } from "./checklist";
 import path from "node:path";
 import type {
   BaseDatos, Intervencion, Equipo, Sede, Controlador,
@@ -217,6 +218,7 @@ export async function crearIntervencion(
     motivo: datos.motivo ?? "",
     estado_inicial: datos.estado_inicial ?? "",
     actividades_realizadas: datos.actividades_realizadas,
+    checklist: depurarChecklist(datos.checklist),
     estado_final: datos.estado_final ?? null,
 
     motor_obs: datos.motor_obs ?? "",

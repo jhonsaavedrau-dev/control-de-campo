@@ -120,6 +120,13 @@ export default async function ActaIntervencion({
             <tbody>
               <Fila campo="Motivo" dato={i.motivo} alto />
               <Fila campo="Estado inicial" dato={i.estado_inicial} alto />
+              {i.checklist?.length ? (
+                <Fila
+                  campo="Tareas ejecutadas"
+                  dato={i.checklist.join(" · ")}
+                  alto
+                />
+              ) : null}
               <Fila campo="Actividades realizadas" dato={i.actividades_realizadas} alto />
               <tr>
                 <td className="celda etiqueta">Estado final</td>

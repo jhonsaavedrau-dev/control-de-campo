@@ -230,6 +230,9 @@ function Acta({
         <View style={s.tabla}>
           <Fila campo="Motivo" dato={i.motivo} />
           <Fila campo="Estado inicial" dato={i.estado_inicial} />
+          {i.checklist?.length ? (
+            <Fila campo="Tareas ejecutadas" dato={i.checklist.join(" · ")} />
+          ) : null}
           <Fila campo="Actividades realizadas" dato={i.actividades_realizadas} />
           <FilaCasillas
             campo="Estado final"

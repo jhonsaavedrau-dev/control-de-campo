@@ -9,6 +9,7 @@ import {
 import { ETIQUETA_COMBUSTIBLE, ETIQUETA_TIPO } from "@/lib/tipos";
 import { usuarioActual, puedeEditar } from "@/lib/sesion";
 import PanelBackups from "@/components/PanelBackups";
+import AccionesHojaVida from "@/components/AccionesHojaVida";
 
 export default async function FichaEquipo({
   params,
@@ -203,6 +204,14 @@ export default async function FichaEquipo({
                 />
               </div>
             ) : null}
+
+            <div className="no-imprimir">
+              <AccionesHojaVida
+                idEquipo={e.id_equipo}
+                totalIntervenciones={intervenciones.length}
+                puedeArchivar={puedeEditarFicha}
+              />
+            </div>
 
             <div className="mt-6 space-y-2 no-imprimir">
               <Link href={`/intervencion/nueva?equipo=${e.id_equipo}`} className="accion">

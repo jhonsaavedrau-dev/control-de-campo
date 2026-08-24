@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { guardarPendiente } from "@/lib/pendientes";
+import { CHECKLIST } from "@/lib/checklist";
 import {
   ETIQUETA_TIPO, ETIQUETA_ESTADO, ETIQUETA_RESULTADO,
 } from "@/lib/tipos";
@@ -62,6 +63,7 @@ export default function FormularioIntervencion({
       motivo: texto("motivo"),
       estado_inicial: texto("estado_inicial"),
       actividades_realizadas: texto("actividades_realizadas"),
+      checklist: f.getAll("checklist").map(String),
       estado_final: texto("estado_final") || null,
 
       motor_obs: texto("motor_obs"),
@@ -187,6 +189,41 @@ export default function FormularioIntervencion({
       <Grupo etiqueta="Estado inicial">
         <textarea name="estado_inicial" rows={2} className="entrada" placeholder="Cómo se encontró el equipo." />
       </Grupo>
+      <Grupo
+        etiqueta="Qué se le hizo"
+        ayuda="Marca lo que aplique. Lo que no esté en la lista va abajo."
+      >
+        <div className="space-y-3">
+          {CHECKLIST.map((g) => (
+            <div key={g.grupo}>
+              <div
+                className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-wide mb-1.5"
+                style={{ color: "var(--color-sin-info)" }}
+              >
+                {g.grupo}
+              </div>
+              <div className="space-y-1.5">
+                {g.tareas.map((t) => (
+                  <label
+                    key={t}
+                    className="flex items-center gap-2.5 text-[13.5px] cursor-pointer py-1"
+                  >
+                    <input
+                      type="checkbox"
+                      name="checklist"
+                      value={t}
+                      className="w-[18px] h-[18px] shrink-0"
+                      style={{ accentColor: "var(--color-activo)" }}
+                    />
+                    {t}
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Grupo>
+
       <Grupo etiqueta="Actividades realizadas" obligatorio>
         <textarea
           name="actividades_realizadas"
