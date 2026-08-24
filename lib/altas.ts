@@ -106,7 +106,9 @@ export function equipoNuevo(id: string, d: Partial<Equipo>): Equipo {
     descripcion: d.descripcion?.trim() ?? "",
     producto: "",
     ubicacion: d.ubicacion?.trim() ?? "",
-    puesta_en_servicio: d.puesta_en_servicio ?? "",
+    // null y no "": es una columna `date`, y Postgres rechaza la cadena
+    // vacia con «invalid input syntax for type date».
+    puesta_en_servicio: d.puesta_en_servicio || null,
     actualizado_por: d.actualizado_por ?? "",
   };
 }

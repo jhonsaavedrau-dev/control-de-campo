@@ -159,7 +159,11 @@ export type Equipo = {
   descripcion: string;
   producto: string;
   ubicacion: string;
-  puesta_en_servicio: string;
+  /**
+   * Fecha, no texto: en la base es una columna `date`. Vacio es null y
+   * nunca cadena vacia — Postgres rechaza "" para una fecha.
+   */
+  puesta_en_servicio: string | null;
   actualizado_por: string;
 };
 

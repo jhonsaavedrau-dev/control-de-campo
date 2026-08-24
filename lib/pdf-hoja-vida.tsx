@@ -81,7 +81,7 @@ const s = StyleSheet.create({
   },
 });
 
-const fechaCorta = (iso: string) => {
+const fechaCorta = (iso: string | null) => {
   if (!iso) return "";
   const [a, m, d] = iso.split("-");
   return a && m && d ? `${d}/${m}/${a.slice(2)}` : iso;
