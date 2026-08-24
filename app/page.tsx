@@ -3,7 +3,10 @@ import { listarEquipos, resumen } from "@/lib/db";
 import { Encabezado, PieDePagina } from "@/components/Marco";
 import { Insignia, numero, fechaCorta } from "@/components/Piezas";
 import { semaforo, ETIQUETA_ESTADO, ETIQUETA_COMBUSTIBLE } from "@/lib/tipos";
-import { IcoRayo, IcoCombustible, IcoReloj, IcoChip, IcoFlecha, IcoLupa } from "@/components/Iconos";
+import {
+  IcoRayo, IcoCombustible, IcoReloj, IcoChip, IcoFlecha, IcoLupa,
+  IcoUbicacion,
+} from "@/components/Iconos";
 import { usuarioActual, puedeEditar } from "@/lib/sesion";
 
 export default async function Inicio({
@@ -124,15 +127,12 @@ export default async function Inicio({
           {/* --- Equipos por sede --- */}
           {[...porSede.entries()].map(([idSede, lista]) => (
             <section key={idSede} className="mb-8">
-              <div className="rotulo">
-                <span style={{ color: "var(--color-tenue)", fontWeight: 600 }}>
-                  {lista[0]?.sede?.id_sede}
-                </span>
-                {lista[0]?.sede?.nombre}
-                <span style={{ color: "var(--color-sin-info)" }}>
-                  {lista.length} {lista.length === 1 ? "equipo" : "equipos"}
-                </span>
-              </div>
+              <CabeceraSede
+                idSede={lista[0]?.sede?.id_sede ?? ""}
+                nombre={lista[0]?.sede?.nombre ?? ""}
+                ubicacion={lista[0]?.sede?.ubicacion ?? ""}
+                equipos={lista}
+              />
 
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {lista.map((e) => {
@@ -277,6 +277,92 @@ export default async function Inicio({
 
       <PieDePagina />
     </>
+  );
+}
+
+function CabeceraSede({
+  idSede, nombre, ubicacion, equipos,
+}: {
+  idSede: string;
+  nombre: string;
+  ubicacion: string;
+  equipos: { estado: string }[];
+}) {
+  // El resumen de estados de esta sede, no del total: es lo que se
+  // quiere saber al mirar un campo concreto.
+  const cuenta = (t: string) =>
+    equipos.filter((e) => semaforo(e.estado as never) === t).length;
+  const grupos = [
+    { tono: "operativo", n: cuenta("operativo") },
+    { tono: "pendiente", n: cuenta("pendiente") },
+    { tono: "critico", n: cuenta("critico") },
+    { tono: "sin-info", n: cuenta("sin-info") },
+  ].filter((g) => g.n > 0);
+
+  return (
+    <div
+      className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-3 pl-3 pr-3.5 py-2.5 rounded"
+      style={{
+        background: "var(--color-panel)",
+        border: "1px solid var(--color-borde)",
+        borderLeft: "4px solid var(--color-marino)",
+      }}
+    >
+      <span
+        className="font-[family-name:var(--font-mono)] text-[11px] font-medium tracking-[0.06em] px-2 py-1 rounded shrink-0"
+        style={{
+          background: "var(--color-marino)",
+          color: "var(--color-amarillo)",
+        }}
+      >
+        {idSede}
+      </span>
+
+      <span className="font-[family-name:var(--font-placa)] font-semibold text-[19px] leading-none">
+        {nombre}
+      </span>
+
+      {ubicacion ? (
+        <span
+          className="hidden sm:flex items-center gap-1.5 text-[11.5px]"
+          style={{ color: "var(--color-sin-info)" }}
+        >
+          <IcoUbicacion className="w-3.5 h-3.5" />
+          {ubicacion}
+        </span>
+      ) : null}
+
+      <span className="flex items-center gap-2 ml-auto shrink-0">
+        {grupos.map((g) => (
+          <span
+            key={g.tono}
+            className="flex items-center gap-1.5 font-[family-name:var(--font-mono)] text-[11px] tabular-nums"
+            style={{ color: "var(--color-tenue)" }}
+            title={g.tono}
+          >
+            <span
+              className="w-2 h-2 rounded-full"
+              style={{
+                background:
+                  g.tono === "sin-info"
+                    ? "var(--color-sin-info)"
+                    : `var(--color-${g.tono})`,
+              }}
+            />
+            {g.n}
+          </span>
+        ))}
+        <span
+          className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-[0.08em] pl-2"
+          style={{
+            color: "var(--color-sin-info)",
+            borderLeft: "1px solid var(--color-borde-suave)",
+          }}
+        >
+          {equipos.length} {equipos.length === 1 ? "equipo" : "equipos"}
+        </span>
+      </span>
+    </div>
   );
 }
 

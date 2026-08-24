@@ -167,3 +167,31 @@ export const IcoTermometro = ({ className = base }: P) => (
     <path d="M12 17.5v.01" />
   </svg>
 );
+
+export const IcoGaleria = ({ className = base }: P) => (
+  <svg className={className} viewBox="0 0 24 24" {...trazo}>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <circle cx="8.5" cy="10" r="1.6" />
+    <path d="m4 17 4.5-4.5 3 3L15 12l5 5" />
+  </svg>
+);
+
+export const IcoLista = ({ className = base }: P) => (
+  <svg className={className} viewBox="0 0 24 24" {...trazo}>
+    <path d="M9 6h12M9 12h12M9 18h12" />
+    <path d="m3 6 1.2 1.2L6.5 5M3 12l1.2 1.2L6.5 11M3 18l1.2 1.2L6.5 16" />
+  </svg>
+);
+
+export const IcoBandera = ({ className = base }: P) => (
+  <svg className={className} viewBox="0 0 24 24" {...trazo}>
+    <path d="M5 21V4M5 4h11l-1.5 4L16 12H5" />
+  </svg>
+);
+
+export const IcoPersona = ({ className = base }: P) => (
+  <svg className={className} viewBox="0 0 24 24" {...trazo}>
+    <circle cx="12" cy="8" r="3.5" />
+    <path d="M5 20a7 7 0 0 1 14 0" />
+  </svg>
+);

@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { guardarPendiente } from "@/lib/pendientes";
 import { CHECKLIST } from "@/lib/checklist";
 import {
+  IcoCamara, IcoGaleria, IcoPersona, IcoHerramienta, IcoGenerador,
+  IcoChip, IcoBandera, IcoLista,
+} from "@/components/Iconos";
+import {
   ETIQUETA_TIPO, ETIQUETA_ESTADO, ETIQUETA_RESULTADO,
 } from "@/lib/tipos";
 import type {
@@ -32,6 +36,12 @@ export default function FormularioIntervencion({
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  function agregarFotos(ev: React.ChangeEvent<HTMLInputElement>) {
+    const nuevas = Array.from(ev.target.files ?? []);
+    setFotos((prev) => [...prev, ...nuevas].slice(0, 6));
+    ev.target.value = "";
+  }
 
   async function enviar(evento: React.FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -136,8 +146,7 @@ export default function FormularioIntervencion({
       ) : null}
       {error ? <Nota tono="critico">{error}</Nota> : null}
 
-      {/* 1 */}
-      <Seccion titulo="Datos de la intervención" />
+      <Seccion titulo="Datos de la intervención" icono={<IcoPersona />} numero="1 de 5" />
       <Grupo etiqueta="Técnico responsable" obligatorio>
         <input
           name="tecnico_nombre"
@@ -181,8 +190,7 @@ export default function FormularioIntervencion({
         />
       </Grupo>
 
-      {/* 2 */}
-      <Seccion titulo="Intervención" />
+      <Seccion titulo="Intervención" icono={<IcoHerramienta />} numero="2 de 5" />
       <Grupo etiqueta="Motivo">
         <textarea name="motivo" rows={2} className="entrada" placeholder="Por qué se interviene el equipo." />
       </Grupo>
@@ -197,22 +205,25 @@ export default function FormularioIntervencion({
           {CHECKLIST.map((g) => (
             <div key={g.grupo}>
               <div
-                className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-wide mb-1.5"
-                style={{ color: "var(--color-sin-info)" }}
+                className="flex items-center gap-2 font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-[0.1em] mb-2"
+                style={{ color: "var(--color-tenue)" }}
               >
+                <IcoLista className="w-3 h-3" />
                 {g.grupo}
+                <span className="flex-1 h-px" style={{ background: "var(--color-borde-suave)" }} />
               </div>
-              <div className="space-y-1.5">
+              <div className="grid sm:grid-cols-2 gap-1.5">
                 {g.tareas.map((t) => (
                   <label
                     key={t}
-                    className="flex items-center gap-2.5 text-[13.5px] cursor-pointer py-1"
+                    className="flex items-center gap-2.5 text-[13.5px] cursor-pointer py-2 px-2.5 rounded transition-colors has-checked:bg-[color-mix(in_srgb,var(--color-activo)_9%,transparent)] hover:bg-[var(--color-realce)]"
+                    style={{ border: "1px solid var(--color-borde-suave)" }}
                   >
                     <input
                       type="checkbox"
                       name="checklist"
                       value={t}
-                      className="w-[18px] h-[18px] shrink-0"
+                      className="w-[19px] h-[19px] shrink-0"
                       style={{ accentColor: "var(--color-activo)" }}
                     />
                     {t}
@@ -245,7 +256,7 @@ export default function FormularioIntervencion({
       </Grupo>
 
       {/* 3 */}
-      <Plegable titulo="Grupo electrógeno" detalle="Motor, alternador, carga">
+      <Plegable titulo="Grupo electrógeno" detalle="3 de 5 · opcional" icono={<IcoGenerador />}>
         <Grupo etiqueta="Observaciones del motor">
           <textarea name="motor_obs" rows={2} className="entrada" />
         </Grupo>
@@ -266,7 +277,7 @@ export default function FormularioIntervencion({
       </Plegable>
 
       {/* 4 */}
-      <Plegable titulo="Controlador" detalle="Alarmas, parámetros, backup">
+      <Plegable titulo="Controlador" detalle="4 de 5 · opcional" icono={<IcoChip />}>
         <Grupo etiqueta="Alarmas y eventos">
           <textarea name="alarmas_eventos" rows={2} className="entrada" />
         </Grupo>
@@ -287,8 +298,7 @@ export default function FormularioIntervencion({
         </Grupo>
       </Plegable>
 
-      {/* 5 */}
-      <Seccion titulo="Cierre" />
+      <Seccion titulo="Cierre" icono={<IcoBandera />} numero="5 de 5" />
       <Grupo etiqueta="Resultado" obligatorio>
         <select name="resultado" required defaultValue="" className="entrada">
           <option value="" disabled>
@@ -323,60 +333,97 @@ export default function FormularioIntervencion({
         etiqueta="Evidencia fotográfica"
         ayuda="Hasta 6 fotos. Las dos primeras salen en el acta; todas quedan en Drive."
       >
-        <label
-          className="border border-dashed rounded px-4 py-5 flex flex-col items-center gap-1 cursor-pointer"
-          style={{ borderColor: "var(--color-borde)" }}
-        >
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            multiple
-            className="hidden"
-            onChange={(ev) => {
-              const nuevas = Array.from(ev.target.files ?? []);
-              setFotos((prev) => [...prev, ...nuevas].slice(0, 6));
-              ev.target.value = "";
-            }}
-          />
-          <span className="text-[13px] font-medium">Tomar o adjuntar fotos</span>
-          <span className="text-[11.5px]" style={{ color: "var(--color-sin-info)" }}>
-            {fotos.length ? `${fotos.length} seleccionada(s)` : "Ninguna todavía"}
-          </span>
-        </label>
+        {/* Dos entradas separadas a proposito: con capture el telefono
+            abre la camara y no deja llegar a la galeria, asi que la
+            galeria necesita su propio boton sin ese atributo. */}
+        <div className="grid grid-cols-2 gap-2">
+          <label
+            className="accion accion-secundaria cursor-pointer"
+            style={{ fontSize: "12.5px", padding: "12px 8px" }}
+          >
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              multiple
+              className="hidden"
+              onChange={agregarFotos}
+            />
+            <IcoCamara className="w-4 h-4" />
+            Tomar foto
+          </label>
+
+          <label
+            className="accion accion-secundaria cursor-pointer"
+            style={{ fontSize: "12.5px", padding: "12px 8px" }}
+          >
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={agregarFotos}
+            />
+            <IcoGaleria className="w-4 h-4" />
+            De la galería
+          </label>
+        </div>
 
         {fotos.length ? (
-          <div className="grid grid-cols-3 gap-2 mt-2">
-            {fotos.map((f, idx) => (
-              <div
-                key={f.name + idx}
-                className="relative aspect-square rounded overflow-hidden border"
-                style={{ borderColor: "var(--color-borde)" }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={URL.createObjectURL(f)}
-                  alt={`Foto ${idx + 1}`}
-                  className="w-full h-full object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => setFotos((p) => p.filter((_, i) => i !== idx))}
-                  className="absolute top-1 right-1 w-5 h-5 rounded-full text-[11px] leading-none"
-                  style={{ background: "var(--color-critico)", color: "#fff" }}
-                  aria-label={`Quitar foto ${idx + 1}`}
+          <>
+            <div className="grid grid-cols-3 gap-2 mt-3">
+              {fotos.map((f, idx) => (
+                <div
+                  key={f.name + f.size + idx}
+                  className="relative aspect-square rounded overflow-hidden border"
+                  style={{ borderColor: "var(--color-borde)" }}
                 >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : null}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={URL.createObjectURL(f)}
+                    alt={`Foto ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <span
+                    className="absolute bottom-0 left-0 right-0 font-[family-name:var(--font-mono)] text-[9px] px-1.5 py-0.5"
+                    style={{ background: "rgba(15,20,25,0.72)", color: "#fff" }}
+                  >
+                    {idx + 1}
+                    {idx < 2 ? " · en el acta" : ""}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setFotos((p) => p.filter((_, i) => i !== idx))}
+                    className="absolute top-1 right-1 w-6 h-6 rounded-full text-[13px] leading-none flex items-center justify-center"
+                    style={{ background: "var(--color-critico)", color: "#fff" }}
+                    aria-label={`Quitar foto ${idx + 1}`}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+            <p
+              className="text-[11.5px] mt-2"
+              style={{ color: "var(--color-sin-info)" }}
+            >
+              {fotos.length} de 6 · toca la × para quitar una
+            </p>
+          </>
+        ) : (
+          <p
+            className="text-[11.5px] mt-2 text-center"
+            style={{ color: "var(--color-sin-info)" }}
+          >
+            Ninguna foto todavía
+          </p>
+        )}
       </Grupo>
 
       <div className="mt-6 space-y-2">
-        <button disabled={enviando} className="accion">
-          {enviando ? "GUARDANDO…" : "Guardar intervención"}
+        <button disabled={enviando} className="accion accion-registrar">
+          <IcoHerramienta className="w-4 h-4" />
+          {enviando ? "Guardando…" : "Guardar intervención"}
         </button>
         <button
           type="button"
@@ -399,8 +446,22 @@ export default function FormularioIntervencion({
 
 /* ---------- Piezas del formulario ---------- */
 
-function Seccion({ titulo }: { titulo: string }) {
-  return <div className="rotulo">{titulo}</div>;
+function Seccion({
+  titulo, icono, numero, tono,
+}: {
+  titulo: string;
+  icono: React.ReactNode;
+  numero: string;
+  tono?: "activo";
+}) {
+  const clase = tono ? `bloque-cabeza bloque-cabeza-${tono}` : "bloque-cabeza";
+  return (
+    <div className={clase} style={{ borderRadius: "5px", marginTop: "22px", marginBottom: "14px" }}>
+      {icono}
+      {titulo}
+      <span className="cuenta">{numero}</span>
+    </div>
+  );
 }
 
 function Grupo({
@@ -426,22 +487,32 @@ function Grupo({
 }
 
 function Plegable({
-  titulo, detalle, children,
+  titulo, detalle, children, icono,
 }: {
   titulo: string; detalle: string; children: React.ReactNode;
+  icono: React.ReactNode;
 }) {
   return (
-    <details className="mb-4">
-      <summary className="rotulo cursor-pointer list-none">
-        <span>{titulo}</span>
+    <details className="mb-4 group">
+      <summary
+        className="bloque-cabeza cursor-pointer list-none"
+        style={{
+          borderRadius: "5px",
+          marginTop: "22px",
+          background: "var(--color-marino-alto)",
+        }}
+      >
+        {icono}
+        {titulo}
+        <span className="cuenta">{detalle}</span>
         <span
-          className="font-[family-name:var(--font-mono)] text-[10px]"
-          style={{ color: "var(--color-sin-info)" }}
+          className="font-[family-name:var(--font-mono)] text-[13px] leading-none transition-transform group-open:rotate-90"
+          style={{ color: "var(--color-amarillo)", marginLeft: "8px" }}
         >
-          {detalle}
+          ›
         </span>
       </summary>
-      <div className="pt-3">{children}</div>
+      <div className="pt-4">{children}</div>
     </details>
   );
 }
