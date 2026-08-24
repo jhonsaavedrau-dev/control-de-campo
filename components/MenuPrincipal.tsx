@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   IcoLista, IcoHerramienta, IcoCodigoQR, IcoPersona, IcoDocumento,
   IcoChip, IcoLlave,
@@ -21,6 +21,11 @@ import { salir } from "@/app/entrar/acciones";
  *
  * Se abre como hoja desde abajo en el celular — que es donde llega el
  * pulgar — y como lista desplegable en el computador.
+ *
+ * Para cerrarlo hay tres caminos, y los tres importan: se arrastra
+ * hacia abajo, se toca la equis, o se pulsa «atrás» en el teléfono. El
+ * asa de arriba no es un adorno: si se dibuja algo que parece
+ * arrastrable, tiene que arrastrarse.
  */
 
 type Destino = {
@@ -95,6 +100,9 @@ const GRUPOS: { titulo: string; destinos: Destino[] }[] = [
   },
 ];
 
+/** Cuánto hay que bajar la hoja para que se entienda como «ciérrala». */
+const UMBRAL_CIERRE = 90;
+
 export default function MenuPrincipal({
   puedeEditar,
   esAdmin,
@@ -107,24 +115,82 @@ export default function MenuPrincipal({
   tema: ValorTema;
 }) {
   const [abierto, setAbierto] = useState(false);
+  const [arrastre, setArrastre] = useState(0);
+  const [arrastrando, setArrastrando] = useState(false);
+  const inicioY = useRef<number | null>(null);
+  const hoja = useRef<HTMLElement | null>(null);
   const ruta = usePathname();
 
   // Al cambiar de pantalla el menú sobra: si se quedara abierto habría
   // que cerrarlo a mano cada vez.
   useEffect(() => setAbierto(false), [ruta]);
 
+  /**
+   * Cerrar consume la entrada del historial que se metió al abrir.
+   *
+   * Si no se consumiera, cerrar con la equis dejaría una entrada muerta
+   * y el siguiente «atrás» no haría nada visible.
+   */
+  const cerrar = useCallback(() => {
+    if (typeof window !== "undefined" && window.history.state?.menuPbi) {
+      window.history.back();
+    } else {
+      setAbierto(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!abierto) return;
-    const alPulsar = (e: KeyboardEvent) => e.key === "Escape" && setAbierto(false);
+
+    // Una entrada de historial propia: asi el boton «atras» del telefono
+    // cierra el menu, que es lo que espera cualquiera, en vez de sacarte
+    // de la pagina en la que estabas.
+    window.history.pushState({ menuPbi: true }, "");
+    const alVolver = () => setAbierto(false);
+    const alPulsar = (e: KeyboardEvent) => e.key === "Escape" && cerrar();
+
+    window.addEventListener("popstate", alVolver);
     window.addEventListener("keydown", alPulsar);
+
     // Sin esto, el fondo se desplaza por debajo de la hoja abierta.
     const previo = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+
     return () => {
+      window.removeEventListener("popstate", alVolver);
       window.removeEventListener("keydown", alPulsar);
       document.body.style.overflow = previo;
+      setArrastre(0);
+      setArrastrando(false);
+      inicioY.current = null;
     };
-  }, [abierto]);
+  }, [abierto, cerrar]);
+
+  /* ---------- Arrastrar hacia abajo para cerrar ---------- */
+
+  function alTocar(e: React.TouchEvent) {
+    // Solo si la lista está arriba del todo. Si no, el dedo bajando
+    // significa «quiero ver lo de arriba», no «ciérrame esto».
+    if ((hoja.current?.scrollTop ?? 0) > 0) return;
+    inicioY.current = e.touches[0].clientY;
+    setArrastrando(true);
+  }
+
+  function alMover(e: React.TouchEvent) {
+    if (inicioY.current === null) return;
+    const recorrido = e.touches[0].clientY - inicioY.current;
+    // Hacia arriba no se cierra nada; se deja que la lista se desplace.
+    setArrastre(recorrido > 0 ? recorrido : 0);
+  }
+
+  function alSoltar() {
+    if (inicioY.current === null) return;
+    const recorrido = arrastre;
+    inicioY.current = null;
+    setArrastrando(false);
+    setArrastre(0);
+    if (recorrido > UMBRAL_CIERRE) cerrar();
+  }
 
   const grupos = GRUPOS.map((g) => ({
     ...g,
@@ -161,31 +227,65 @@ export default function MenuPrincipal({
           <button
             type="button"
             aria-label="Cerrar el menú"
-            onClick={() => setAbierto(false)}
+            onClick={cerrar}
             className="absolute inset-0 w-full h-full"
-            style={{ background: "rgba(6,14,34,0.55)", backdropFilter: "blur(2px)" }}
+            style={{
+              background: "rgba(6,14,34,0.55)",
+              backdropFilter: "blur(2px)",
+              // Al arrastrar, el fondo se aclara: dice «lo estás soltando».
+              opacity: arrastre ? Math.max(0.25, 1 - arrastre / 320) : 1,
+            }}
           />
 
           <nav
-            className="absolute inset-x-0 bottom-0 sm:inset-x-auto sm:right-4 sm:top-[64px] sm:bottom-auto sm:w-[380px] sm:rounded-lg rounded-t-2xl overflow-hidden hoja-menu"
+            ref={hoja}
+            className={`absolute inset-x-0 bottom-0 sm:inset-x-auto sm:right-4 sm:top-[64px] sm:bottom-auto sm:w-[380px] sm:rounded-lg rounded-t-2xl overflow-hidden${
+              arrastre ? "" : " hoja-menu"
+            }`}
             style={{
               background: "var(--color-panel)",
               border: "1px solid var(--color-borde)",
               maxHeight: "min(82vh, 720px)",
               overflowY: "auto",
+              transform: arrastre ? `translateY(${arrastre}px)` : undefined,
+              // Mientras el dedo manda no hay transición: la hoja tiene
+              // que ir pegada al dedo. Al soltar, vuelve sola.
+              transition: arrastrando ? "none" : "transform 180ms ease-out",
             }}
           >
-            {/* El asa: en el celular dice «esto se arrastra o se toca fuera» */}
-            <div className="sm:hidden pt-2.5 pb-1 flex justify-center">
+            {/* La salida, siempre a la vista.
+                Va pegada arriba (sticky) y no posicionada sobre la hoja:
+                el contenido se desplaza por dentro, y una equis absoluta
+                se iria de vista al bajar por la lista. */}
+            <div
+              className="sticky top-0 z-10 flex items-center justify-between pl-4 pr-2 pt-2.5 pb-1.5"
+              style={{ background: "var(--color-panel)", touchAction: "none" }}
+              onTouchStart={alTocar}
+              onTouchMove={alMover}
+              onTouchEnd={alSoltar}
+              onTouchCancel={alSoltar}
+            >
+              <span className="w-9" aria-hidden />
+              {/* El asa solo en el celular: en el computador no se arrastra */}
               <span
-                className="block w-10 h-1 rounded-full"
+                className="sm:hidden block w-10 h-1 rounded-full"
                 style={{ background: "var(--color-borde-fuerte)" }}
+                aria-hidden
               />
+              <button
+                type="button"
+                onClick={cerrar}
+                aria-label="Cerrar el menú"
+                className="w-9 h-11 grid place-items-center rounded-full text-[19px] leading-none"
+                style={{ color: "var(--color-tenue)" }}
+              >
+                ✕
+              </button>
             </div>
 
             {usuario ? (
               <div
-                className="px-4 py-3.5 mx-3 mt-1 sm:mt-2 rounded-md"
+                className="px-4 py-3.5 mx-3 mt-1 rounded-md"
                 style={{ background: "var(--color-campo)" }}
               >
                 <div className="text-[14.5px] font-medium truncate">
