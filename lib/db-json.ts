@@ -335,3 +335,79 @@ export async function guardarFotosIntervencion(
   }
   await escribir(db);
 }
+
+/** Campos de la ficha que se pueden editar desde el sistema. */
+export const CAMPOS_EDITABLES_EQUIPO = [
+  "nombre", "tag", "descripcion", "producto", "ubicacion",
+  "fabricante", "modelo", "serial", "motor", "alternador",
+  "placa_motor", "placa_generador", "combustible",
+  "potencia_nominal_kw", "potencia_eficiente_kw",
+  "voltaje_v", "frecuencia_hz", "rpm", "horometro_actual",
+  "estado", "puesta_en_servicio", "observaciones",
+] as const;
+
+export const CAMPOS_EDITABLES_CONTROLADOR = [
+  "fabricante", "modelo", "serial", "clave", "firmware",
+  "ip", "adress", "puerto", "comunicacion",
+  "modo_operacion", "sincronismo", "load_sharing",
+  "estado", "observaciones",
+] as const;
+
+const NUMERICOS = new Set([
+  "potencia_nominal_kw", "potencia_eficiente_kw",
+  "voltaje_v", "frecuencia_hz", "rpm", "horometro_actual",
+]);
+
+/** Deja solo los campos permitidos y con el tipo correcto. */
+export function depurarCambios(
+  cambios: Record<string, unknown>,
+  permitidos: readonly string[],
+): Record<string, unknown> {
+  const limpio: Record<string, unknown> = {};
+  for (const campo of permitidos) {
+    if (!(campo in cambios)) continue;
+    const valor = cambios[campo];
+    if (NUMERICOS.has(campo)) {
+      const texto = String(valor ?? "").replace(/\s/g, "").replace(",", ".");
+      limpio[campo] = texto === "" ? null : Number(texto);
+      if (Number.isNaN(limpio[campo])) limpio[campo] = null;
+    } else if (campo === "puesta_en_servicio") {
+      limpio[campo] = String(valor ?? "").trim() || null;
+    } else {
+      limpio[campo] = String(valor ?? "").trim();
+    }
+  }
+  return limpio;
+}
+
+export async function actualizarEquipo(
+  idEquipo: string,
+  cambios: Record<string, unknown>,
+  quien: string,
+): Promise<void> {
+  const db = await leer();
+  const equipo = db.equipos.find((e) => e.id_equipo === idEquipo);
+  if (!equipo) throw new Error(`El equipo ${idEquipo} no existe`);
+  Object.assign(
+    equipo,
+    depurarCambios(cambios, CAMPOS_EDITABLES_EQUIPO),
+    { actualizado_por: quien },
+  );
+  await escribir(db);
+}
+
+export async function actualizarControlador(
+  idControlador: string,
+  cambios: Record<string, unknown>,
+  quien: string,
+): Promise<void> {
+  const db = await leer();
+  const c = db.controladores.find((x) => x.id_controlador === idControlador);
+  if (!c) throw new Error(`El controlador ${idControlador} no existe`);
+  Object.assign(
+    c,
+    depurarCambios(cambios, CAMPOS_EDITABLES_CONTROLADOR),
+    { actualizado_por: quien },
+  );
+  await escribir(db);
+}

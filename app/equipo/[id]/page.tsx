@@ -7,6 +7,7 @@ import {
   claseBordePlaca, fechaCorta, numero,
 } from "@/components/Piezas";
 import { ETIQUETA_COMBUSTIBLE, ETIQUETA_TIPO } from "@/lib/tipos";
+import { usuarioActual, puedeEditar } from "@/lib/sesion";
 
 export default async function FichaEquipo({
   params,
@@ -14,8 +15,12 @@ export default async function FichaEquipo({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const ficha = await obtenerFichaEquipo(decodeURIComponent(id).toUpperCase());
+  const [ficha, usuario] = await Promise.all([
+    obtenerFichaEquipo(decodeURIComponent(id).toUpperCase()),
+    usuarioActual(),
+  ]);
   if (!ficha) notFound();
+  const puedeEditarFicha = puedeEditar(usuario);
 
   const { equipo: e, sede: s, controlador: c, intervenciones, documentos } = ficha;
 
@@ -51,6 +56,10 @@ export default async function FichaEquipo({
                   <Campo etiqueta="Modelo">{c.modelo}</Campo>
                   <Campo etiqueta="Firmware">{c.firmware}</Campo>
                   <Campo etiqueta="Serial">{c.serial}</Campo>
+                  <Campo etiqueta="Clave">{c.clave}</Campo>
+                  <Campo etiqueta="IP">{c.ip}</Campo>
+                  <Campo etiqueta="Comunicación">{c.comunicacion}</Campo>
+                  <Campo etiqueta="Modo">{c.modo_operacion}</Campo>
                 </Datos>
               </>
             ) : null}
@@ -73,6 +82,10 @@ export default async function FichaEquipo({
               </Campo>
               <Campo etiqueta="Motor">{e.motor}</Campo>
               <Campo etiqueta="Serial">{e.serial}</Campo>
+              <Campo etiqueta="TAG">{e.tag}</Campo>
+              <Campo etiqueta="Placa del motor">{e.placa_motor}</Campo>
+              <Campo etiqueta="Placa del generador">{e.placa_generador}</Campo>
+              <Campo etiqueta="Alternador">{e.alternador}</Campo>
             </Datos>
 
             {e.observaciones ? (
@@ -191,6 +204,14 @@ export default async function FichaEquipo({
               >
                 Ver código QR del equipo
               </Link>
+              {puedeEditarFicha ? (
+                <Link
+                  href={`/equipo/${e.id_equipo}/editar`}
+                  className="accion accion-secundaria"
+                >
+                  Editar ficha
+                </Link>
+              ) : null}
             </div>
           </div>
         </div>

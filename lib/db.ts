@@ -93,5 +93,15 @@ export const guardarFotosIntervencion = (
     ? supabase.guardarFotosIntervencion(...a)
     : json.guardarFotosIntervencion(...a);
 
+export const actualizarEquipo = (...a: Parameters<typeof json.actualizarEquipo>) =>
+  usarSupabase() ? supabase.actualizarEquipo(...a) : json.actualizarEquipo(...a);
+
+export const actualizarControlador = (
+  ...a: Parameters<typeof json.actualizarControlador>
+) =>
+  usarSupabase()
+    ? supabase.actualizarControlador(...a)
+    : json.actualizarControlador(...a);
+
 export type { EntradaIntervencion } from "./db-json";
 export type { Intervencion, Equipo, Sede, Controlador } from "./tipos";

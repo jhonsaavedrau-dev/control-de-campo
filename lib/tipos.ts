@@ -142,6 +142,17 @@ export type Equipo = {
   carpeta_drive_id: string;
   carpeta_intervenciones_drive_id: string;
   observaciones: string;
+  /** Datos grabados en la placa del motor. */
+  placa_motor: string;
+  /** Datos grabados en la placa del alternador. */
+  placa_generador: string;
+  /** TAG del inventario FOR-MTO-04. */
+  tag: string;
+  descripcion: string;
+  producto: string;
+  ubicacion: string;
+  puesta_en_servicio: string;
+  actualizado_por: string;
 };
 
 export type Controlador = {
@@ -167,6 +178,9 @@ export type Controlador = {
   url_ficha: string;
   qr_generado: boolean;
   observaciones: string;
+  /** Clave para configurar el controlador; suele ser su numero de serie. */
+  clave: string;
+  actualizado_por: string;
 };
 
 export type Intervencion = {

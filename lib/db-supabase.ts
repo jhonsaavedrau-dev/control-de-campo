@@ -381,3 +381,33 @@ export async function guardarFotosIntervencion(
     .from("intervencion_fotos")
     .insert(fotos.map((f) => ({ id_intervencion: idIntervencion, ...f })));
 }
+
+/* ---------- Edicion de fichas ---------- */
+
+export async function actualizarEquipo(
+  idEquipo: string,
+  cambios: Record<string, unknown>,
+  quien: string,
+): Promise<void> {
+  const { depurarCambios, CAMPOS_EDITABLES_EQUIPO } = await import("./db-json");
+  const limpio = depurarCambios(cambios, CAMPOS_EDITABLES_EQUIPO);
+  const { error } = await cliente()
+    .from("equipos")
+    .update({ ...limpio, actualizado_por: quien })
+    .eq("id_equipo", idEquipo);
+  if (error) throw new Error(error.message);
+}
+
+export async function actualizarControlador(
+  idControlador: string,
+  cambios: Record<string, unknown>,
+  quien: string,
+): Promise<void> {
+  const { depurarCambios, CAMPOS_EDITABLES_CONTROLADOR } = await import("./db-json");
+  const limpio = depurarCambios(cambios, CAMPOS_EDITABLES_CONTROLADOR);
+  const { error } = await cliente()
+    .from("controladores")
+    .update({ ...limpio, actualizado_por: quien })
+    .eq("id_controlador", idControlador);
+  if (error) throw new Error(error.message);
+}
