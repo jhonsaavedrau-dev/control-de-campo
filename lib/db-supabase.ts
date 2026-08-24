@@ -393,6 +393,19 @@ export async function crearIntervencion(
  * No sustituye a la migración — es el paracaídas para el rato que va
  * entre publicar el código y ejecutarla.
  */
+/**
+ * Un Error que conserva el codigo de PostgreSQL.
+ *
+ * Quien llama necesita distinguir «clave duplicada» (23505, se reintenta
+ * con otro numero) de un error de verdad. Mirar el texto del mensaje
+ * funciona hasta que PostgREST cambia una palabra.
+ */
+function errorConCodigo(error: { code?: string; message: string }): Error {
+  const e = new Error(error.message) as Error & { code?: string };
+  e.code = error.code;
+  return e;
+}
+
 async function sinColumnasAusentes<T>(
   tabla: string,
   fila: Record<string, unknown>,
@@ -414,7 +427,7 @@ async function sinColumnasAusentes<T>(
       error.code === "PGRST204"
         ? error.message.match(/'([^']+)' column/)?.[1]
         : null;
-    if (!falta || !(falta in intento)) throw new Error(error.message);
+    if (!falta || !(falta in intento)) throw errorConCodigo(error);
 
     console.error(
       `${tabla}: la base no tiene la columna «${falta}». Se guarda sin ese ` +
@@ -522,10 +535,21 @@ async function insertarConIdLibre<T>(
     );
     const id = siguienteId(familia, usados.map((f) => f[columnaId]));
 
-    const { data, error } = await db.from(tabla).insert(armar(id)).select();
-    if (!error) return (data ?? [])[0] as T;
-    // 23505: clave duplicada. Cualquier otro error es de verdad.
-    if (error.code !== "23505") throw new Error(error.message);
+    try {
+      // Tolerante a columnas que la base todavia no tenga, igual que al
+      // guardar una ficha o un acta: si la base va una migracion por
+      // detras, se da de alta el equipo sin ese dato en vez de negarse.
+      const filas = await sinColumnasAusentes<Record<string, unknown>[]>(
+        tabla,
+        armar(id),
+        (f) => db.from(tabla).insert(f).select(),
+      );
+      return (filas ?? [])[0] as T;
+    } catch (e) {
+      // 23505 es clave duplicada: alguien se llevo ese numero mientras
+      // tanto. Se vuelve a calcular. Cualquier otro error es de verdad.
+      if ((e as { code?: string })?.code !== "23505") throw e;
+    }
   }
 
   throw new Error(
