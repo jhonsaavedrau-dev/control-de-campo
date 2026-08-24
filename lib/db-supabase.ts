@@ -17,14 +17,14 @@ let clienteCache: SupabaseClient | null = null;
 
 export function configurado(): boolean {
   return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY,
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() && process.env.SUPABASE_SERVICE_KEY?.trim(),
   );
 }
 
 function cliente(): SupabaseClient {
   if (clienteCache) return clienteCache;
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const llave = process.env.SUPABASE_SERVICE_KEY;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const llave = process.env.SUPABASE_SERVICE_KEY?.trim();
   if (!url || !llave) {
     throw new Error(
       "Faltan NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_KEY en .env.local",

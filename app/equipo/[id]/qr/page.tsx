@@ -19,7 +19,7 @@ export default async function CodigoQR({
 
   // Si hay direccion publica configurada, manda esa: asi los adhesivos
   // impresos desde este computador ya apuntan al sistema publicado.
-  const publica = process.env.NEXT_PUBLIC_URL_PUBLICA?.replace(/\/+$/, "");
+  const publica = process.env.NEXT_PUBLIC_URL_PUBLICA?.trim().replace(/\/+$/, "");
   let base: string;
   if (publica) {
     base = publica;

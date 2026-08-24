@@ -14,8 +14,8 @@ export const maxDuration = 120;
  * No toca las intervenciones ya registradas.
  */
 export async function POST() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const llave = process.env.SUPABASE_SERVICE_KEY;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const llave = process.env.SUPABASE_SERVICE_KEY?.trim();
   if (!url || !llave) {
     return NextResponse.json(
       { error: "Supabase no está configurado en .env.local" },

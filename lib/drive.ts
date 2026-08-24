@@ -98,13 +98,24 @@ async function llamar<T>(url: string, opciones: RequestInit = {}): Promise<T> {
   });
   if (!r.ok) {
     const detalle = await r.text().catch(() => "");
-    throw new Error(`Drive respondió ${r.status}: ${detalle.slice(0, 300)}`);
+    const breve = detalle.replace(/s+/g, " ").slice(0, 160);
+    // La URL entra en el mensaje: sin ella un 404 de Drive no dice nada.
+    throw new Error(
+      `Drive respondió ${r.status} en ${url.replace(API, "")} :: ${breve}`,
+    );
   }
   return r.json() as Promise<T>;
 }
 
+/**
+ * Identificador de la carpeta o unidad raiz.
+ *
+ * Se limpia siempre: pegar variables de entorno a mano suele arrastrar
+ * espacios o un salto de linea al final, y Google los rechaza dentro de
+ * una busqueda aunque los tolere en una ruta.
+ */
 export function carpetaRaizId(): string {
-  return process.env.DRIVE_CARPETA_RAIZ ?? "";
+  return (process.env.DRIVE_CARPETA_RAIZ ?? "").trim();
 }
 
 /** Comprueba credenciales y acceso, sin escribir nada. */

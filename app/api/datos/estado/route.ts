@@ -7,8 +7,8 @@ export const dynamic = "force-dynamic";
 /** Diagnóstico de la base de datos, sin escribir nada. */
 export async function GET() {
   const motor = motorDeDatos();
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const llave = process.env.SUPABASE_SERVICE_KEY;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const llave = process.env.SUPABASE_SERVICE_KEY?.trim();
 
   if (motor === "archivo") {
     return NextResponse.json({
