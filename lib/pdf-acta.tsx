@@ -157,7 +157,9 @@ function Acta({
   sede: sd,
   fotos = [],
 }: DatosActa & { fotos?: FotoActa[] }) {
-  const logo = path.join(process.cwd(), "public", "logo-pbi.png");
+  // Version reducida a proposito: en el acta se dibuja a 72 puntos de
+  // ancho, y el original de 1254 px pesaba casi 1 MB por documento.
+  const logo = path.join(process.cwd(), "public", "logo-pbi-acta.png");
 
   return (
     <Document
