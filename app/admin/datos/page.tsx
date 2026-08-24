@@ -1,36 +1,22 @@
 import Link from "next/link";
-import { headers } from "next/headers";
 import { Encabezado, PieDePagina } from "@/components/Marco";
 import { Rotulo } from "@/components/Piezas";
 import PanelDatos from "@/components/PanelDatos";
+import SinPermiso from "@/components/SinPermiso";
+import { estadoDatos, type EstadoDatos } from "@/lib/estado-datos";
+import { exigirAdministrador } from "@/lib/sesion";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-type Estado = {
-  motor: "supabase" | "archivo";
-  conectado: boolean;
-  problema?: string;
-  conteos?: Record<string, number>;
-};
-
 export default async function AdminDatos() {
-  const cabeceras = await headers();
-  const host = cabeceras.get("host") ?? "localhost:3000";
-  const protocolo = host.startsWith("localhost") ? "http" : "https";
-
-  let estado: Estado = {
-    motor: "archivo",
-    conectado: false,
-    problema: "No se pudo consultar el estado",
-  };
-  try {
-    const r = await fetch(`${protocolo}://${host}/api/datos/estado`, {
-      cache: "no-store",
-    });
-    estado = await r.json();
-  } catch {
-    // se queda con el estado por defecto
+  const paso = await exigirAdministrador();
+  if (!paso.ok) {
+    if (paso.codigo === 401) redirect("/entrar?destino=/admin/datos");
+    return <SinPermiso que="La base de datos" />;
   }
+
+  const estado: EstadoDatos = await estadoDatos();
 
   const enSupabase = estado.motor === "supabase" && estado.conectado;
 

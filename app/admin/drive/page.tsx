@@ -3,11 +3,20 @@ import { equiposConSede } from "@/lib/db";
 import { Encabezado, PieDePagina } from "@/components/Marco";
 import { Rotulo } from "@/components/Piezas";
 import PanelEstructura from "@/components/PanelEstructura";
+import SinPermiso from "@/components/SinPermiso";
+import { exigirAdministrador } from "@/lib/sesion";
+import { redirect } from "next/navigation";
 import { SUBCARPETAS_EQUIPO, nombreCarpetaEquipo, nombreCarpetaSede } from "@/lib/estructura-drive";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminDrive() {
+  const paso = await exigirAdministrador();
+  if (!paso.ok) {
+    if (paso.codigo === 401) redirect("/entrar?destino=/admin/drive");
+    return <SinPermiso que="La conexión con Drive" />;
+  }
+
   const [e, correo, equipos] = await Promise.all([
     estado(),
     correoRobot(),

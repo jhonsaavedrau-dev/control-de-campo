@@ -5,6 +5,7 @@ import type {
 } from "./tipos";
 import type { EntradaIntervencion } from "./db-json";
 import { depurarChecklist } from "./checklist";
+import type { IntervencionParaContar } from "./mantenimiento";
 
 /**
  * Misma capa de datos, contra PostgreSQL (Supabase).
@@ -185,6 +186,37 @@ export async function listarIntervenciones(idEquipo?: string) {
   }));
 }
 
+/**
+ * Los preventivos de cada equipo, con lo justo para contar horas.
+ *
+ * La pantalla de inicio necesita esto de todos los equipos a la vez.
+ * Trayendo solo tres columnas, un historial de años sigue cabiendo en
+ * una petición.
+ */
+export async function preventivosPorEquipo(): Promise<
+  Record<string, IntervencionParaContar[]>
+> {
+  const filas = await pedir<
+    (IntervencionParaContar & { id_equipo: string })[]
+  >(
+    cliente()
+      .from("intervenciones")
+      .select("id_equipo, tipo_intervencion, fecha, horometro")
+      .eq("tipo_intervencion", "preventiva")
+      .order("fecha", { ascending: false }),
+  );
+
+  const mapa: Record<string, IntervencionParaContar[]> = {};
+  for (const f of filas) {
+    (mapa[f.id_equipo] ??= []).push({
+      tipo_intervencion: f.tipo_intervencion,
+      fecha: f.fecha,
+      horometro: f.horometro,
+    });
+  }
+  return mapa;
+}
+
 export async function listarSedesConEquipos() {
   const db = cliente();
   const [sedes, equipos] = await Promise.all([
@@ -329,8 +361,10 @@ export async function crearIntervencion(
     pdf_drive_url: "",
   };
 
-  const insertadas = await pedir<Intervencion[]>(
-    db.from("intervenciones").insert(fila).select(),
+  const insertadas = await sinColumnasAusentes<Intervencion[]>(
+    "intervenciones",
+    fila,
+    (f) => db.from("intervenciones").insert(f).select(),
   );
 
   // El equipo queda con su último valor conocido.
@@ -342,6 +376,53 @@ export async function crearIntervencion(
   }
 
   return insertadas[0];
+}
+
+/**
+ * Ejecuta una escritura aunque a la base le falte alguna columna nueva.
+ *
+ * El técnico acaba de pasar media hora llenando el formulario delante
+ * del equipo. Si la base va una migración por detrás del código, perder
+ * el acta entera por un campo accesorio es el peor resultado posible:
+ * mejor guardarla sin ese campo y dejar el aviso en el registro.
+ *
+ * No sustituye a la migración — es el paracaídas para el rato que va
+ * entre publicar el código y ejecutarla.
+ */
+async function sinColumnasAusentes<T>(
+  tabla: string,
+  fila: Record<string, unknown>,
+  escribir: (f: Record<string, unknown>) => PromiseLike<{
+    data: unknown;
+    error: { code?: string; message: string } | null;
+  }>,
+): Promise<T> {
+  const intento = { ...fila };
+
+  // Una vuelta por cada columna que pueda faltar, con tope para no
+  // quedarnos dando vueltas si el error fuera otro.
+  for (let n = 0; n < 8; n++) {
+    const { data, error } = await escribir(intento);
+    if (!error) return data as T;
+
+    // PGRST204: PostgREST no encuentra una columna del cuerpo.
+    const falta =
+      error.code === "PGRST204"
+        ? error.message.match(/'([^']+)' column/)?.[1]
+        : null;
+    if (!falta || !(falta in intento)) throw new Error(error.message);
+
+    console.error(
+      `${tabla}: la base no tiene la columna «${falta}». Se guarda sin ese ` +
+        `dato. Ejecuta las migraciones pendientes en Supabase.`,
+    );
+    delete intento[falta];
+  }
+
+  throw new Error(
+    "La base de datos va varias migraciones por detrás del sistema. " +
+      "Ejecuta las migraciones pendientes en Supabase.",
+  );
 }
 
 export async function guardarCarpetasEquipo(
@@ -393,11 +474,10 @@ export async function actualizarEquipo(
 ): Promise<void> {
   const { depurarCambios, CAMPOS_EDITABLES_EQUIPO } = await import("./db-json");
   const limpio = depurarCambios(cambios, CAMPOS_EDITABLES_EQUIPO);
-  const { error } = await cliente()
-    .from("equipos")
-    .update({ ...limpio, actualizado_por: quien })
-    .eq("id_equipo", idEquipo);
-  if (error) throw new Error(error.message);
+  const db = cliente();
+  await sinColumnasAusentes("equipos", { ...limpio, actualizado_por: quien }, (f) =>
+    db.from("equipos").update(f).eq("id_equipo", idEquipo),
+  );
 }
 
 export async function actualizarControlador(

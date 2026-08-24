@@ -171,9 +171,17 @@ export default function FormularioFicha({
           <input name="e.rpm" inputMode="decimal" defaultValue={equipo.rpm ?? ""} className="entrada font-[family-name:var(--font-mono)]" />
         </Campo>
       </div>
-      <Campo etiqueta="Horómetro actual">
-        <input name="e.horometro_actual" inputMode="decimal" defaultValue={equipo.horometro_actual ?? ""} className="entrada font-[family-name:var(--font-mono)]" />
-      </Campo>
+      <div className="grid grid-cols-2 gap-3">
+        <Campo etiqueta="Horómetro actual">
+          <input name="e.horometro_actual" inputMode="decimal" defaultValue={equipo.horometro_actual ?? ""} className="entrada font-[family-name:var(--font-mono)]" />
+        </Campo>
+        <Campo etiqueta="Preventivo cada (horas)">
+          <input name="e.frecuencia_mto" inputMode="decimal" defaultValue={equipo.frecuencia_mto ?? ""} placeholder="350" className="entrada font-[family-name:var(--font-mono)]" />
+        </Campo>
+      </div>
+      <p className="text-[11px] -mt-1 mb-1" style={{ color: "var(--color-sin-info)" }}>
+        Con esos dos datos el sistema avisa solo cuándo toca el preventivo.
+      </p>
       <Campo etiqueta="Observaciones del equipo">
         <textarea name="e.observaciones" rows={2} defaultValue={equipo.observaciones} className="entrada" />
       </Campo>

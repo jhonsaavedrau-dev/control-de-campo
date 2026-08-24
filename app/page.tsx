@@ -1,13 +1,16 @@
 import Link from "next/link";
-import { listarEquipos, resumen } from "@/lib/db";
+import { listarEquipos, resumen, preventivosPorEquipo } from "@/lib/db";
 import { Encabezado, PieDePagina } from "@/components/Marco";
 import { Insignia, numero, fechaCorta } from "@/components/Piezas";
 import { semaforo, ETIQUETA_ESTADO, ETIQUETA_COMBUSTIBLE } from "@/lib/tipos";
 import {
   IcoRayo, IcoCombustible, IcoReloj, IcoChip, IcoFlecha, IcoLupa,
-  IcoUbicacion,
+  IcoUbicacion, IcoHerramienta,
 } from "@/components/Iconos";
-import { usuarioActual, puedeEditar } from "@/lib/sesion";
+import { usuarioActual, esAdministrador, loginConfigurado } from "@/lib/sesion";
+import {
+  mantenimientoDe, soloPendientes, colorMantenimiento, frase,
+} from "@/lib/mantenimiento";
 
 export default async function Inicio({
   searchParams,
@@ -16,11 +19,21 @@ export default async function Inicio({
 }) {
   const { q = "" } = await searchParams;
   const busqueda = q.trim().toLowerCase();
-  const [todos, r, usuario] = await Promise.all([
+  const [todos, r, usuario, preventivos] = await Promise.all([
     listarEquipos(),
     resumen(),
     usuarioActual(),
+    preventivosPorEquipo(),
   ]);
+
+  // Lo que pide atención por horas, no por avería: sale antes que la
+  // lista de sedes porque es lo que hay que planear esta semana.
+  const pendientes = soloPendientes(
+    todos.map((e) => ({
+      equipo: e,
+      mantenimiento: mantenimientoDe(e, preventivos[e.id_equipo] ?? []),
+    })),
+  );
 
   const equipos = busqueda
     ? todos.filter((e) =>
@@ -123,6 +136,73 @@ export default async function Inicio({
               </Link>
             ) : null}
           </form>
+
+          {/* --- Mantenimiento que pide atención --- */}
+          {!busqueda && pendientes.length ? (
+            <section className="mb-7">
+              <div
+                className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-[0.1em] mb-2.5 flex items-center gap-1.5"
+                style={{ color: "var(--color-tenue)" }}
+              >
+                <IcoHerramienta className="w-3 h-3" />
+                Preventivo pendiente
+                <span style={{ color: "var(--color-sin-info)" }}>
+                  ({pendientes.length})
+                </span>
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-2">
+                {pendientes.map(({ equipo, mantenimiento: m }) => {
+                  const color = colorMantenimiento(m.situacion);
+                  return (
+                    <Link
+                      key={equipo.id_equipo}
+                      href={`/equipo/${equipo.id_equipo}`}
+                      className="block rounded border px-3.5 py-3 transition-shadow hover:shadow-sm"
+                      style={{
+                        borderColor: "var(--color-borde)",
+                        borderLeft: `3px solid ${color}`,
+                        background: "var(--color-panel)",
+                      }}
+                    >
+                      <div className="flex items-baseline justify-between gap-3">
+                        <span className="font-[family-name:var(--font-mono)] text-[13px]">
+                          {equipo.id_equipo}
+                        </span>
+                        <span
+                          className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-wide"
+                          style={{ color }}
+                        >
+                          {m.situacion === "vencido" ? "vencido" : "próximo"}
+                        </span>
+                      </div>
+                      <div
+                        className="text-[11.5px] mt-0.5 truncate"
+                        style={{ color: "var(--color-tenue)" }}
+                      >
+                        {equipo.sede?.nombre ?? ""}
+                      </div>
+                      <div
+                        className="h-1 rounded-full mt-2 overflow-hidden"
+                        style={{ background: "var(--color-hundido)" }}
+                      >
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${Math.min(100, Math.round((m.avance ?? 0) * 100))}%`,
+                            background: color,
+                          }}
+                        />
+                      </div>
+                      <div className="text-[11.5px] mt-1.5" style={{ color }}>
+                        {frase(m)}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          ) : null}
 
           {/* --- Equipos por sede --- */}
           {[...porSede.entries()].map(([idSede, lista]) => (
@@ -262,7 +342,14 @@ export default async function Inicio({
             >
               Ver las {r.intervenciones} intervenciones registradas →
             </Link>
-            {puedeEditar(usuario) ? (
+            <Link
+              href="/qr"
+              className="font-[family-name:var(--font-mono)] text-[11px] tracking-wide"
+              style={{ color: "var(--color-sin-info)" }}
+            >
+              Códigos QR
+            </Link>
+            {!loginConfigurado() || esAdministrador(usuario) ? (
               <Link
                 href="/admin"
                 className="font-[family-name:var(--font-mono)] text-[11px] tracking-wide"

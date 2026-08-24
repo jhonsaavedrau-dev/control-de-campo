@@ -56,6 +56,13 @@ export const listarSedesConEquipos = (
     ? supabase.listarSedesConEquipos(...a)
     : json.listarSedesConEquipos(...a);
 
+export const preventivosPorEquipo = (
+  ...a: Parameters<typeof json.preventivosPorEquipo>
+) =>
+  usarSupabase()
+    ? supabase.preventivosPorEquipo(...a)
+    : json.preventivosPorEquipo(...a);
+
 export const resumen = (...a: Parameters<typeof json.resumen>) =>
   usarSupabase() ? supabase.resumen(...a) : json.resumen(...a);
 

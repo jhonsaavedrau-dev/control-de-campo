@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { equiposConSede, equipoConSede, guardarCarpetasEquipo } from "@/lib/db";
 import { asegurarEstructuraEquipo } from "@/lib/estructura-drive";
+import { exigirAdministrador } from "@/lib/sesion";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -10,6 +11,11 @@ export const maxDuration = 300;
  * todos. Es idempotente: lo que ya existe se reutiliza, nunca se duplica.
  */
 export async function POST(peticion: Request) {
+  const paso = await exigirAdministrador();
+  if (!paso.ok) {
+    return NextResponse.json({ error: paso.motivo }, { status: paso.codigo });
+  }
+
   let cuerpo: { id_equipo?: string } = {};
   try {
     cuerpo = await peticion.json();

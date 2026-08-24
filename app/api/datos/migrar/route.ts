@@ -3,6 +3,7 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import type { BaseDatos } from "@/lib/tipos";
+import { exigirAdministrador } from "@/lib/sesion";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -14,6 +15,11 @@ export const maxDuration = 120;
  * No toca las intervenciones ya registradas.
  */
 export async function POST() {
+  const paso = await exigirAdministrador();
+  if (!paso.ok) {
+    return NextResponse.json({ error: paso.motivo }, { status: paso.codigo });
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const llave = process.env.SUPABASE_SERVICE_KEY?.trim();
   if (!url || !llave) {

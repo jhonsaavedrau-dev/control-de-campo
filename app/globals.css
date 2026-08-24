@@ -631,3 +631,95 @@ a.bitacora-fila:hover { background: var(--color-realce); }
     color-mix(in srgb, var(--color-amarillo) 55%, var(--color-marino)) 7px 14px
   );
 }
+
+/* ============================================================
+   HOJA DE CÓDIGOS QR — quince adhesivos para cortar
+   ============================================================ */
+
+.rejilla-qr {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px;
+}
+
+.adhesivo {
+  background: #fff;
+  /* Punteada: es por donde se corta con la tijera. */
+  border: 1px dashed var(--color-borde-fuerte);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.adhesivo-cabeza {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  background: var(--color-marino);
+}
+
+.adhesivo-cuerpo { padding: 11px 10px 12px; text-align: center; }
+
+.adhesivo-id {
+  font-family: var(--font-placa);
+  font-weight: 600;
+  font-size: 25px;
+  line-height: 1;
+  color: var(--color-marino);
+}
+
+.adhesivo-sub {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  margin-top: 4px;
+  color: #5b6572;
+}
+
+.adhesivo-qr {
+  width: 128px;
+  height: 128px;
+  margin: 9px auto;
+}
+.adhesivo-qr > svg { width: 100%; height: 100%; }
+
+.adhesivo-sede {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: #5b6572;
+}
+
+.adhesivo-pie {
+  font-size: 8.5px;
+  margin-top: 5px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--color-marino);
+}
+
+@media print {
+  /* Márgenes cortos: caben más adhesivos por hoja y se desperdicia
+     menos papel adhesivo, que es lo caro. */
+  @page { size: A4; margin: 8mm; }
+
+  .hoja-qr { max-width: none !important; padding: 0 !important; }
+
+  .rejilla-qr {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  /* Que ningún adhesivo quede partido entre dos hojas: cortado por la
+     mitad no sirve, y el papel adhesivo no se reimprime barato. */
+  .adhesivo {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border-color: #9aa4b1;
+  }
+
+  /* Sin esto la cabecera azul sale en blanco y el adhesivo pierde la
+     marca, que es medio motivo de pegarlo. */
+  .adhesivo-cabeza {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

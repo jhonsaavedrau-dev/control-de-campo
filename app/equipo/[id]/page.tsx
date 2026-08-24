@@ -5,7 +5,7 @@ import { Encabezado, PieDePagina } from "@/components/Marco";
 import { InsigniaResultado, fechaCorta } from "@/components/Piezas";
 import {
   Bloque, BloqueMedidores, BloqueControlador, BloqueEquipo,
-  BloqueFotos, BloqueDocumentos, EnlaceSede,
+  BloqueFotos, BloqueDocumentos, BloqueMantenimiento, EnlaceSede,
 } from "@/components/FichaEquipo";
 import {
   IcoHerramienta, IcoCodigoQR, IcoLapiz, IcoFlecha, IcoChip,
@@ -105,10 +105,20 @@ export default async function FichaEquipo({
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_340px]">
             <div className="flex flex-col gap-4 min-w-0">
               {c ? <BloqueControlador controlador={c} /> : null}
-              <BloqueFotos />
+              <BloqueFotos
+                equipo={e}
+                controlador={c}
+                puedeEditar={puedeEditarFicha}
+              />
             </div>
 
             <div className="flex flex-col gap-4 min-w-0">
+              <BloqueMantenimiento
+                equipo={e}
+                intervenciones={intervenciones}
+                puedeEditar={puedeEditarFicha}
+              />
+
               <BloqueEquipo equipo={e} />
 
               {e.observaciones ? (

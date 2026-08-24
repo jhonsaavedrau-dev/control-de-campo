@@ -91,3 +91,33 @@ export async function usuarioActual(): Promise<Usuario | null> {
 export function puedeEditar(usuario: Usuario | null) {
   return usuario?.rol === "supervisor" || usuario?.rol === "administrador";
 }
+
+/**
+ * Solo los administradores entran a la zona de administración.
+ *
+ * Es más estrecho que `puedeEditar`: un supervisor corrige una ficha,
+ * pero no crea cuentas ni vuelve a cargar los datos maestros.
+ */
+export function esAdministrador(usuario: Usuario | null) {
+  return usuario?.rol === "administrador";
+}
+
+/**
+ * Deja pasar solo al administrador; si no, devuelve el motivo.
+ *
+ * Sin login configurado (trabajando en local sin Supabase) deja pasar:
+ * si no, el sistema se quedaría sin administración justo cuando hace
+ * falta para configurarlo.
+ */
+export async function exigirAdministrador(): Promise<
+  { ok: true; usuario: Usuario | null } | { ok: false; motivo: string; codigo: number }
+> {
+  if (!loginConfigurado()) return { ok: true, usuario: null };
+
+  const usuario = await usuarioActual();
+  if (!usuario) return { ok: false, motivo: "Hay que entrar primero", codigo: 401 };
+  if (!esAdministrador(usuario)) {
+    return { ok: false, motivo: "Esto es solo para administradores", codigo: 403 };
+  }
+  return { ok: true, usuario };
+}

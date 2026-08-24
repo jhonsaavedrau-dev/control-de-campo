@@ -8,6 +8,7 @@ import { ETIQUETA_TIPO } from "@/lib/tipos";
 import AccionesActa from "@/components/AccionesActa";
 import type {
   TipoIntervencion, EstadoEquipo, ResultadoIntervencion, TipoCombustible,
+  IntervencionFoto,
 } from "@/lib/tipos";
 
 /**
@@ -26,7 +27,7 @@ export default async function ActaIntervencion({
   const registro = await obtenerIntervencion(decodeURIComponent(id).toUpperCase());
   if (!registro) notFound();
 
-  const { intervencion: i, equipo: e, sede: s, controlador: c } = registro;
+  const { intervencion: i, equipo: e, sede: s, controlador: c, fotos } = registro;
 
   return (
     <>
@@ -212,18 +213,7 @@ export default async function ActaIntervencion({
           </table>
 
           <Seccion n="7" titulo="EVIDENCIA FOTOGRÁFICA" />
-          <table className="tabla">
-            <tbody>
-              <tr>
-                <td className="celda h-[150px] w-1/2 text-center align-middle text-[11px] text-[color:var(--color-sin-info)]">
-                  FOTO / EVIDENCIA
-                </td>
-                <td className="celda h-[150px] w-1/2 text-center align-middle text-[11px] text-[color:var(--color-sin-info)]">
-                  FOTO / EVIDENCIA
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <Evidencia fotos={fotos} />
 
           <Seccion n="8" titulo="CIERRE" />
           <table className="tabla">
@@ -342,6 +332,74 @@ function Casillas<T extends string>({
         </span>
       ))}
     </span>
+  );
+}
+
+/**
+ * Las fotos que el técnico tomó en campo.
+ *
+ * Se sirven por el proxy propio (`/api/imagen`) porque un enlace de Drive
+ * es una página, no un archivo. En parejas, como el formato en papel, y
+ * cada una abre el original en Drive por si hay que verla en detalle.
+ */
+function Evidencia({ fotos }: { fotos: IntervencionFoto[] }) {
+  if (!fotos.length) {
+    return (
+      <table className="tabla">
+        <tbody>
+          <tr>
+            {[0, 1].map((n) => (
+              <td
+                key={n}
+                className="celda h-[150px] w-1/2 text-center align-middle text-[11px]"
+                style={{ color: "var(--color-sin-info)" }}
+              >
+                FOTO / EVIDENCIA
+              </td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
+    );
+  }
+
+  const parejas: IntervencionFoto[][] = [];
+  for (let n = 0; n < fotos.length; n += 2) parejas.push(fotos.slice(n, n + 2));
+
+  return (
+    <table className="tabla">
+      <tbody>
+        {parejas.map((pareja, fila) => (
+          <tr key={fila}>
+            {pareja.map((f, col) => (
+              <td key={f.id} className="celda w-1/2 align-top p-1.5">
+                <a
+                  href={f.drive_url || "#"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/api/imagen/${f.drive_file_id}?w=900`}
+                    alt={`Evidencia ${fila * 2 + col + 1}`}
+                    className="w-full h-[170px] object-cover rounded-sm"
+                    style={{ background: "var(--color-campo)" }}
+                  />
+                </a>
+                <div
+                  className="font-[family-name:var(--font-mono)] text-[9px] mt-1 truncate"
+                  style={{ color: "var(--color-sin-info)" }}
+                >
+                  {f.nombre_archivo}
+                </div>
+              </td>
+            ))}
+            {pareja.length === 1 ? <td className="celda w-1/2" /> : null}
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 

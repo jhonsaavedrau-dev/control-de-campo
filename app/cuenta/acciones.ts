@@ -1,20 +1,7 @@
 "use server";
 
 import { clienteSesion, usuarioActual, loginConfigurado } from "@/lib/sesion";
-
-const MINIMO = 8;
-
-/**
- * Contraseñas que no se aceptan.
- *
- * El sistema guarda las claves de acceso a los controladores, así que la
- * de estreno no puede quedarse puesta.
- */
-const DEMASIADO_OBVIAS = new Set([
-  "12345678", "123456789", "1234567890",
-  "contrasena", "contraseña", "password", "qwertyui",
-  "pbi12345", "generacion", "11111111", "00000000",
-]);
+import { problemaDeClave } from "@/lib/clave";
 
 export async function cambiarClave(
   _previo: { error?: string; ok?: boolean } | null,
@@ -30,17 +17,10 @@ export async function cambiarClave(
   const nueva = String(datos.get("nueva") ?? "");
   const repetida = String(datos.get("repetida") ?? "");
 
-  if (nueva.length < MINIMO) {
-    return { error: `La contraseña debe tener al menos ${MINIMO} caracteres.` };
-  }
+  const problema = problemaDeClave(nueva);
+  if (problema) return { error: problema };
   if (nueva !== repetida) {
     return { error: "Las dos contraseñas no coinciden." };
-  }
-  if (DEMASIADO_OBVIAS.has(nueva.toLowerCase())) {
-    return {
-      error:
-        "Esa contraseña es de las primeras que alguien probaría. Elige otra.",
-    };
   }
 
   const supabase = await clienteSesion();

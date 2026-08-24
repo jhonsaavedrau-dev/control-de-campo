@@ -142,6 +142,8 @@ export type Equipo = {
   frecuencia_hz: number | null;
   rpm: number | null;
   horometro_actual: number | null;
+  /** Cada cuántas horas toca preventivo, según el fabricante. */
+  frecuencia_mto: string;
   estado: EstadoEquipo;
   foto_equipo_url: string;
   foto_planta_url: string;

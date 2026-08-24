@@ -335,3 +335,43 @@ export async function descargarArchivo(fileId: string): Promise<Buffer> {
   }
   return Buffer.from(await r.arrayBuffer());
 }
+
+/**
+ * Sube un archivo, y si ya había uno con ese nombre en la carpeta, lo
+ * reemplaza en lugar de dejar dos.
+ *
+ * Drive permite nombres repetidos, así que sin esto una foto de ficha
+ * cambiada tres veces dejaría tres archivos y solo el último visible.
+ */
+export async function reemplazarArchivo({
+  carpetaId,
+  nombre,
+  tipo,
+  contenido,
+}: {
+  carpetaId: string;
+  nombre: string;
+  tipo: string;
+  contenido: Buffer | Uint8Array;
+}): Promise<{ id: string; webViewLink: string }> {
+  const previo = await buscarHijo(carpetaId, nombre);
+  if (!previo) return subirArchivo({ carpetaId, nombre, tipo, contenido });
+
+  const c = await cliente();
+  const { token } = await c.getAccessToken();
+  const r = await fetch(
+    `${SUBIDA}/${previo.id}?uploadType=media&fields=id,webViewLink&supportsAllDrives=true`,
+    {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": tipo },
+      body: Buffer.from(contenido),
+    },
+  );
+  if (!r.ok) {
+    const detalle = await r.text().catch(() => "");
+    throw new Error(
+      `No se pudo reemplazar «${nombre}»: ${detalle.slice(0, 300)}`,
+    );
+  }
+  return r.json();
+}

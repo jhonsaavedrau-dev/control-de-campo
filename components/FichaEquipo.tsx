@@ -4,7 +4,13 @@ import {
   IcoRed, IcoLlave, IcoPlaca, IcoCamara, IcoDocumento, IcoHerramienta,
   IcoTermometro,
 } from "./Iconos";
-import { numero } from "./Piezas";
+import { numero, fechaCorta } from "./Piezas";
+import PanelFotos from "./PanelFotos";
+import { rutaImagen } from "@/lib/imagenes";
+import {
+  mantenimientoDe, colorMantenimiento, frase, ETIQUETA_MANTENIMIENTO,
+} from "@/lib/mantenimiento";
+import type { IntervencionParaContar } from "@/lib/mantenimiento";
 import { ETIQUETA_COMBUSTIBLE } from "@/lib/tipos";
 import type { Equipo, Controlador } from "@/lib/tipos";
 
@@ -253,27 +259,36 @@ export function BloqueEquipo({ equipo: e }: { equipo: Equipo }) {
   );
 }
 
-export function BloqueFotos() {
+export function BloqueFotos({
+  equipo: e,
+  controlador: c,
+  puedeEditar,
+}: {
+  equipo: Equipo;
+  controlador?: Controlador | null;
+  puedeEditar: boolean;
+}) {
+  // Las fotos del Excel llegaron cargadas en el controlador; las que se
+  // suban desde el sistema quedan en el equipo. Vale la que haya.
+  const urls = {
+    foto_equipo_url: e.foto_equipo_url || c?.foto_equipo_url || "",
+    foto_controlador_url: c?.foto_controlador_url || "",
+    foto_planta_url: e.foto_planta_url || c?.foto_planta_url || "",
+  };
+  const cuantas = Object.values(urls).filter((u) => rutaImagen(u)).length;
+
   return (
-    <Bloque titulo="Fotografías" icono={<IcoCamara />}>
-      <div className="grid grid-cols-3 gap-2">
-        {["Equipo", "Controlador", "Planta"].map((n) => (
-          <div
-            key={n}
-            className="aspect-[4/3] rounded flex flex-col items-center justify-center gap-1.5 border border-dashed"
-            style={{
-              borderColor: "var(--color-borde)",
-              background: "var(--color-campo)",
-              color: "var(--color-sin-info)",
-            }}
-          >
-            <IcoCamara className="w-5 h-5" />
-            <span className="font-[family-name:var(--font-mono)] text-[9.5px] uppercase tracking-wide">
-              {n}
-            </span>
-          </div>
-        ))}
-      </div>
+    <Bloque
+      titulo="Fotografías"
+      icono={<IcoCamara />}
+      cuenta={cuantas ? `${cuantas} de 3` : undefined}
+    >
+      <PanelFotos
+        idEquipo={e.id_equipo}
+        idControlador={c?.id_controlador ?? ""}
+        urls={urls}
+        puedeEditar={puedeEditar}
+      />
     </Bloque>
   );
 }
@@ -347,5 +362,113 @@ export function EnlaceSede({
       {nombre}
       {cliente ? <span style={{ opacity: 0.6 }}>· {cliente}</span> : null}
     </Link>
+  );
+}
+
+/**
+ * Cuánto le falta al equipo para el próximo preventivo.
+ *
+ * Es el bloque que convierte la ficha en algo que se puede planear: la
+ * barra dice de un vistazo cuánto del intervalo se ha consumido, y el
+ * texto lo dice con horas para quien tenga que anotarlo.
+ */
+export function BloqueMantenimiento({
+  equipo: e,
+  intervenciones,
+  puedeEditar,
+}: {
+  equipo: Equipo;
+  intervenciones: IntervencionParaContar[];
+  puedeEditar: boolean;
+}) {
+  const m = mantenimientoDe(e, intervenciones);
+  const color = colorMantenimiento(m.situacion);
+  const listo =
+    m.situacion === "al_dia" ||
+    m.situacion === "proximo" ||
+    m.situacion === "vencido";
+
+  return (
+    <Bloque
+      titulo="Mantenimiento"
+      icono={<IcoReloj />}
+      cuenta={ETIQUETA_MANTENIMIENTO[m.situacion]}
+      tono={m.situacion === "vencido" ? "critico" : undefined}
+    >
+      {listo ? (
+        <>
+          <div className="flex items-baseline justify-between gap-3">
+            <span
+              className="font-[family-name:var(--font-mono)] text-[21px] leading-none"
+              style={{ color }}
+            >
+              {Math.round(m.horasDesde!).toLocaleString("es-CO")}
+              <span className="text-[11px] ml-1">h</span>
+            </span>
+            <span
+              className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-wide text-right"
+              style={{ color: "var(--color-tenue)" }}
+            >
+              de {Math.round(m.frecuencia!).toLocaleString("es-CO")} h
+            </span>
+          </div>
+
+          {/* La barra se corta en el 100%: pasado eso lo dice el texto */}
+          <div
+            className="h-1.5 rounded-full mt-2.5 overflow-hidden"
+            style={{ background: "var(--color-hundido)" }}
+          >
+            <div
+              className="h-full rounded-full"
+              style={{
+                width: `${Math.min(100, Math.round(m.avance! * 100))}%`,
+                background: color,
+              }}
+            />
+          </div>
+
+          <p className="text-[12px] mt-2.5 leading-relaxed" style={{ color }}>
+            {frase(m)}
+          </p>
+
+          {m.ultimo ? (
+            <p
+              className="text-[11.5px] mt-1"
+              style={{ color: "var(--color-sin-info)" }}
+            >
+              Último preventivo: {fechaCorta(m.ultimo.fecha)}
+              {m.ultimo.horometro != null
+                ? ` · ${m.ultimo.horometro.toLocaleString("es-CO")} h`
+                : ""}
+            </p>
+          ) : null}
+        </>
+      ) : (
+        <>
+          <p
+            className="text-[12.5px] leading-relaxed"
+            style={{ color: "var(--color-tenue)" }}
+          >
+            {frase(m)}
+          </p>
+          {m.situacion === "sin_programa" && puedeEditar ? (
+            <p
+              className="text-[11.5px] mt-1.5"
+              style={{ color: "var(--color-sin-info)" }}
+            >
+              Ponla en «Editar ficha» y el sistema empieza a avisar solo.
+            </p>
+          ) : null}
+          {m.ultimo ? (
+            <p
+              className="text-[11.5px] mt-1.5"
+              style={{ color: "var(--color-sin-info)" }}
+            >
+              Último preventivo: {fechaCorta(m.ultimo.fecha)}
+            </p>
+          ) : null}
+        </>
+      )}
+    </Bloque>
   );
 }

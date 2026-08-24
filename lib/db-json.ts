@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import { depurarChecklist } from "./checklist";
+import type { IntervencionParaContar } from "./mantenimiento";
 import path from "node:path";
 import type {
   BaseDatos, Intervencion, Equipo, Sede, Controlador,
@@ -124,6 +125,29 @@ export async function listarIntervenciones(idEquipo?: string) {
     equipo: db.equipos.find((e) => e.id_equipo === i.id_equipo) ?? null,
     sede: db.sedes.find((s) => s.id_sede === i.id_sede) ?? null,
   }));
+}
+
+/**
+ * Los preventivos de cada equipo, con lo justo para contar horas.
+ *
+ * La pantalla de inicio necesita esto de todos los equipos a la vez.
+ * Trayendo solo tres columnas, un historial de años sigue cabiendo en
+ * una petición.
+ */
+export async function preventivosPorEquipo(): Promise<
+  Record<string, IntervencionParaContar[]>
+> {
+  const db = await leer();
+  const mapa: Record<string, IntervencionParaContar[]> = {};
+  for (const i of db.intervenciones) {
+    if (i.tipo_intervencion !== "preventiva") continue;
+    (mapa[i.id_equipo] ??= []).push({
+      tipo_intervencion: i.tipo_intervencion,
+      fecha: i.fecha,
+      horometro: i.horometro,
+    });
+  }
+  return mapa;
 }
 
 export async function listarSedesConEquipos() {
@@ -346,6 +370,7 @@ export const CAMPOS_EDITABLES_EQUIPO = [
   "potencia_nominal_kw", "potencia_eficiente_kw",
   "voltaje_v", "frecuencia_hz", "rpm", "horometro_actual",
   "estado", "puesta_en_servicio", "observaciones",
+  "foto_equipo_url", "foto_planta_url", "frecuencia_mto",
 ] as const;
 
 export const CAMPOS_EDITABLES_CONTROLADOR = [
@@ -353,6 +378,7 @@ export const CAMPOS_EDITABLES_CONTROLADOR = [
   "ip", "adress", "puerto", "comunicacion",
   "modo_operacion", "sincronismo", "load_sharing",
   "estado", "observaciones",
+  "foto_controlador_url",
 ] as const;
 
 const NUMERICOS = new Set([

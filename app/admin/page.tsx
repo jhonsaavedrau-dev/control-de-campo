@@ -1,14 +1,29 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { estado as estadoDrive } from "@/lib/drive";
 import { motorDeDatos, resumen } from "@/lib/db";
 import { Encabezado, PieDePagina } from "@/components/Marco";
 import { Rotulo } from "@/components/Piezas";
+import SinPermiso from "@/components/SinPermiso";
+import { exigirAdministrador } from "@/lib/sesion";
+import { listarCuentas, servicioConfigurado } from "@/lib/usuarios";
 
 export const dynamic = "force-dynamic";
 
 export default async function Administracion() {
+  // Aquí se ven las conexiones y se manejan las cuentas: no basta con
+  // haber entrado, hay que ser administrador.
+  const paso = await exigirAdministrador();
+  if (!paso.ok) {
+    if (paso.codigo === 401) redirect("/entrar?destino=/admin");
+    return <SinPermiso que="La administración" />;
+  }
+
   const [drive, r] = await Promise.all([estadoDrive(), resumen()]);
   const motor = motorDeDatos();
+  const cuentas = servicioConfigurado()
+    ? await listarCuentas().catch(() => null)
+    : null;
 
   return (
     <>
@@ -54,6 +69,27 @@ export default async function Administracion() {
             }
           />
         </div>
+
+        <Rotulo>Personas</Rotulo>
+        <Tarjeta
+          href="/admin/usuarios"
+          titulo="Cuentas"
+          estado={cuentas === null ? "pendiente" : "ok"}
+          valor={
+            cuentas === null
+              ? "Falta la llave de servicio de Supabase"
+              : `${cuentas.filter((c) => c.activo).length} ${
+                  cuentas.filter((c) => c.activo).length === 1
+                    ? "persona activa"
+                    : "personas activas"
+                }`
+          }
+          detalle={
+            cuentas === null
+              ? "Sin ella no se pueden crear ni cambiar cuentas"
+              : "Crear cuentas, cambiar permisos y contraseñas"
+          }
+        />
 
         <Rotulo>Para publicarlo en internet</Rotulo>
         <ol

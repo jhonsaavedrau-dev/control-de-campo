@@ -1,7 +1,7 @@
-import { headers } from "next/headers";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import QRCode from "qrcode";
 import { obtenerFichaEquipo } from "@/lib/db";
+import { direccionBase, dibujarQR, esLocal as apuntaLocal } from "@/lib/qr";
 import { Encabezado, PieDePagina } from "@/components/Marco";
 import { SimboloPBI } from "@/components/Marca";
 import { numero } from "@/components/Piezas";
@@ -17,27 +17,10 @@ export default async function CodigoQR({
 
   const { equipo: e, sede: s } = ficha;
 
-  // Si hay direccion publica configurada, manda esa: asi los adhesivos
-  // impresos desde este computador ya apuntan al sistema publicado.
-  const publica = process.env.NEXT_PUBLIC_URL_PUBLICA?.trim().replace(/\/+$/, "");
-  let base: string;
-  if (publica) {
-    base = publica;
-  } else {
-    const cabeceras = await headers();
-    const host = cabeceras.get("host") ?? "localhost:3000";
-    base = `${host.startsWith("localhost") ? "http" : "https"}://${host}`;
-  }
+  const base = await direccionBase();
   const url = `${base}/equipo/${e.id_equipo}`;
-  const esLocal = url.includes("localhost");
-
-  // Nivel de corrección alto: el adhesivo va sobre un equipo, se ensucia.
-  const svg = await QRCode.toString(url, {
-    type: "svg",
-    errorCorrectionLevel: "H",
-    margin: 1,
-    color: { dark: "#12161b", light: "#ffffff" },
-  });
+  const esLocal = apuntaLocal(url);
+  const svg = await dibujarQR(url);
 
   return (
     <>
@@ -113,6 +96,12 @@ export default async function CodigoQR({
               ? "Esta dirección solo funciona en este computador. No imprimas todavía: publica el sistema primero y los códigos quedarán definitivos."
               : "Dirección pública: este adhesivo ya se puede imprimir y pegar en el equipo."}
           </p>
+          <Link
+            href="/qr"
+            className="accion-secundaria text-[12px] py-1.5 px-3 mt-3 inline-block"
+          >
+            Imprimir todos los códigos en una hoja
+          </Link>
         </div>
       </main>
 

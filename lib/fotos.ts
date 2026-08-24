@@ -1,4 +1,4 @@
-import { asegurarCarpeta, subirArchivo } from "./drive";
+import { asegurarCarpeta, subirArchivo, reemplazarArchivo } from "./drive";
 import { asegurarEstructuraEquipo } from "./estructura-drive";
 import type { Equipo, Sede } from "./tipos";
 
@@ -86,4 +86,43 @@ export function fotosParaPdf(fotos: FotoEntrante[]) {
   return fotos.slice(0, 2).map((f) => ({
     ruta: `data:${f.tipo || "image/jpeg"};base64,${f.contenido.toString("base64")}`,
   }));
+}
+
+/**
+ * Foto de referencia de la ficha (equipo, controlador o planta).
+ *
+ * A diferencia de las de intervención, estas se reemplazan: son "cómo se
+ * ve esto ahora mismo". Van a 05_FOTOS/FICHA con un nombre fijo por
+ * ranura, así que la carpeta no se llena de versiones sueltas.
+ */
+export async function subirFotoFicha({
+  equipo,
+  sede,
+  ranura,
+  tipo,
+  contenido,
+}: {
+  equipo: Equipo;
+  sede: Sede;
+  ranura: "equipo" | "controlador" | "planta";
+  tipo: string;
+  contenido: Buffer;
+}): Promise<{ drive_file_id: string; drive_url: string }> {
+  const estructura = await asegurarEstructuraEquipo(equipo, sede);
+  const carpetaFotos = await asegurarCarpeta(
+    estructura.carpeta_equipo_id,
+    "05_FOTOS",
+  );
+  const carpetaFicha = await asegurarCarpeta(carpetaFotos.id, "FICHA");
+
+  const ext = EXTENSIONES[tipo] ?? "jpg";
+  const nombre = `${equipo.id_equipo}_${ranura.toUpperCase()}.${ext}`;
+
+  const r = await reemplazarArchivo({
+    carpetaId: carpetaFicha.id,
+    nombre,
+    tipo: tipo || "image/jpeg",
+    contenido,
+  });
+  return { drive_file_id: r.id, drive_url: r.webViewLink };
 }
