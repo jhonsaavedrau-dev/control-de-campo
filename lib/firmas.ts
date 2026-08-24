@@ -189,10 +189,20 @@ export async function firmaDeTecnico(nombre: string): Promise<string | null> {
     if (!servicioConfigurado()) return null;
 
     const cuentas = await listarCuentas();
-    const suya = cuentas.find((c) => normalizar(c.nombre_completo) === buscado);
-    if (!suya?.correo) return null;
+    // Puede haber mas de una ficha con el mismo nombre — pasa cuando a
+    // alguien se le crea cuenta nueva en vez de darle acceso a la que ya
+    // tenia. Se descartan las que no tienen correo, y si aun asi quedan
+    // varias se prueba una por una hasta dar con la que tiene firma.
+    const candidatas = cuentas.filter(
+      (c) => normalizar(c.nombre_completo) === buscado && c.correo,
+    );
+    if (!candidatas.length) return null;
 
-    const png = await firmaDe(suya.correo);
+    let png: Buffer | null = null;
+    for (const c of candidatas) {
+      png = await firmaDe(c.correo);
+      if (png) break;
+    }
     if (!png) return null;
 
     // Como data URL: es lo que react-pdf incrusta sin tener que
