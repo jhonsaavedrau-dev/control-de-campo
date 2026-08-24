@@ -413,3 +413,221 @@ a.bitacora-fila:hover { background: var(--color-realce); }
   }
   main { max-width: none !important; padding: 0 !important; }
 }
+
+/* ============================================================
+   PANELES CON CABECERA
+   Cada bloque se anuncia con una etiqueta oscura y su icono en
+   amarillo, como los rótulos de un tablero. Es lo que hace que
+   la página deje de ser una lista de cajas blancas iguales.
+   ============================================================ */
+
+.bloque {
+  background: var(--color-panel);
+  border: 1px solid var(--color-borde);
+  border-bottom-color: var(--color-borde-fuerte);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.bloque-cabeza {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 14px;
+  background: var(--color-marino);
+  color: #fff;
+  font-family: var(--font-placa);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.bloque-cabeza svg { color: var(--color-amarillo); }
+.bloque-cabeza .cuenta {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Variantes: el color de la cabeza dice de qué habla el bloque */
+.bloque-cabeza-activo { background: var(--color-activo-hondo); }
+.bloque-cabeza-activo svg { color: #7fe6da; }
+.bloque-cabeza-critico { background: #8f1f1e; }
+.bloque-cabeza-critico svg { color: #ffb3b2; }
+
+.bloque-cuerpo { padding: 13px 14px; }
+
+/* ============================================================
+   DISPLAY — el valor que se lee de lejos
+   ============================================================ */
+
+.display {
+  background: linear-gradient(
+    180deg,
+    var(--color-campo) 0%,
+    var(--color-hundido) 100%
+  );
+  border: 1px solid var(--color-borde);
+  border-radius: 5px;
+  padding: 10px 12px;
+}
+.display-etiqueta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-sin-info);
+}
+.display-valor {
+  font-family: var(--font-mono);
+  font-size: 21px;
+  font-weight: 500;
+  line-height: 1.1;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.display-unidad {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--color-tenue);
+  margin-left: 2px;
+}
+
+/* ============================================================
+   FILA DE DATO — con su icono, para encontrar el campo sin leer
+   ============================================================ */
+
+.campo-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 11px;
+  background: var(--color-panel);
+  border-bottom: 1px solid var(--color-borde-suave);
+}
+.campo-fila:last-child { border-bottom: none; }
+.campo-fila:nth-child(even) { background: var(--color-realce); }
+.campo-fila svg { color: var(--color-sin-info); flex-shrink: 0; }
+
+.campo-nombre {
+  font-size: 11.5px;
+  color: var(--color-tenue);
+  flex-shrink: 0;
+  width: 118px;
+}
+.campo-dato {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  margin-left: auto;
+  text-align: right;
+  word-break: break-word;
+  font-variant-numeric: tabular-nums;
+}
+.campo-dato-vacio { color: var(--color-sin-info); }
+
+/* Datos que son secretos operativos: se marcan, no se esconden */
+.campo-fila-clave {
+  background: color-mix(in srgb, var(--color-accion) 9%, transparent) !important;
+  border-left: 2px solid var(--color-accion);
+}
+.campo-fila-clave .campo-dato {
+  font-weight: 500;
+  color: var(--color-accion-hondo);
+}
+
+/* ============================================================
+   BARRA DE CARGA — la zona eficiente contra la nominal
+   ============================================================ */
+
+.barra {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--color-hundido);
+  overflow: hidden;
+  margin-top: 7px;
+}
+.barra-relleno {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--color-activo);
+}
+
+/* ============================================================
+   TESTIGO GRANDE — el estado del equipo, visible de lejos
+   ============================================================ */
+
+.testigo {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px 6px 10px;
+  border-radius: 4px;
+  font-family: var(--font-placa);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid;
+}
+.testigo-punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 22%, transparent);
+}
+.testigo-operativo {
+  color: #1c7a44;
+  background: color-mix(in srgb, var(--color-operativo) 13%, #fff);
+  border-color: color-mix(in srgb, var(--color-operativo) 40%, transparent);
+}
+.testigo-pendiente {
+  color: #8f5a09;
+  background: color-mix(in srgb, var(--color-pendiente) 14%, #fff);
+  border-color: color-mix(in srgb, var(--color-pendiente) 40%, transparent);
+}
+.testigo-critico {
+  color: #a52322;
+  background: color-mix(in srgb, var(--color-critico) 12%, #fff);
+  border-color: color-mix(in srgb, var(--color-critico) 38%, transparent);
+}
+.testigo-sin-info {
+  color: var(--color-tenue);
+  background: var(--color-hundido);
+  border-color: var(--color-borde);
+}
+
+/* ============================================================
+   ACCIONES POR INTENCIÓN
+   Registrar no puede verse igual que consultar.
+   ============================================================ */
+
+.accion-registrar {
+  background: #2e9e5b;
+  border-color: #1f7442;
+  color: #fff;
+}
+.accion-registrar:hover { background: #35b268; }
+
+.accion-consultar {
+  background: var(--color-marino);
+  border-color: var(--color-marino-hondo);
+  color: #fff;
+}
+.accion-consultar:hover { background: var(--color-marino-alto); }
+
+/* La franja diagonal del encabezado: guiño a la marca */
+.marca-diagonal {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--color-amarillo) 0 7px,
+    color-mix(in srgb, var(--color-amarillo) 55%, var(--color-marino)) 7px 14px
+  );
+}

@@ -2,14 +2,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { obtenerFichaEquipo } from "@/lib/db";
 import { Encabezado, PieDePagina } from "@/components/Marco";
+import { InsigniaResultado, fechaCorta } from "@/components/Piezas";
 import {
-  Rotulo, Datos, Campo, Led, InsigniaResultado,
-  claseBordePlaca, fechaCorta, numero,
-} from "@/components/Piezas";
-import { ETIQUETA_COMBUSTIBLE, ETIQUETA_TIPO } from "@/lib/tipos";
-import { usuarioActual, puedeEditar } from "@/lib/sesion";
+  Bloque, BloqueMedidores, BloqueControlador, BloqueEquipo,
+  BloqueFotos, BloqueDocumentos, EnlaceSede,
+} from "@/components/FichaEquipo";
+import {
+  IcoHerramienta, IcoCodigoQR, IcoLapiz, IcoFlecha, IcoChip,
+} from "@/components/Iconos";
 import PanelBackups from "@/components/PanelBackups";
 import AccionesHojaVida from "@/components/AccionesHojaVida";
+import { ETIQUETA_TIPO, ETIQUETA_ESTADO, semaforo } from "@/lib/tipos";
+import { usuarioActual, puedeEditar } from "@/lib/sesion";
 
 export default async function FichaEquipo({
   params,
@@ -25,221 +29,259 @@ export default async function FichaEquipo({
   const puedeEditarFicha = puedeEditar(usuario);
 
   const { equipo: e, sede: s, controlador: c, intervenciones, documentos } = ficha;
+  const tono = semaforo(e.estado);
 
   return (
     <>
       <Encabezado />
 
       <main className="flex-1 w-full lienzo-reticula">
-        <div className="max-w-[1100px] mx-auto sm:px-6 sm:py-7">
-        <div className="sm:panel overflow-hidden">
-          <div className={claseBordePlaca(e.estado)}>
-            <div className="ruta">
-              {s?.id_sede} · {s?.nombre}
-              {s?.cliente ? ` · ${s.cliente}` : ""}
-            </div>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="equipo-id">{e.id_equipo}</div>
-                <div className="equipo-sub">
-                  {e.fabricante} {e.modelo}
-                  {c ? ` · Controlador ${c.id_controlador}` : ""}
+        <div className="max-w-[1180px] mx-auto px-3 sm:px-6 py-4 sm:py-7">
+          {/* ── Placa del equipo ────────────────────────────── */}
+          <div className="bloque mb-4">
+            <div
+              className="relative overflow-hidden px-4 sm:px-6 py-5"
+              style={{ background: "var(--color-marino)" }}
+            >
+              {/* Franja diagonal: el guiño de marca */}
+              <div className="absolute right-0 top-0 bottom-0 w-16 opacity-[0.13] marca-diagonal" />
+
+              <div className="relative flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="mb-2.5">
+                    <span
+                      className="inline-flex items-center gap-1.5 font-[family-name:var(--font-mono)] text-[9.5px] uppercase tracking-[0.12em] px-2 py-1 rounded"
+                      style={{
+                        background: "rgba(255,255,255,0.1)",
+                        color: "var(--color-amarillo)",
+                      }}
+                    >
+                      {s?.id_sede} · {s?.nombre}
+                    </span>
+                  </div>
+                  <h1
+                    className="font-[family-name:var(--font-placa)] font-semibold text-[46px] sm:text-[58px] leading-[0.9] text-white"
+                    style={{ letterSpacing: "-0.015em" }}
+                  >
+                    {e.id_equipo}
+                  </h1>
+                  <p className="font-[family-name:var(--font-mono)] text-[12px] mt-2 text-white/60">
+                    {e.nombre ? `${e.nombre} — ` : ""}
+                    {e.fabricante} {e.modelo}
+                    {c ? (
+                      <>
+                        {" · "}
+                        <span style={{ color: "var(--color-cian)" }}>
+                          {c.id_controlador}
+                        </span>
+                      </>
+                    ) : null}
+                  </p>
+                </div>
+
+                <div className={`testigo testigo-${tono} shrink-0`}>
+                  <span
+                    className="testigo-punto"
+                    style={{ background: "currentColor" }}
+                  />
+                  {ETIQUETA_ESTADO[e.estado]}
                 </div>
               </div>
-              <Led estado={e.estado} />
+            </div>
+
+            {/* Medidores, pegados a la placa */}
+            <div
+              className="px-3 sm:px-4 py-3"
+              style={{
+                background: "var(--color-hundido)",
+                borderTop: "3px solid var(--color-amarillo)",
+              }}
+            >
+              <BloqueMedidores equipo={e} />
             </div>
           </div>
 
-          <div className="px-5 pt-5 pb-7 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8">
-            <div className="min-w-0">
-            {c ? (
-              <>
-                <Rotulo>Controlador</Rotulo>
-                <Datos>
-                  <Campo etiqueta="Fabricante">{c.fabricante}</Campo>
-                  <Campo etiqueta="Modelo">{c.modelo}</Campo>
-                  <Campo etiqueta="Firmware">{c.firmware}</Campo>
-                  <Campo etiqueta="Serial">{c.serial}</Campo>
-                  <Campo etiqueta="Clave">{c.clave}</Campo>
-                  <Campo etiqueta="IP">{c.ip}</Campo>
-                  <Campo etiqueta="Comunicación">{c.comunicacion}</Campo>
-                  <Campo etiqueta="Modo">{c.modo_operacion}</Campo>
-                </Datos>
-              </>
-            ) : null}
+          {/* ── Cuerpo ──────────────────────────────────────── */}
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_340px]">
+            <div className="flex flex-col gap-4 min-w-0">
+              {c ? <BloqueControlador controlador={c} /> : null}
+              <BloqueFotos />
+            </div>
 
-            <Rotulo>Equipo</Rotulo>
-            <Datos>
-              <Campo etiqueta="Potencia nominal">
-                {numero(e.potencia_nominal_kw, " kW")}
-              </Campo>
-              <Campo etiqueta="Combustible">
-                {e.combustible ? ETIQUETA_COMBUSTIBLE[e.combustible] : ""}
-              </Campo>
-              <Campo etiqueta="Horómetro">
-                {numero(e.horometro_actual, " h")}
-              </Campo>
-              <Campo etiqueta="Zona eficiente">
-                {e.potencia_eficiente_kw
-                  ? `> ${numero(e.potencia_eficiente_kw, " kW")}`
-                  : ""}
-              </Campo>
-              <Campo etiqueta="Motor">{e.motor}</Campo>
-              <Campo etiqueta="Serial">{e.serial}</Campo>
-              <Campo etiqueta="TAG">{e.tag}</Campo>
-              <Campo etiqueta="Placa del motor">{e.placa_motor}</Campo>
-              <Campo etiqueta="Placa del generador">{e.placa_generador}</Campo>
-              <Campo etiqueta="Alternador">{e.alternador}</Campo>
-            </Datos>
+            <div className="flex flex-col gap-4 min-w-0">
+              <BloqueEquipo equipo={e} />
 
-            {e.observaciones ? (
-              <p
-                className="mt-3 text-[12.5px] leading-relaxed border rounded px-3 py-2"
-                style={{
-                  borderColor: "var(--color-borde)",
-                  background: "var(--color-campo)",
-                  color: "var(--color-tenue)",
-                }}
-              >
-                {e.observaciones}
-              </p>
-            ) : null}
-
-            <Rotulo>Fotografías</Rotulo>
-            <div className="grid grid-cols-3 gap-2">
-              {["Equipo", "Controlador", "Planta"].map((n) => (
+              {e.observaciones ? (
                 <div
-                  key={n}
-                  className="aspect-square rounded flex items-center justify-center font-[family-name:var(--font-mono)] text-[10px] border"
+                  className="panel-hondo px-3.5 py-3 text-[12.5px] leading-relaxed"
                   style={{
-                    borderColor: "var(--color-borde)",
-                    background: "var(--color-panel)",
-                    color: "var(--color-sin-info)",
+                    color: "var(--color-tenue)",
+                    borderLeft: "3px solid var(--color-pendiente)",
                   }}
                 >
-                  {n}
+                  {e.observaciones}
                 </div>
-              ))}
-            </div>
-
-            </div>
-
-            <div className="min-w-0 lg:border-l lg:pl-8" style={{ borderColor: "var(--color-borde-suave)" }}>
-            <Rotulo>Últimas intervenciones</Rotulo>
-            {intervenciones.length ? (
-              <div className="bitacora">
-                {intervenciones.slice(0, 5).map((i) => (
-                  <Link
-                    key={i.id_intervencion}
-                    href={`/intervencion/${i.id_intervencion}`}
-                    className="bitacora-fila"
-                  >
-                    <div className="bitacora-fecha">{fechaCorta(i.fecha)}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[13px] font-medium truncate">
-                        {ETIQUETA_TIPO[i.tipo_intervencion]} ·{" "}
-                        {i.actividades_realizadas}
-                      </div>
-                      <div
-                        className="text-[11px] mt-0.5"
-                        style={{ color: "var(--color-tenue)" }}
-                      >
-                        {i.id_intervencion} · {i.tecnico_nombre}
-                      </div>
-                    </div>
-                    <InsigniaResultado resultado={i.resultado} />
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div
-                className="border rounded px-4 py-8 text-center"
-                style={{ borderColor: "var(--color-borde)" }}
-              >
-                <p className="text-[13px]" style={{ color: "var(--color-tenue)" }}>
-                  Este equipo todavía no tiene intervenciones registradas.
-                </p>
-                <p
-                  className="text-[11.5px] mt-1"
-                  style={{ color: "var(--color-sin-info)" }}
-                >
-                  La primera que registres abre su historial.
-                </p>
-              </div>
-            )}
-
-            {intervenciones.length > 5 ? (
-              <Link
-                href={`/intervenciones?equipo=${e.id_equipo}`}
-                className="block text-center mt-3 font-[family-name:var(--font-mono)] text-[11px]"
-                style={{ color: "var(--color-activo)" }}
-              >
-                Ver las {intervenciones.length} intervenciones
-              </Link>
-            ) : null}
-
-            {documentos.length ? (
-              <>
-                <Rotulo>Documentación</Rotulo>
-                <div className="bitacora">
-                  {documentos.map((d) => (
-                    <a
-                      key={d.id}
-                      href={d.drive_url || "#"}
-                      className="bitacora-fila"
-                    >
-                      <span
-                        className="font-[family-name:var(--font-mono)] text-[10px] uppercase w-[56px] shrink-0"
-                        style={{ color: "var(--color-tenue)" }}
-                      >
-                        {d.tipo}
-                      </span>
-                      <span className="flex-1 text-[13px] truncate">{d.nombre}</span>
-                    </a>
-                  ))}
-                </div>
-              </>
-            ) : null}
-
-            {c ? (
-              <div className="no-imprimir">
-                <PanelBackups
-                  idEquipo={e.id_equipo}
-                  idControlador={c.id_controlador}
-                />
-              </div>
-            ) : null}
-
-            <div className="no-imprimir">
-              <AccionesHojaVida
-                idEquipo={e.id_equipo}
-                totalIntervenciones={intervenciones.length}
-                puedeArchivar={puedeEditarFicha}
-              />
-            </div>
-
-            <div className="mt-7 space-y-2 no-imprimir">
-              <Link href={`/intervencion/nueva?equipo=${e.id_equipo}`} className="accion">
-                Registrar intervención
-              </Link>
-              <Link
-                href={`/equipo/${e.id_equipo}/qr`}
-                className="accion accion-secundaria"
-              >
-                Ver código QR del equipo
-              </Link>
-              {puedeEditarFicha ? (
-                <Link
-                  href={`/equipo/${e.id_equipo}/editar`}
-                  className="accion accion-secundaria"
-                >
-                  Editar ficha
-                </Link>
               ) : null}
+
+              <BloqueDocumentos documentos={documentos} />
             </div>
+
+            <div className="flex flex-col gap-4 min-w-0">
+              {/* Acciones arriba: es lo que el técnico viene a hacer */}
+              <div className="flex flex-col gap-2 no-imprimir">
+                <Link
+                  href={`/intervencion/nueva?equipo=${e.id_equipo}`}
+                  className="accion accion-registrar"
+                >
+                  <IcoHerramienta className="w-4 h-4" />
+                  Registrar intervención
+                </Link>
+                <div className="grid grid-cols-2 gap-2">
+                  <Link
+                    href={`/equipo/${e.id_equipo}/qr`}
+                    className="accion accion-secundaria"
+                    style={{ fontSize: "12.5px", padding: "11px 10px" }}
+                  >
+                    <IcoCodigoQR className="w-4 h-4" />
+                    Código QR
+                  </Link>
+                  {puedeEditarFicha ? (
+                    <Link
+                      href={`/equipo/${e.id_equipo}/editar`}
+                      className="accion accion-secundaria"
+                      style={{ fontSize: "12.5px", padding: "11px 10px" }}
+                    >
+                      <IcoLapiz className="w-4 h-4" />
+                      Editar
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+
+              <Bloque
+                titulo="Intervenciones"
+                icono={<IcoHerramienta />}
+                cuenta={String(intervenciones.length)}
+                sinRelleno
+              >
+                {intervenciones.length ? (
+                  <div>
+                    {intervenciones.slice(0, 6).map((i) => (
+                      <Link
+                        key={i.id_intervencion}
+                        href={`/intervencion/${i.id_intervencion}`}
+                        className="campo-fila"
+                        style={{ alignItems: "flex-start" }}
+                      >
+                        <span
+                          className="font-[family-name:var(--font-mono)] text-[10px] font-medium shrink-0 px-1.5 py-0.5 rounded"
+                          style={{
+                            background: "var(--color-hundido)",
+                            color: "var(--color-tenue)",
+                          }}
+                        >
+                          {fechaCorta(i.fecha)}
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-[12.5px] font-medium leading-snug line-clamp-2">
+                            {i.actividades_realizadas}
+                          </span>
+                          <span
+                            className="block font-[family-name:var(--font-mono)] text-[10px] mt-1"
+                            style={{ color: "var(--color-sin-info)" }}
+                          >
+                            {ETIQUETA_TIPO[i.tipo_intervencion]} ·{" "}
+                            {i.tecnico_nombre}
+                          </span>
+                        </span>
+                        <InsigniaResultado resultado={i.resultado} />
+                      </Link>
+                    ))}
+                    {intervenciones.length > 6 ? (
+                      <Link
+                        href={`/intervenciones?equipo=${e.id_equipo}`}
+                        className="campo-fila justify-center"
+                        style={{ color: "var(--color-activo)" }}
+                      >
+                        <span className="font-[family-name:var(--font-mono)] text-[10.5px] uppercase tracking-wide">
+                          Ver las {intervenciones.length}
+                        </span>
+                        <IcoFlecha className="w-3.5 h-3.5" />
+                      </Link>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="bloque-cuerpo text-center py-6">
+                    <IcoHerramienta
+                      className="w-7 h-7 mx-auto mb-2"
+                      // el vacío también comunica: aún no hay historia
+                    />
+                    <p
+                      className="text-[12.5px]"
+                      style={{ color: "var(--color-tenue)" }}
+                    >
+                      Sin intervenciones registradas
+                    </p>
+                    <p
+                      className="text-[11px] mt-1"
+                      style={{ color: "var(--color-sin-info)" }}
+                    >
+                      La primera abre su historial
+                    </p>
+                  </div>
+                )}
+              </Bloque>
+
+              {c ? (
+                <div className="bloque no-imprimir">
+                  <div className="bloque-cabeza">
+                    <IcoChip />
+                    Backups
+                  </div>
+                  <div className="bloque-cuerpo">
+                    <PanelBackups
+                      idEquipo={e.id_equipo}
+                      idControlador={c.id_controlador}
+                    />
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="bloque no-imprimir">
+                <div className="bloque-cabeza">
+                  <IcoHerramienta />
+                  Hoja de vida
+                  <span className="cuenta">FOR-MTO-16</span>
+                </div>
+                <div className="bloque-cuerpo">
+                  <AccionesHojaVida
+                    idEquipo={e.id_equipo}
+                    totalIntervenciones={intervenciones.length}
+                    puedeArchivar={puedeEditarFicha}
+                  />
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+
+          <div
+            className="mt-5 pt-4 flex flex-wrap items-center justify-between gap-3"
+            style={{ borderTop: "1px solid var(--color-borde)" }}
+          >
+            <EnlaceSede
+              idSede={s?.id_sede}
+              nombre={s?.nombre}
+              cliente={s?.cliente}
+            />
+            {e.actualizado_por ? (
+              <span
+                className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-wide"
+                style={{ color: "var(--color-sin-info)" }}
+              >
+                Ficha actualizada por {e.actualizado_por}
+              </span>
+            ) : null}
+          </div>
         </div>
       </main>
 

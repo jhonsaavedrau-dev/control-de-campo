@@ -3,6 +3,7 @@ import { listarEquipos, resumen } from "@/lib/db";
 import { Encabezado, PieDePagina } from "@/components/Marco";
 import { Insignia, numero, fechaCorta } from "@/components/Piezas";
 import { semaforo, ETIQUETA_ESTADO, ETIQUETA_COMBUSTIBLE } from "@/lib/tipos";
+import { IcoRayo, IcoCombustible, IcoReloj, IcoChip, IcoFlecha, IcoLupa } from "@/components/Iconos";
 import { usuarioActual, puedeEditar } from "@/lib/sesion";
 
 export default async function Inicio({
@@ -146,72 +147,90 @@ export default async function Inicio({
                       href={`/equipo/${e.id_equipo}`}
                       className="panel group relative overflow-hidden transition-all hover:border-[color:var(--color-borde-fuerte)]"
                     >
-                      {/* Testigo de estado como filo del panel */}
-                      <span
-                        className="absolute left-0 top-0 bottom-0 w-[3px]"
-                        style={{ background: color }}
-                      />
-
-                      <div className="p-4 pl-5">
-                        <div className="flex items-start justify-between gap-3">
+                      {/* Cabecera oscura: el ID se lee de lejos */}
+                      <div
+                        className="relative px-4 py-3 overflow-hidden"
+                        style={{ background: "var(--color-marino)" }}
+                      >
+                        <span
+                          className="absolute left-0 top-0 bottom-0 w-[4px]"
+                          style={{ background: color }}
+                        />
+                        <div className="flex items-start justify-between gap-2 pl-1.5">
                           <div className="min-w-0">
-                            <div className="font-[family-name:var(--font-placa)] font-semibold text-[26px] leading-none">
+                            <div className="font-[family-name:var(--font-placa)] font-semibold text-[27px] leading-none text-white">
                               {e.id_equipo}
                             </div>
-                            <div
-                              className="font-[family-name:var(--font-mono)] text-[11px] mt-1.5 truncate"
-                              style={{ color: "var(--color-tenue)" }}
-                            >
+                            <div className="font-[family-name:var(--font-mono)] text-[10.5px] mt-1 truncate text-white/55">
                               {e.nombre ? `${e.nombre} · ` : ""}
                               {e.fabricante} {e.modelo}
                             </div>
                           </div>
-                          <Insignia tono={tono}>
-                            {ETIQUETA_ESTADO[e.estado].toUpperCase()}
-                          </Insignia>
-                        </div>
-
-                        <div
-                          className="grid grid-cols-3 gap-px mt-4 rounded overflow-hidden"
-                          style={{ background: "var(--color-borde-suave)" }}
-                        >
-                          <Celda
-                            etiqueta="Potencia"
-                            valor={numero(e.potencia_nominal_kw, " kW")}
-                          />
-                          <Celda
-                            etiqueta="Combustible"
-                            valor={
-                              e.combustible
-                                ? ETIQUETA_COMBUSTIBLE[e.combustible]
-                                : ""
-                            }
-                          />
-                          <Celda
-                            etiqueta="Horómetro"
-                            valor={numero(e.horometro_actual, " h")}
-                          />
-                        </div>
-
-                        <div
-                          className="flex items-center justify-between mt-3 pt-3 text-[11px]"
-                          style={{
-                            borderTop: "1px solid var(--color-borde-suave)",
-                            color: "var(--color-sin-info)",
-                          }}
-                        >
-                          <span className="font-[family-name:var(--font-mono)]">
-                            {e.ultima_intervencion
-                              ? `ÚLT. ${fechaCorta(e.ultima_intervencion.fecha)}`
-                              : "SIN HISTORIAL"}
-                          </span>
                           <span
-                            className="font-[family-name:var(--font-mono)] tracking-wide group-hover:translate-x-0.5 transition-transform"
-                            style={{ color: "var(--color-activo)" }}
+                            className="font-[family-name:var(--font-mono)] text-[8.5px] uppercase tracking-[0.08em] px-1.5 py-1 rounded shrink-0"
+                            style={{
+                              background: color,
+                              color: tono === "pendiente" ? "#2a1a02" : "#fff",
+                            }}
                           >
-                            ABRIR →
+                            {ETIQUETA_ESTADO[e.estado]}
                           </span>
                         </div>
+                      </div>
+
+                      {/* Medidores */}
+                      <div
+                        className="grid grid-cols-3 gap-px"
+                        style={{ background: "var(--color-borde-suave)" }}
+                      >
+                        <Celda
+                          icono={<IcoRayo className="w-2.5 h-2.5" />}
+                          etiqueta="Potencia"
+                          valor={numero(e.potencia_nominal_kw, " kW")}
+                        />
+                        <Celda
+                          icono={<IcoCombustible className="w-2.5 h-2.5" />}
+                          etiqueta="Combustible"
+                          valor={
+                            e.combustible ? ETIQUETA_COMBUSTIBLE[e.combustible] : ""
+                          }
+                        />
+                        <Celda
+                          icono={<IcoReloj className="w-2.5 h-2.5" />}
+                          etiqueta="Horómetro"
+                          valor={numero(e.horometro_actual, " h")}
+                        />
+                      </div>
+
+                      {/* Pie: controlador y última visita */}
+                      <div
+                        className="flex items-center justify-between px-4 py-2.5 text-[10.5px]"
+                        style={{
+                          background: "var(--color-realce)",
+                          color: "var(--color-sin-info)",
+                        }}
+                      >
+                        <span className="font-[family-name:var(--font-mono)] flex items-center gap-1.5 min-w-0">
+                          {e.controladores[0] ? (
+                            <>
+                              <IcoChip className="w-3 h-3 shrink-0" />
+                              <span className="truncate">
+                                {e.controladores[0].id_controlador}
+                              </span>
+                            </>
+                          ) : (
+                            <span>sin controlador</span>
+                          )}
+                        </span>
+                        <span className="font-[family-name:var(--font-mono)] flex items-center gap-1.5 shrink-0">
+                          {e.ultima_intervencion
+                            ? fechaCorta(e.ultima_intervencion.fecha)
+                            : "sin historial"}
+                          <IcoFlecha
+                            className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform"
+                            // el color señala que la tarjeta abre algo
+                          />
+                        </span>
                       </div>
                     </Link>
                   );
@@ -292,16 +311,21 @@ function Contador({
   );
 }
 
-function Celda({ etiqueta, valor }: { etiqueta: string; valor: string }) {
+function Celda({
+  etiqueta, valor, icono,
+}: {
+  etiqueta: string; valor: string; icono?: React.ReactNode;
+}) {
   return (
     <div
       className="px-2.5 py-2"
       style={{ background: "var(--color-campo)" }}
     >
       <div
-        className="text-[9px] uppercase tracking-[0.05em]"
+        className="flex items-center gap-1 text-[8.5px] uppercase tracking-[0.06em] font-medium"
         style={{ color: "var(--color-sin-info)" }}
       >
+        {icono}
         {etiqueta}
       </div>
       <div
