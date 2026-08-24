@@ -53,6 +53,12 @@ export const ETIQUETA_RESULTADO: Record<ResultadoIntervencion, string> = {
   no_satisfactorio: "No satisfactorio",
 };
 
+export const ETIQUETA_ROL: Record<RolUsuario, string> = {
+  administrador: "Administrador",
+  supervisor: "Supervisor",
+  tecnico: "Técnico",
+};
+
 export const ETIQUETA_COMBUSTIBLE: Record<TipoCombustible, string> = {
   diesel: "Diésel",
   glp: "GLP",

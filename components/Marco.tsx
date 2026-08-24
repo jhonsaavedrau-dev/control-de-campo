@@ -33,14 +33,14 @@ export async function Encabezado({
 
           {usuario ? (
             <div className="flex items-center gap-2.5 shrink-0">
-              <div className="text-right leading-tight hidden sm:block">
-                <div className="text-[11px] text-white/85 truncate max-w-[140px]">
+              <Link href="/cuenta" className="text-right leading-tight hidden sm:block group">
+                <div className="text-[11px] text-white/85 group-hover:text-white truncate max-w-[140px] transition-colors">
                   {usuario.nombre}
                 </div>
                 <div className="font-[family-name:var(--font-mono)] text-[9px] text-white/45 uppercase">
                   {usuario.rol}
                 </div>
-              </div>
+              </Link>
               <form action={salir}>
                 <button
                   className="font-[family-name:var(--font-mono)] text-[10px] text-white/60 hover:text-white border border-white/20 rounded px-2 py-1 transition-colors"
