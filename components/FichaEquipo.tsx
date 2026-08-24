@@ -6,7 +6,6 @@ import {
 } from "./Iconos";
 import { numero, fechaCorta } from "./Piezas";
 import PanelFotos from "./PanelFotos";
-import { rutaImagen } from "@/lib/imagenes";
 import {
   mantenimientoDe, colorMantenimiento, frase, ETIQUETA_MANTENIMIENTO,
 } from "@/lib/mantenimiento";
@@ -275,14 +274,12 @@ export function BloqueFotos({
     foto_controlador_url: c?.foto_controlador_url || "",
     foto_planta_url: e.foto_planta_url || c?.foto_planta_url || "",
   };
-  const cuantas = Object.values(urls).filter((u) => rutaImagen(u)).length;
-
+  // Sin contador: contaba las URL guardadas, no las fotos que de verdad
+  // se ven. Muchas del Excel apuntan a un Drive al que este sistema no
+  // llega, asi que decia «3 de 3» sobre tres recuadros rotos. Los tres
+  // recuadros de abajo ya dicen lo que hay.
   return (
-    <Bloque
-      titulo="Fotografías"
-      icono={<IcoCamara />}
-      cuenta={cuantas ? `${cuantas} de 3` : undefined}
-    >
+    <Bloque titulo="Fotografías" icono={<IcoCamara />}>
       <PanelFotos
         idEquipo={e.id_equipo}
         idControlador={c?.id_controlador ?? ""}

@@ -41,6 +41,14 @@ export default function PanelFotos({
   const [subiendo, setSubiendo] = useState<Ranura | null>(null);
   const [ampliada, setAmpliada] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * Ranuras cuya imagen no se pudo cargar.
+   *
+   * Las fotos que vinieron del Excel apuntan al Drive del cliente, no al
+   * que usa el sistema, así que muchas devuelven 404. Un recuadro roto
+   * es peor que decir «sin foto»: parece que el sistema falló.
+   */
+  const [fallidas, setFallidas] = useState<Set<Ranura>>(new Set());
 
   async function subir(campo: Ranura, archivo: File, de: "equipo" | "controlador") {
     setSubiendo(campo);
@@ -71,7 +79,7 @@ export default function PanelFotos({
       <div className="grid grid-cols-3 gap-2">
         {RANURAS.map(({ campo, titulo, deQue, de }) => {
           const url = urls[campo] ?? "";
-          const ruta = rutaImagen(url, 600);
+          const ruta = fallidas.has(campo) ? null : rutaImagen(url, 600);
           const cargando = subiendo === campo;
 
           return (
@@ -93,6 +101,9 @@ export default function PanelFotos({
                       alt={`Foto ${deQue}`}
                       className="w-full h-full object-cover"
                       loading="lazy"
+                      onError={() =>
+                        setFallidas((previas) => new Set(previas).add(campo))
+                      }
                     />
                     <button
                       type="button"
