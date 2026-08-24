@@ -49,6 +49,17 @@
   --color-amarillo: #ffc629;
   --color-cian: #29a9e0;
 
+  /* --- Consola de aviso ---
+     La barra que sale cuando no hay señal. Va oscura aunque la
+     pantalla este en claro: es la unica cosa que tiene que verse
+     desde lejos con el telefono en la mano y guantes puestos. */
+  --color-consola: #1b2536;
+  --color-consola-borde: #33415c;
+  --color-consola-tinta: #eef3fa;
+
+  /* Las lineas de la reticula del fondo. */
+  --color-reticula: rgba(15, 20, 25, 0.028);
+
   --font-placa: var(--fuente-placa), "Barlow Semi Condensed", sans-serif;
   --font-sans: var(--fuente-cuerpo), "IBM Plex Sans", system-ui, sans-serif;
   --font-mono: var(--fuente-mono), "IBM Plex Mono", ui-monospace, monospace;
@@ -69,8 +80,8 @@ body {
    Es lo que separa "fondo gris" de "superficie de trabajo". */
 .lienzo-reticula {
   background-image:
-    linear-gradient(to right, rgba(15, 20, 25, 0.028) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(15, 20, 25, 0.028) 1px, transparent 1px);
+    linear-gradient(to right, var(--color-reticula) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-reticula) 1px, transparent 1px);
   background-size: 22px 22px;
 }
 
@@ -722,4 +733,108 @@ a.bitacora-fila:hover { background: var(--color-realce); }
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+}
+
+/* ============================================================
+   MODO OSCURO — el mismo tablero, de noche
+
+   Los generadores se revisan de madrugada y en cuartos sin
+   ventana. La pantalla clara al maximo sirve al sol; a las tres
+   de la manana deslumbra y borra la vision nocturna.
+
+   No es "invertir los colores": el fondo se va al azul marino de
+   la marca y los testigos suben de brillo, porque un verde que
+   se lee sobre blanco se apaga sobre oscuro.
+
+   Tres estados: claro forzado, oscuro forzado, y lo que diga el
+   telefono. Por eso los mismos valores aparecen dos veces — una
+   para la preferencia del sistema y otra para el interruptor.
+   ============================================================ */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) {
+    color-scheme: dark;
+
+    --color-lienzo: #0a1120;
+    --color-hundido: #101a2c;
+    --color-panel: #151f33;
+    --color-campo: #1b2740;
+    --color-realce: #202d49;
+
+    --color-borde: #2b3a55;
+    --color-borde-suave: #223049;
+    --color-borde-fuerte: #405475;
+
+    --color-tinta: #e7edf6;
+    --color-tenue: #a2b3c9;
+    --color-sin-info: #7f91aa;
+
+    --color-activo: #2ec8b3;
+    --color-activo-hondo: #24a696;
+    --color-accion: #f2a93f;
+    --color-accion-hondo: #d98d1e;
+
+    --color-operativo: #45c97a;
+    --color-pendiente: #e5a744;
+    --color-critico: #f4626a;
+
+    --color-marino: #101d3f;
+    --color-marino-alto: #1c3163;
+    --color-marino-hondo: #070d1f;
+
+    --color-reticula: rgba(190, 214, 255, 0.045);
+
+    --color-consola: #26334a;
+    --color-consola-borde: #4a5d80;
+    --color-consola-tinta: #f2f6fb;
+  }
+}
+
+:root[data-tema="oscuro"] {
+  color-scheme: dark;
+
+  --color-lienzo: #0a1120;
+  --color-hundido: #101a2c;
+  --color-panel: #151f33;
+  --color-campo: #1b2740;
+  --color-realce: #202d49;
+
+  --color-borde: #2b3a55;
+  --color-borde-suave: #223049;
+  --color-borde-fuerte: #405475;
+
+  --color-tinta: #e7edf6;
+  --color-tenue: #a2b3c9;
+  --color-sin-info: #7f91aa;
+
+  --color-activo: #2ec8b3;
+  --color-activo-hondo: #24a696;
+  --color-accion: #f2a93f;
+  --color-accion-hondo: #d98d1e;
+
+  --color-operativo: #45c97a;
+  --color-pendiente: #e5a744;
+  --color-critico: #f4626a;
+
+  --color-marino: #101d3f;
+  --color-marino-alto: #1c3163;
+  --color-marino-hondo: #070d1f;
+
+  --color-reticula: rgba(190, 214, 255, 0.045);
+
+    --color-consola: #26334a;
+    --color-consola-borde: #4a5d80;
+    --color-consola-tinta: #f2f6fb;
+}
+
+/* El acta y los adhesivos son papel: se imprimen o se pegan, asi
+   que no siguen el tema de la pantalla. Se quedan en blanco. */
+:root[data-tema="oscuro"] .acta,
+:root[data-tema="oscuro"] .adhesivo {
+  background: #fff;
+}
+
+@media print {
+  /* Imprimir en oscuro gastaria un cartucho por hoja. */
+  :root { color-scheme: light; }
 }

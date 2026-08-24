@@ -125,11 +125,23 @@ export default function FormularioIntervencion({
       const sinRed =
         typeof navigator !== "undefined" && !navigator.onLine;
       if (sinRed) {
-        guardarPendiente(datos);
+        try {
+          await guardarPendiente(datos, fotos);
+        } catch {
+          // Guardar en el propio equipo es el ultimo recurso: si falla,
+          // hay que decirlo y no dejar que se cierre la pantalla creyendo
+          // que el acta esta a salvo.
+          setEnviando(false);
+          setError(
+            "Sin señal y este equipo no pudo guardar el registro. No cierres " +
+              "esta pantalla: apunta los datos o busca señal antes de salir.",
+          );
+          return;
+        }
         setEnviando(false);
         setAviso(
           fotos.length
-            ? "Sin señal. La intervención quedó guardada en este equipo y se enviará sola cuando vuelva la conexión. Las fotografías no se guardan en la cola: cuando haya señal, vuelve a adjuntarlas desde el acta."
+            ? `Sin señal. La intervención quedó guardada en este equipo con sus ${fotos.length} fotografía${fotos.length === 1 ? "" : "s"}, y se enviará sola cuando vuelva la conexión.`
             : "Sin señal. La intervención quedó guardada en este equipo y se enviará sola cuando vuelva la conexión.",
         );
       } else {

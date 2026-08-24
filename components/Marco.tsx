@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LogotipoPBI } from "./Marca";
 import { usuarioActual } from "@/lib/sesion";
 import { salir } from "@/app/entrar/acciones";
+import Tema from "./Tema";
 
 /**
  * Barra de marca.
@@ -34,6 +35,8 @@ export async function Encabezado({
                 ← {atras.texto}
               </Link>
             ) : null}
+
+            <Tema />
 
             {usuario ? (
               <div className="flex items-center gap-3 shrink-0">

@@ -1,6 +1,10 @@
 import fs from "node:fs/promises";
 import { depurarChecklist } from "./checklist";
 import type { IntervencionParaContar } from "./mantenimiento";
+import {
+  siguienteId as siguienteIdDeFamilia,
+  sedeNueva, equipoNuevo, controladorNuevo,
+} from "./altas";
 import path from "node:path";
 import type {
   BaseDatos, Intervencion, Equipo, Sede, Controlador,
@@ -438,4 +442,54 @@ export async function actualizarControlador(
     { actualizado_por: quien },
   );
   await escribir(db);
+}
+
+/* ---------- Altas ---------- */
+
+/**
+ * Da de alta una sede, un equipo o un controlador.
+ *
+ * El identificador se calcula aquí y no lo escribe el usuario: GE-016 va
+ * a quedar impreso en un adhesivo pegado a una máquina, y dejar que se
+ * teclee a mano es la forma más fácil de acabar con dos GE-012.
+ */
+export async function crearSede(datos: Partial<Sede>): Promise<Sede> {
+  const db = await leer();
+  const sede = sedeNueva(
+    siguienteIdDeFamilia("sede", db.sedes.map((s) => s.id_sede)),
+    datos,
+  );
+  db.sedes.push(sede);
+  await escribir(db);
+  return sede;
+}
+
+export async function crearEquipo(datos: Partial<Equipo>): Promise<Equipo> {
+  const db = await leer();
+  if (!db.sedes.some((s) => s.id_sede === datos.id_sede)) {
+    throw new Error("Esa sede no existe");
+  }
+  const equipo = equipoNuevo(
+    siguienteIdDeFamilia("equipo", db.equipos.map((e) => e.id_equipo)),
+    datos,
+  );
+  db.equipos.push(equipo);
+  await escribir(db);
+  return equipo;
+}
+
+export async function crearControlador(
+  datos: Partial<Controlador>,
+): Promise<Controlador> {
+  const db = await leer();
+  const equipo = db.equipos.find((e) => e.id_equipo === datos.id_equipo);
+  if (!equipo) throw new Error("Ese equipo no existe");
+
+  const controlador = controladorNuevo(
+    siguienteIdDeFamilia("controlador", db.controladores.map((c) => c.id_controlador)),
+    { ...datos, id_sede: equipo.id_sede },
+  );
+  db.controladores.push(controlador);
+  await escribir(db);
+  return controlador;
 }

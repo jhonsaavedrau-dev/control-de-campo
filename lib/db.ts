@@ -100,6 +100,17 @@ export const guardarFotosIntervencion = (
     ? supabase.guardarFotosIntervencion(...a)
     : json.guardarFotosIntervencion(...a);
 
+export const crearSede = (...a: Parameters<typeof json.crearSede>) =>
+  usarSupabase() ? supabase.crearSede(...a) : json.crearSede(...a);
+
+export const crearEquipo = (...a: Parameters<typeof json.crearEquipo>) =>
+  usarSupabase() ? supabase.crearEquipo(...a) : json.crearEquipo(...a);
+
+export const crearControlador = (
+  ...a: Parameters<typeof json.crearControlador>
+) =>
+  usarSupabase() ? supabase.crearControlador(...a) : json.crearControlador(...a);
+
 export const actualizarEquipo = (...a: Parameters<typeof json.actualizarEquipo>) =>
   usarSupabase() ? supabase.actualizarEquipo(...a) : json.actualizarEquipo(...a);
 

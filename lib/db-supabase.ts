@@ -6,6 +6,10 @@ import type {
 import type { EntradaIntervencion } from "./db-json";
 import { depurarChecklist } from "./checklist";
 import type { IntervencionParaContar } from "./mantenimiento";
+import {
+  siguienteId, sedeNueva, equipoNuevo, controladorNuevo,
+} from "./altas";
+import type { Familia } from "./altas";
 
 /**
  * Misma capa de datos, contra PostgreSQL (Supabase).
@@ -492,4 +496,76 @@ export async function actualizarControlador(
     .update({ ...limpio, actualizado_por: quien })
     .eq("id_controlador", idControlador);
   if (error) throw new Error(error.message);
+}
+
+/* ---------- Altas ---------- */
+
+/**
+ * Inserta reintentando si el identificador se lo ganó otro.
+ *
+ * El numero sale de mirar el mayor que hay, asi que dos personas dando
+ * de alta un equipo en el mismo minuto pedirian el mismo GE-016. La
+ * clave primaria lo rechaza (23505) y aqui se vuelve a calcular, en vez
+ * de mostrarle un error a quien llego segundo.
+ */
+async function insertarConIdLibre<T>(
+  tabla: string,
+  familia: Familia,
+  columnaId: string,
+  armar: (id: string) => Record<string, unknown>,
+): Promise<T> {
+  const db = cliente();
+
+  for (let intento = 0; intento < 5; intento++) {
+    const usados = await pedir<Record<string, string>[]>(
+      db.from(tabla).select(columnaId),
+    );
+    const id = siguienteId(familia, usados.map((f) => f[columnaId]));
+
+    const { data, error } = await db.from(tabla).insert(armar(id)).select();
+    if (!error) return (data ?? [])[0] as T;
+    // 23505: clave duplicada. Cualquier otro error es de verdad.
+    if (error.code !== "23505") throw new Error(error.message);
+  }
+
+  throw new Error(
+    "No se pudo asignar un identificador libre. Vuelve a intentarlo.",
+  );
+}
+
+export async function crearSede(datos: Partial<Sede>): Promise<Sede> {
+  return insertarConIdLibre<Sede>("sedes", "sede", "id_sede", (id) =>
+    sedeNueva(id, datos),
+  );
+}
+
+export async function crearEquipo(datos: Partial<Equipo>): Promise<Equipo> {
+  const sedes = await pedir<{ id_sede: string }[]>(
+    cliente().from("sedes").select("id_sede").eq("id_sede", datos.id_sede ?? ""),
+  );
+  if (!sedes.length) throw new Error("Esa sede no existe");
+
+  return insertarConIdLibre<Equipo>("equipos", "equipo", "id_equipo", (id) =>
+    equipoNuevo(id, datos),
+  );
+}
+
+export async function crearControlador(
+  datos: Partial<Controlador>,
+): Promise<Controlador> {
+  const equipos = await pedir<{ id_equipo: string; id_sede: string }[]>(
+    cliente()
+      .from("equipos")
+      .select("id_equipo, id_sede")
+      .eq("id_equipo", datos.id_equipo ?? ""),
+  );
+  const equipo = equipos[0];
+  if (!equipo) throw new Error("Ese equipo no existe");
+
+  return insertarConIdLibre<Controlador>(
+    "controladores",
+    "controlador",
+    "id_controlador",
+    (id) => controladorNuevo(id, { ...datos, id_sede: equipo.id_sede }),
+  );
 }

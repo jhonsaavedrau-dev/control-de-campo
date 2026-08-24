@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Barlow_Semi_Condensed, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import Sincronizador from "@/components/Sincronizador";
+import { GuionTema } from "@/components/Tema";
 
 const placa = Barlow_Semi_Condensed({
   subsets: ["latin"],
@@ -43,6 +44,9 @@ export default function RootLayout({
       lang="es"
       className={`${placa.variable} ${cuerpo.variable} ${mono.variable}`}
     >
+      <head>
+        <GuionTema />
+      </head>
       <body className="min-h-screen flex flex-col">
         {children}
         <Sincronizador />

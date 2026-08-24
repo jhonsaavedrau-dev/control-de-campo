@@ -7,7 +7,9 @@ import {
   IcoRayo, IcoCombustible, IcoReloj, IcoChip, IcoFlecha, IcoLupa,
   IcoUbicacion, IcoHerramienta,
 } from "@/components/Iconos";
-import { usuarioActual, esAdministrador, loginConfigurado } from "@/lib/sesion";
+import {
+  usuarioActual, esAdministrador, loginConfigurado, puedeEditar,
+} from "@/lib/sesion";
 import {
   mantenimientoDe, soloPendientes, colorMantenimiento, frase,
 } from "@/lib/mantenimiento";
@@ -342,6 +344,15 @@ export default async function Inicio({
             >
               Ver las {r.intervenciones} intervenciones registradas →
             </Link>
+            {!loginConfigurado() || puedeEditar(usuario) ? (
+              <Link
+                href="/nuevo"
+                className="font-[family-name:var(--font-mono)] text-[11px] tracking-wide"
+                style={{ color: "var(--color-activo)" }}
+              >
+                + Dar de alta un equipo o sede
+              </Link>
+            ) : null}
             <Link
               href="/qr"
               className="font-[family-name:var(--font-mono)] text-[11px] tracking-wide"

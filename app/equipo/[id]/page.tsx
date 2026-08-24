@@ -104,7 +104,21 @@ export default async function FichaEquipo({
           {/* ── Cuerpo ──────────────────────────────────────── */}
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_340px]">
             <div className="flex flex-col gap-4 min-w-0">
-              {c ? <BloqueControlador controlador={c} /> : null}
+              {c ? (
+                <BloqueControlador controlador={c} />
+              ) : puedeEditarFicha ? (
+                <Link
+                  href={`/nuevo?que=controlador&equipo=${e.id_equipo}`}
+                  className="bloque px-3.5 py-3 text-[12.5px] no-imprimir"
+                  style={{
+                    color: "var(--color-activo)",
+                    borderLeft: "3px solid var(--color-borde)",
+                  }}
+                >
+                  <IcoChip className="w-3.5 h-3.5 inline-block mr-1.5 align-[-2px]" />
+                  Este equipo no tiene controlador registrado. Añadirlo →
+                </Link>
+              ) : null}
               <BloqueFotos
                 equipo={e}
                 controlador={c}
