@@ -8,6 +8,7 @@ import {
 } from "@/components/Piezas";
 import { ETIQUETA_COMBUSTIBLE, ETIQUETA_TIPO } from "@/lib/tipos";
 import { usuarioActual, puedeEditar } from "@/lib/sesion";
+import PanelBackups from "@/components/PanelBackups";
 
 export default async function FichaEquipo({
   params,
@@ -192,6 +193,15 @@ export default async function FichaEquipo({
                   ))}
                 </div>
               </>
+            ) : null}
+
+            {c ? (
+              <div className="no-imprimir">
+                <PanelBackups
+                  idEquipo={e.id_equipo}
+                  idControlador={c.id_controlador}
+                />
+              </div>
             ) : null}
 
             <div className="mt-6 space-y-2 no-imprimir">

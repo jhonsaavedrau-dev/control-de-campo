@@ -250,14 +250,19 @@ export async function asegurarRuta(
   return { id: actual, creadas };
 }
 
-export async function listarHijos(
-  padreId: string,
-): Promise<{ id: string; name: string; mimeType: string }[]> {
+export type ArchivoDrive = {
+  id: string;
+  name: string;
+  mimeType: string;
+  modifiedTime?: string;
+  size?: string;
+};
+
+export async function listarHijos(padreId: string): Promise<ArchivoDrive[]> {
   const q = `'${padreId}' in parents and trashed = false`;
-  const r = await llamar<{
-    files: { id: string; name: string; mimeType: string }[];
-  }>(
-    `${API}/files?q=${encodeURIComponent(q)}&fields=files(id,name,mimeType)` +
+  const r = await llamar<{ files: ArchivoDrive[] }>(
+    `${API}/files?q=${encodeURIComponent(q)}` +
+      `&fields=files(id,name,mimeType,modifiedTime,size)` +
       `&pageSize=200&orderBy=name&supportsAllDrives=true&includeItemsFromAllDrives=true`,
   );
   return r.files;
