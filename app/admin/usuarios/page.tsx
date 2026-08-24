@@ -5,6 +5,7 @@ import PanelUsuarios from "@/components/PanelUsuarios";
 import SinPermiso from "@/components/SinPermiso";
 import { exigirAdministrador, usuarioActual } from "@/lib/sesion";
 import { listarCuentas, servicioConfigurado } from "@/lib/usuarios";
+import { firmasCargadas } from "@/lib/firmas";
 import type { CuentaAdmin } from "@/lib/usuarios";
 
 export const dynamic = "force-dynamic";
@@ -26,13 +27,16 @@ export default async function Cuentas() {
   const yo = await usuarioActual();
 
   let cuentas: CuentaAdmin[] = [];
+  let firmas: Record<string, string> = {};
   let problema = "";
   if (!servicioConfigurado()) {
     problema =
       "Este servidor no tiene la llave de servicio de Supabase (SUPABASE_SERVICE_KEY), así que no puede manejar cuentas.";
   } else {
     try {
-      cuentas = await listarCuentas();
+      // Las firmas viven en Drive, no en la base: una sola consulta para
+      // todo el panel en vez de una por persona.
+      [cuentas, firmas] = await Promise.all([listarCuentas(), firmasCargadas()]);
     } catch (e) {
       problema = e instanceof Error ? e.message : "No se pudo leer la lista.";
     }
@@ -68,7 +72,7 @@ export default async function Cuentas() {
         ) : (
           <>
             <Rotulo>Personas</Rotulo>
-            <PanelUsuarios cuentas={cuentas} yo={yo?.id ?? ""} />
+            <PanelUsuarios cuentas={cuentas} yo={yo?.id ?? ""} firmas={firmas} />
 
             <p
               className="text-[13.5px] mt-5 leading-relaxed"

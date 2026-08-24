@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { IcoPersona, IcoLlave, IcoLapiz } from "./Iconos";
 import { generarClave, LARGO_MINIMO } from "@/lib/clave";
+import PanelFirma from "./PanelFirma";
 import { ETIQUETA_ROL } from "@/lib/tipos";
 import type { RolUsuario } from "@/lib/tipos";
 import type { CuentaAdmin } from "@/lib/usuarios";
@@ -33,9 +34,12 @@ const ROLES: { valor: RolUsuario; que: string }[] = [
 export default function PanelUsuarios({
   cuentas,
   yo,
+  firmas,
 }: {
   cuentas: CuentaAdmin[];
   yo: string;
+  /** correo -> identificador de su firma en Drive. */
+  firmas: Record<string, string>;
 }) {
   return (
     <>
@@ -43,7 +47,12 @@ export default function PanelUsuarios({
 
       <div className="space-y-2 mt-5">
         {cuentas.map((c) => (
-          <Fila key={c.id} cuenta={c} soyYo={c.id === yo} />
+          <Fila
+            key={c.id}
+            cuenta={c}
+            soyYo={c.id === yo}
+            idFirma={firmas[c.correo.toLowerCase()] ?? ""}
+          />
         ))}
         {!cuentas.length ? (
           <p className="text-[14.5px]" style={{ color: "var(--color-tenue)" }}>
@@ -179,7 +188,15 @@ function FormularioNueva() {
 
 /* ---------- Una persona ---------- */
 
-function Fila({ cuenta, soyYo }: { cuenta: CuentaAdmin; soyYo: boolean }) {
+function Fila({
+  cuenta,
+  soyYo,
+  idFirma,
+}: {
+  cuenta: CuentaAdmin;
+  soyYo: boolean;
+  idFirma: string;
+}) {
   const [editando, setEditando] = useState(false);
   const [cambiandoClave, setCambiandoClave] = useState(false);
 
@@ -425,6 +442,14 @@ function Fila({ cuenta, soyYo }: { cuenta: CuentaAdmin; soyYo: boolean }) {
               {guardando ? "Guardando…" : "Guardar"}
             </button>
           </form>
+        ) : null}
+
+        {cuenta.correo ? (
+          <PanelFirma
+            correo={cuenta.correo}
+            idFirma={idFirma}
+            nombre={cuenta.nombre_completo}
+          />
         ) : null}
 
         {clave?.clave ? (

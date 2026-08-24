@@ -375,3 +375,27 @@ export async function reemplazarArchivo({
   }
   return r.json();
 }
+
+/**
+ * Manda un archivo a la papelera de Drive.
+ *
+ * A la papelera y no borrado definitivo: lo que este sistema guarda son
+ * actas firmadas y firmas de personas. Recuperar una firma significa
+ * volver a pedirsela a su dueño, y eso no se hace por un clic de mas.
+ */
+export async function papelera(fileId: string): Promise<void> {
+  const c = await cliente();
+  const { token } = await c.getAccessToken();
+  const r = await fetch(`${API}/files/${fileId}?supportsAllDrives=true`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ trashed: true }),
+  });
+  if (!r.ok) {
+    const detalle = await r.text().catch(() => "");
+    throw new Error(`No se pudo mover a la papelera: ${detalle.slice(0, 200)}`);
+  }
+}

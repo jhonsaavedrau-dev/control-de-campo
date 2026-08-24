@@ -6,6 +6,7 @@ import {
 import type { Intervencion, Equipo, Sede, Controlador } from "./tipos";
 import { ETIQUETA_TIPO } from "./tipos";
 import { sinAcentos } from "./estructura-drive";
+import { firmaDeTecnico } from "./firmas";
 
 /**
  * Acta de intervención en PDF — réplica del formato oficial
@@ -68,6 +69,12 @@ const s = StyleSheet.create({
     textAlign: "center", marginBottom: 8,
   },
   firmaLinea: { fontSize: 8, marginBottom: 6 },
+  // La firma se apoya SOBRE la linea, no la sustituye: el formato
+  // oficial lleva su raya y el acta tiene que seguir pareciendose.
+  firmaCaja: { height: 30, marginBottom: 2, justifyContent: "flex-end" },
+  firmaImagen: { height: 28, width: 130, objectFit: "contain" },
+  firmaRaya: { borderBottomWidth: 1, borderColor: NEGRO, marginBottom: 4 },
+  firmaPie: { fontSize: 7, marginBottom: 4 },
 
   evidencia: { flexDirection: "row", borderBottomWidth: 1, borderColor: NEGRO },
   evidenciaCelda: {
@@ -156,7 +163,8 @@ function Acta({
   equipo: e,
   sede: sd,
   fotos = [],
-}: DatosActa & { fotos?: FotoActa[] }) {
+  firma,
+}: DatosActa & { fotos?: FotoActa[]; firma?: string | null }) {
   // Version reducida a proposito: en el acta se dibuja a 72 puntos de
   // ancho, y el original de 1254 px pesaba casi 1 MB por documento.
   const logo = path.join(process.cwd(), "public", "logo-pbi-acta.png");
@@ -319,7 +327,19 @@ function Acta({
           <View style={s.firmaFila}>
             <View style={s.firmaCol}>
               <Text style={s.firmaTitulo}>TÉCNICO RESPONSABLE</Text>
-              <Text style={s.firmaLinea}>Firma: ______________________________</Text>
+              {firma ? (
+                <>
+                  <View style={s.firmaCaja}>
+                    <Image src={firma} style={s.firmaImagen} />
+                  </View>
+                  <View style={s.firmaRaya} />
+                  <Text style={s.firmaPie}>Firmado digitalmente</Text>
+                </>
+              ) : (
+                <Text style={s.firmaLinea}>
+                  Firma: ______________________________
+                </Text>
+              )}
               <Text style={s.firmaLinea}>
                 Nombre: {i.tecnico_nombre || "____________________________"}
               </Text>
@@ -364,5 +384,9 @@ export async function generarActaPdf(
   datos: DatosActa,
   fotos: FotoActa[] = [],
 ): Promise<Buffer> {
-  return renderToBuffer(<Acta {...datos} fotos={fotos} />);
+  // La firma se resuelve aqui y no en quien llama: son cuatro sitios los
+  // que generan actas, y basta olvidarse en uno para que salgan actas
+  // sin firmar sin que nadie se entere.
+  const firma = await firmaDeTecnico(datos.intervencion.tecnico_nombre);
+  return renderToBuffer(<Acta {...datos} fotos={fotos} firma={firma} />);
 }

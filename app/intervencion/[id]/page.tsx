@@ -6,6 +6,7 @@ import { Encabezado, PieDePagina } from "@/components/Marco";
 import { fechaLarga, numero } from "@/components/Piezas";
 import { ETIQUETA_TIPO } from "@/lib/tipos";
 import AccionesActa from "@/components/AccionesActa";
+import { firmaDeTecnico } from "@/lib/firmas";
 import type {
   TipoIntervencion, EstadoEquipo, ResultadoIntervencion, TipoCombustible,
   IntervencionFoto,
@@ -28,6 +29,10 @@ export default async function ActaIntervencion({
   if (!registro) notFound();
 
   const { intervencion: i, equipo: e, sede: s, controlador: c, fotos } = registro;
+
+  // La misma firma que va en el PDF: lo que se ve en pantalla y lo que
+  // queda archivado tienen que ser el mismo documento.
+  const firma = await firmaDeTecnico(i.tecnico_nombre);
 
   return (
     <>
@@ -228,7 +233,11 @@ export default async function ActaIntervencion({
               </tr>
               <tr>
                 <td className="celda">
-                  <Firma nombre={i.tecnico_nombre} fecha={fechaLarga(i.fecha)} />
+                  <Firma
+                    nombre={i.tecnico_nombre}
+                    fecha={fechaLarga(i.fecha)}
+                    firma={firma}
+                  />
                 </td>
                 <td className="celda">
                   <Firma
@@ -403,10 +412,35 @@ function Evidencia({ fotos }: { fotos: IntervencionFoto[] }) {
   );
 }
 
-function Firma({ nombre, fecha }: { nombre: string; fecha: string }) {
+function Firma({
+  nombre,
+  fecha,
+  firma,
+}: {
+  nombre: string;
+  fecha: string;
+  /** La firma digital, ya en data URL, si su dueño tiene una cargada. */
+  firma?: string | null;
+}) {
   return (
     <div className="text-[11.5px] leading-[2.1]">
-      <div>Firma: ______________________________</div>
+      {firma ? (
+        <>
+          {/* Se apoya sobre la raya, igual que en el PDF */}
+          <div className="h-[34px] flex items-end">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={firma}
+              alt={`Firma de ${nombre}`}
+              className="h-[32px] w-auto max-w-[170px] object-contain object-left"
+            />
+          </div>
+          <div style={{ borderBottom: "1px solid currentColor" }} />
+          <div className="text-[10.5px] leading-[1.6]">Firmado digitalmente</div>
+        </>
+      ) : (
+        <div>Firma: ______________________________</div>
+      )}
       <div>Nombre: {nombre || "____________________________"}</div>
       <div>Fecha: {fecha || "____ / ____ / ______"}</div>
     </div>

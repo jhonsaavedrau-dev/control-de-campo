@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Encabezado, PieDePagina } from "@/components/Marco";
 import {
   IcoCodigoQR, IcoChip, IcoHerramienta, IcoCamara, IcoDocumento,
-  IcoLlave, IcoPersona, IcoReloj, IcoLupa,
+  IcoLlave, IcoPersona, IcoReloj, IcoLupa, IcoLapiz,
 } from "@/components/Iconos";
 import { usuarioActual, puedeEditar, esAdministrador, loginConfigurado } from "@/lib/sesion";
 import { ETIQUETA_ROL } from "@/lib/tipos";
@@ -51,7 +51,7 @@ const PASOS: Paso[] = [
     texto:
       "Resultado, recomendaciones, pendientes y quién recibió en sitio. Al guardar, el acta se genera en PDF y se archiva sola en la carpeta del equipo en Drive.",
     icono: <IcoDocumento className="w-4 h-4" />,
-    ojo: "No hay que mandar nada por correo ni guardar copias a mano.",
+    ojo: "Si tienes firma cargada, el acta sale firmada con tu nombre. No hay que imprimirla ni escanearla.",
   },
 ];
 
@@ -176,6 +176,12 @@ export default async function Guia() {
                   icono={<IcoPersona className="w-4 h-4" />}
                   titulo="Cuentas"
                   texto="Crear cuentas con su contraseña, cambiar permisos y dar de baja."
+                />
+                <Tarjeta
+                  href="/admin/usuarios"
+                  icono={<IcoLapiz className="w-4 h-4" />}
+                  titulo="Firmas para las actas"
+                  texto="Cada quien manda su firma y se carga en su cuenta. Desde ahí, sus actas salen firmadas solas."
                 />
                 <Tarjeta
                   href="/admin"
