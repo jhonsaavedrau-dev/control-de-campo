@@ -29,7 +29,7 @@ export default async function Entrar({
             className="font-[family-name:var(--font-mono)] text-[11px] mt-1"
             style={{ color: "var(--color-tenue)" }}
           >
-            Gestión Energy SAS
+            Petroleum Blending International SAS ESP
           </p>
         </div>
 

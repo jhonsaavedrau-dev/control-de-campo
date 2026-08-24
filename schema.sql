@@ -1,6 +1,6 @@
 -- ============================================================
 -- SISTEMA DE CONTROL DE CAMPO PBI
--- CONTROL DE GENERACION - GESTION ENERGY SAS
+-- CONTROL DE GENERACION - PBI SAS ESP
 --
 -- Esquema de base de datos PostgreSQL (Supabase)
 -- Version: 1.0
@@ -112,7 +112,7 @@ create trigger trg_usuarios_updated_at
 -- ============================================================
 -- TABLA: sedes
 --
--- Sitios o campos donde opera Gestion Energy SAS.
+-- Sitios o campos donde opera PBI SAS ESP.
 -- Corresponde a las carpetas SD-XXX dentro de 01_SEDES en Drive.
 -- ============================================================
 

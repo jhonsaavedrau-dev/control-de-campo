@@ -128,7 +128,7 @@ function HojaVida({ equipo: e, sede: sd, controlador: c, intervenciones }: Datos
   return (
     <Document
       title={`Hoja de vida ${e.id_equipo}`}
-      author="PBI · Gestión Energy SAS"
+      author="PBI · Petroleum Blending International SAS ESP"
     >
       <Page size="A4" orientation="landscape" style={s.pagina}>
         <View style={s.cabecera}>
@@ -245,7 +245,7 @@ function HojaVida({ equipo: e, sede: sd, controlador: c, intervenciones }: Datos
 
         <View style={s.pie} fixed>
           <Text>
-            PBI · Petroleum Blending International SAS ESP — Gestión Energy SAS
+            Petroleum Blending International SAS ESP
           </Text>
           <Text
             render={({ pageNumber, totalPages }) =>

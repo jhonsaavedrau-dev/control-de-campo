@@ -30,8 +30,9 @@ export default async function FichaEquipo({
     <>
       <Encabezado />
 
-      <main className="flex-1 w-full max-w-[640px] mx-auto sm:px-4 sm:py-5">
-        <div className="sm:panel">
+      <main className="flex-1 w-full lienzo-reticula">
+        <div className="max-w-[1100px] mx-auto sm:px-6 sm:py-7">
+        <div className="sm:panel overflow-hidden">
           <div className={claseBordePlaca(e.estado)}>
             <div className="ruta">
               {s?.id_sede} · {s?.nombre}
@@ -49,7 +50,8 @@ export default async function FichaEquipo({
             </div>
           </div>
 
-          <div className="px-5 pt-4 pb-6">
+          <div className="px-5 pt-5 pb-7 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8">
+            <div className="min-w-0">
             {c ? (
               <>
                 <Rotulo>Controlador</Rotulo>
@@ -120,6 +122,9 @@ export default async function FichaEquipo({
               ))}
             </div>
 
+            </div>
+
+            <div className="min-w-0 lg:border-l lg:pl-8" style={{ borderColor: "var(--color-borde-suave)" }}>
             <Rotulo>Últimas intervenciones</Rotulo>
             {intervenciones.length ? (
               <div className="bitacora">
@@ -213,7 +218,7 @@ export default async function FichaEquipo({
               />
             </div>
 
-            <div className="mt-6 space-y-2 no-imprimir">
+            <div className="mt-7 space-y-2 no-imprimir">
               <Link href={`/intervencion/nueva?equipo=${e.id_equipo}`} className="accion">
                 Registrar intervención
               </Link>
@@ -232,7 +237,9 @@ export default async function FichaEquipo({
                 </Link>
               ) : null}
             </div>
+            </div>
           </div>
+        </div>
         </div>
       </main>
 

@@ -164,7 +164,7 @@ function Acta({
   return (
     <Document
       title={`Acta ${i.id_intervencion}`}
-      author="PBI · Gestión Energy SAS"
+      author="PBI · Petroleum Blending International SAS ESP"
     >
       <Page size="A4" style={s.pagina}>
         <View style={s.cabecera}>
@@ -347,7 +347,7 @@ function Acta({
 
         <View style={s.pie} fixed>
           <Text>
-            PBI · Petroleum Blending International SAS ESP — Gestión Energy SAS
+            Petroleum Blending International SAS ESP
           </Text>
           <Text
             render={({ pageNumber, totalPages }) =>

@@ -24,7 +24,7 @@ const mono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "Control de Generación · PBI",
   description:
-    "Sistema de Control de Campo — Gestión Energy SAS. Fichas de equipos, controladores e intervenciones.",
+    "Sistema de Control de Campo de PBI. Fichas de equipos, controladores e intervenciones.",
 };
 
 export const viewport: Viewport = {

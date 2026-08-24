@@ -59,7 +59,7 @@ export default async function CodigoQR({
                 CONTROL DE GENERACIÓN
               </div>
               <div className="font-[family-name:var(--font-mono)] text-[8px] text-white/55 mt-0.5">
-                Gestión Energy SAS
+                Petroleum Blending International SAS ESP
               </div>
             </div>
           </div>

@@ -1,6 +1,6 @@
 -- ============================================================
 -- SISTEMA DE CONTROL DE CAMPO PBI
--- CONTROL DE GENERACION - GESTION ENERGY SAS
+-- CONTROL DE GENERACION - PBI SAS ESP
 --
 -- Esquema PostgreSQL para Supabase.
 --
