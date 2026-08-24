@@ -57,13 +57,13 @@ export default async function Alta({
         <h1 className="font-[family-name:var(--font-placa)] font-semibold text-[24px]">
           Dar de alta
         </h1>
-        <p className="text-[13px] mt-1" style={{ color: "var(--color-tenue)" }}>
+        <p className="text-[14.5px] mt-1" style={{ color: "var(--color-tenue)" }}>
           El identificador lo pone el sistema; tú pones lo que sabes.
         </p>
 
         {p.nueva ? (
           <div
-            className="border rounded px-4 py-3 mt-4 text-[13px]"
+            className="border rounded px-4 py-3 mt-4 text-[14.5px]"
             style={{
               borderColor: "var(--color-operativo)",
               color: "var(--color-operativo)",
@@ -110,7 +110,7 @@ export default async function Alta({
         </div>
 
         <p
-          className="text-[12px] mt-4 leading-relaxed"
+          className="text-[13.5px] mt-4 leading-relaxed"
           style={{ color: "var(--color-sin-info)" }}
         >
           Las carpetas de Drive del equipo nuevo se crean solas la primera vez

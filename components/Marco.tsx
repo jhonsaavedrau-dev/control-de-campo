@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { LogotipoPBI } from "./Marca";
-import { usuarioActual } from "@/lib/sesion";
-import { salir } from "@/app/entrar/acciones";
-import Tema from "./Tema";
+import {
+  usuarioActual, puedeEditar, esAdministrador, loginConfigurado,
+} from "@/lib/sesion";
+import { ETIQUETA_ROL } from "@/lib/tipos";
+import MenuPrincipal from "./MenuPrincipal";
+import { cookies } from "next/headers";
+import { COOKIE_TEMA, temaDeCookie, type Tema } from "@/lib/tema";
 
 /**
  * Barra de marca.
@@ -17,6 +21,11 @@ export async function Encabezado({
   atras?: { href: string; texto: string };
 }) {
   const usuario = await usuarioActual();
+  // Sin login configurado (en local, sin Supabase) no hay usuario pero
+  // tampoco restricciones: el menu tiene que enseñarlo todo.
+  const abierto = !loginConfigurado();
+
+  const tema: Tema = temaDeCookie((await cookies()).get(COOKIE_TEMA)?.value);
 
   return (
     <header className="no-imprimir">
@@ -26,45 +35,33 @@ export async function Encabezado({
             <LogotipoPBI />
           </Link>
 
-          <div className="flex items-center gap-4 min-w-0">
+          {/* A la derecha solo el menu. El tema, el nombre y salir se
+              fueron dentro: en un celular estrecho, seis controles en la
+              cabecera se convierten en seis blancos que se fallan. */}
+          <div className="flex items-center gap-3 min-w-0">
             {atras ? (
               <Link
                 href={atras.href}
-                className="font-[family-name:var(--font-mono)] text-[11px] tracking-wide text-white/65 hover:text-white transition-colors truncate"
+                className="font-[family-name:var(--font-mono)] text-[12.5px] tracking-wide text-white/65 hover:text-white transition-colors truncate"
               >
                 ← {atras.texto}
               </Link>
             ) : null}
 
-            <Tema />
-
-            {usuario ? (
-              <div className="flex items-center gap-3 shrink-0">
-                <Link
-                  href="/cuenta"
-                  className="text-right leading-tight hidden sm:block group"
-                >
-                  <div className="text-[12px] text-white/90 group-hover:text-white truncate max-w-[150px] transition-colors">
-                    {usuario.nombre}
-                  </div>
-                  <div className="font-[family-name:var(--font-mono)] text-[9px] text-white/45 uppercase tracking-[0.1em]">
-                    {usuario.rol}
-                  </div>
-                </Link>
-                <form action={salir}>
-                  <button
-                    className="font-[family-name:var(--font-mono)] text-[10px] tracking-[0.08em] text-white/60 hover:text-white border border-white/20 hover:border-white/40 rounded px-2.5 py-1.5 transition-colors"
-                    title={`${usuario.nombre} · ${usuario.correo}`}
-                  >
-                    SALIR
-                  </button>
-                </form>
-              </div>
-            ) : !atras ? (
-              <span className="font-[family-name:var(--font-mono)] text-[10px] tracking-[0.1em] uppercase text-white/40 shrink-0 hidden sm:block">
-                Control de Generación
-              </span>
-            ) : null}
+            <MenuPrincipal
+              puedeEditar={abierto || puedeEditar(usuario)}
+              esAdmin={abierto || esAdministrador(usuario)}
+              tema={tema}
+              usuario={
+                usuario
+                  ? {
+                      nombre: usuario.nombre,
+                      correo: usuario.correo,
+                      rol: ETIQUETA_ROL[usuario.rol],
+                    }
+                  : null
+              }
+            />
           </div>
         </div>
       </div>
@@ -85,7 +82,7 @@ export function PieDePagina() {
     >
       <div className="max-w-[1100px] mx-auto px-4 sm:px-6 py-6 flex items-center justify-between gap-4">
         <LogotipoPBI compacto />
-        <div className="text-right text-[10px] tracking-wide text-white/40 leading-relaxed font-[family-name:var(--font-mono)]">
+        <div className="text-right text-[11.5px] tracking-wide text-white/40 leading-relaxed font-[family-name:var(--font-mono)]">
           Petroleum Blending International SAS ESP
           <br />
           Sistema de Control de Campo

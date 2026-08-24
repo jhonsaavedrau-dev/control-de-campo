@@ -316,11 +316,11 @@ export function BloqueDocumentos({
             className="campo-fila"
           >
             <IcoDocumento className="w-3.5 h-3.5" />
-            <span className="flex-1 min-w-0 text-[12.5px] truncate">
+            <span className="flex-1 min-w-0 text-[13.5px] truncate">
               {d.nombre}
             </span>
             <span
-              className="font-[family-name:var(--font-mono)] text-[9.5px] uppercase px-1.5 py-0.5 rounded shrink-0"
+              className="font-[family-name:var(--font-mono)] text-[10.5px] uppercase px-1.5 py-0.5 rounded shrink-0"
               style={{
                 background: "var(--color-hundido)",
                 color: "var(--color-tenue)",
@@ -347,7 +347,7 @@ export function EnlaceSede({
   return (
     <Link
       href="/"
-      className="inline-flex items-center gap-2 font-[family-name:var(--font-mono)] text-[10.5px] uppercase tracking-[0.08em] transition-colors hover:text-[color:var(--color-activo)]"
+      className="inline-flex items-center gap-2 font-[family-name:var(--font-mono)] text-[11.5px] uppercase tracking-[0.08em] transition-colors hover:text-[color:var(--color-activo)]"
       style={{ color: "var(--color-sin-info)" }}
     >
       <span
@@ -403,10 +403,10 @@ export function BloqueMantenimiento({
               style={{ color }}
             >
               {Math.round(m.horasDesde!).toLocaleString("es-CO")}
-              <span className="text-[11px] ml-1">h</span>
+              <span className="text-[12.5px] ml-1">h</span>
             </span>
             <span
-              className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-wide text-right"
+              className="font-[family-name:var(--font-mono)] text-[11.5px] uppercase tracking-wide text-right"
               style={{ color: "var(--color-tenue)" }}
             >
               de {Math.round(m.frecuencia!).toLocaleString("es-CO")} h
@@ -427,13 +427,13 @@ export function BloqueMantenimiento({
             />
           </div>
 
-          <p className="text-[12px] mt-2.5 leading-relaxed" style={{ color }}>
+          <p className="text-[13.5px] mt-2.5 leading-relaxed" style={{ color }}>
             {frase(m)}
           </p>
 
           {m.ultimo ? (
             <p
-              className="text-[11.5px] mt-1"
+              className="text-[12.5px] mt-1"
               style={{ color: "var(--color-sin-info)" }}
             >
               Último preventivo: {fechaCorta(m.ultimo.fecha)}
@@ -446,14 +446,14 @@ export function BloqueMantenimiento({
       ) : (
         <>
           <p
-            className="text-[12.5px] leading-relaxed"
+            className="text-[13.5px] leading-relaxed"
             style={{ color: "var(--color-tenue)" }}
           >
             {frase(m)}
           </p>
           {m.situacion === "sin_programa" && puedeEditar ? (
             <p
-              className="text-[11.5px] mt-1.5"
+              className="text-[12.5px] mt-1.5"
               style={{ color: "var(--color-sin-info)" }}
             >
               Ponla en «Editar ficha» y el sistema empieza a avisar solo.
@@ -461,7 +461,7 @@ export function BloqueMantenimiento({
           ) : null}
           {m.ultimo ? (
             <p
-              className="text-[11.5px] mt-1.5"
+              className="text-[12.5px] mt-1.5"
               style={{ color: "var(--color-sin-info)" }}
             >
               Último preventivo: {fechaCorta(m.ultimo.fecha)}

@@ -74,6 +74,33 @@ body {
   color: var(--color-tinta);
   background: var(--color-lienzo);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Interlineado algo mas suelto de lo habitual: las notas y avisos de
+     este sistema se leen a un brazo de distancia, con el telefono en la
+     mano y la otra ocupada. */
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+/* Numeros de ancho fijo en todo lo que sea un dato: un horometro que
+   baila de ancho al actualizarse parece un error de la maquina. */
+.font-\[family-name\:var\(--font-mono\)\],
+.dato-valor,
+.equipo-id {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "zero" 1;
+}
+
+/* Los titulos de placa van apretados: es una chapa metalica, no un
+   parrafo. Sin esto Barlow deja huecos entre letras a tamaño grande. */
+h1, h2, .equipo-id, .adhesivo-id {
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+/* Nada por debajo de esto: es el suelo de lectura en campo. */
+@media (max-width: 640px) {
+  body { font-size: 15px; }
 }
 
 /* Una retícula muy tenue: da suelo a la página sin llamar la atención.
@@ -837,4 +864,153 @@ a.bitacora-fila:hover { background: var(--color-realce); }
 @media print {
   /* Imprimir en oscuro gastaria un cartucho por hoja. */
   :root { color-scheme: light; }
+}
+
+/* La hoja del menu entra desde abajo en el celular. Un salto seco se
+   lee como un error de pintado; el deslizamiento dice de donde vino. */
+@keyframes hoja-sube {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes hoja-cae {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hoja-menu { animation: hoja-sube 0.18s ease-out; }
+@media (min-width: 640px) {
+  .hoja-menu { animation: hoja-cae 0.13s ease-out; }
+}
+/* Quien pidio menos movimiento en su telefono no lo pidio a medias. */
+@media (prefers-reduced-motion: reduce) {
+  .hoja-menu { animation: none; }
+}
+
+/* ============================================================
+   PASO A PASO — la guia del tecnico
+   ============================================================ */
+
+.pasos {
+  position: relative;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* El hilo vertical que une los pasos: dice "esto va en orden" sin
+   tener que escribirlo. Se corta antes del ultimo numero para no
+   sobresalir por debajo. */
+.pasos::before {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 26px;
+  bottom: 26px;
+  width: 2px;
+  background: var(--color-borde);
+}
+
+.paso {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  padding-bottom: 20px;
+}
+.paso:last-child { padding-bottom: 0; }
+
+.paso-numero {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  background: var(--color-marino);
+  border: 2px solid var(--color-lienzo);
+}
+
+.paso-cuerpo { min-width: 0; padding-top: 3px; }
+
+.paso-titulo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 15.5px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.paso-icono { color: var(--color-activo); flex-shrink: 0; }
+
+.paso-texto {
+  font-size: 14.5px;
+  line-height: 1.55;
+  margin-top: 5px;
+  color: var(--color-tenue);
+}
+
+/* El detalle que solo se descubre usandolo, marcado aparte para que
+   no se pierda dentro del parrafo. */
+.paso-ojo {
+  font-size: 13.5px;
+  line-height: 1.5;
+  margin-top: 7px;
+  padding-left: 10px;
+  border-left: 2px solid var(--color-accion);
+  color: var(--color-sin-info);
+}
+
+@media (max-width: 640px) {
+  .paso { gap: 12px; }
+  .paso-numero { width: 28px; height: 28px; font-size: 12px; }
+  .pasos::before { left: 13px; }
+}
+
+/* ============================================================
+   CELULAR — blancos de toque y respiro
+
+   Esto se usa de pie frente a una maquina, con una mano, a veces
+   con guantes. Un boton de 30 px se falla; 44 es el minimo que
+   acierta un pulgar sin mirar.
+   ============================================================ */
+
+@media (max-width: 640px) {
+  .accion,
+  .accion-secundaria {
+    min-height: 48px;
+    font-size: 15px;
+  }
+
+  .entrada {
+    min-height: 46px;
+    /* 16px o mas: por debajo de eso Safari hace zoom al enfocar el
+       campo y descuadra la pantalla entera. */
+    font-size: 16px;
+    padding: 11px 12px;
+  }
+
+  .pastilla {
+    min-height: 42px;
+    font-size: 12.5px;
+    padding: 10px 12px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* Un poco mas de aire entre filas: con el dedo hay que poder tocar
+     una sin rozar la de al lado. */
+  .bitacora-fila { padding-top: 13px; padding-bottom: 13px; }
+
+  .rotulo { margin-top: 26px; }
+}
+
+/* Nada que se pueda tocar por debajo del tamaño de un dedo. */
+@media (pointer: coarse) {
+  a.accion,
+  a.accion-secundaria,
+  button:not(.pastilla) { min-height: 44px; }
 }

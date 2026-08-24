@@ -43,7 +43,7 @@ export default function FormularioEntrar({ destino }: { destino: string }) {
 
       {estado?.error ? (
         <div
-          className="border rounded px-3 py-2.5 text-[12.5px]"
+          className="border rounded px-3 py-2.5 text-[13.5px]"
           style={{
             borderColor: "var(--color-critico)",
             color: "var(--color-critico)",

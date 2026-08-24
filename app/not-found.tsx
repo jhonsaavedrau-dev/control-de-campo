@@ -7,7 +7,7 @@ export default function NoEncontrado() {
       <Encabezado />
       <main className="flex-1 w-full max-w-[640px] mx-auto px-4 py-16 text-center">
         <div
-          className="font-[family-name:var(--font-mono)] text-[12px]"
+          className="font-[family-name:var(--font-mono)] text-[13.5px]"
           style={{ color: "var(--color-sin-info)" }}
         >
           404
@@ -15,7 +15,7 @@ export default function NoEncontrado() {
         <h1 className="font-[family-name:var(--font-placa)] font-semibold text-[22px] mt-2">
           No encontramos ese registro
         </h1>
-        <p className="text-[13px] mt-2" style={{ color: "var(--color-tenue)" }}>
+        <p className="text-[14.5px] mt-2" style={{ color: "var(--color-tenue)" }}>
           El equipo o la intervención no existe, o el código QR apunta a un
           identificador que ya cambió.
         </p>

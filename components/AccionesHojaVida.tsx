@@ -46,7 +46,7 @@ export default function AccionesHojaVida({
       <div className="rotulo">
         Hoja de vida
         <span
-          className="font-[family-name:var(--font-mono)] text-[10px]"
+          className="font-[family-name:var(--font-mono)] text-[11.5px]"
           style={{ color: "var(--color-sin-info)" }}
         >
           FOR-MTO-16
@@ -54,7 +54,7 @@ export default function AccionesHojaVida({
       </div>
 
       <p
-        className="text-[12.5px] mb-2 leading-relaxed"
+        className="text-[13.5px] mb-2 leading-relaxed"
         style={{ color: "var(--color-tenue)" }}
       >
         Ficha técnica del equipo y los {totalIntervenciones}{" "}
@@ -86,7 +86,7 @@ export default function AccionesHojaVida({
 
       {aviso ? (
         <p
-          className="text-[12px] mt-2 text-center"
+          className="text-[13.5px] mt-2 text-center"
           style={{ color: "var(--color-tenue)" }}
         >
           {aviso}

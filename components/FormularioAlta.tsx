@@ -28,7 +28,7 @@ const COMBUSTIBLES: TipoCombustible[] = ["diesel", "glp", "gas", "otro"];
 function Aviso({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="border rounded px-3 py-2 text-[12.5px]"
+      className="border rounded px-3 py-2 text-[13.5px]"
       style={{
         borderColor: "var(--color-critico)",
         color: "var(--color-critico)",
@@ -58,7 +58,7 @@ function Campo({
       </span>
       {children}
       {nota ? (
-        <p className="text-[11px] mt-1" style={{ color: "var(--color-sin-info)" }}>
+        <p className="text-[12.5px] mt-1" style={{ color: "var(--color-sin-info)" }}>
           {nota}
         </p>
       ) : null}
@@ -124,7 +124,7 @@ export function AltaEquipo({
 
   if (!sedes.length) {
     return (
-      <p className="text-[13px]" style={{ color: "var(--color-tenue)" }}>
+      <p className="text-[14.5px]" style={{ color: "var(--color-tenue)" }}>
         Primero hay que crear una sede: un equipo siempre está en algún sitio.
       </p>
     );
@@ -206,7 +206,7 @@ export function AltaEquipo({
           <input name="frecuencia_mto" inputMode="decimal" placeholder="350" className="entrada font-[family-name:var(--font-mono)]" />
         </Campo>
       </div>
-      <p className="text-[11px] -mt-1" style={{ color: "var(--color-sin-info)" }}>
+      <p className="text-[12.5px] -mt-1" style={{ color: "var(--color-sin-info)" }}>
         Con el horómetro y las horas de preventivo, el sistema empieza a avisar
         solo cuándo toca. El resto de la ficha se completa después.
       </p>
@@ -236,7 +236,7 @@ export function AltaControlador({
 
   if (!equipos.length) {
     return (
-      <p className="text-[13px]" style={{ color: "var(--color-tenue)" }}>
+      <p className="text-[14.5px]" style={{ color: "var(--color-tenue)" }}>
         Primero hay que crear un equipo: un controlador va conectado a uno.
       </p>
     );

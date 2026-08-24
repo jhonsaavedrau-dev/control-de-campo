@@ -53,7 +53,7 @@ export default async function HojaDeCodigos({
           <h1 className="font-[family-name:var(--font-placa)] font-semibold text-[24px]">
             Códigos QR
           </h1>
-          <p className="text-[13px] mt-1" style={{ color: "var(--color-tenue)" }}>
+          <p className="text-[14.5px] mt-1" style={{ color: "var(--color-tenue)" }}>
             {codigos.length}{" "}
             {codigos.length === 1 ? "adhesivo" : "adhesivos"} para cortar por la
             línea punteada y pegar en cada equipo.
@@ -61,7 +61,7 @@ export default async function HojaDeCodigos({
 
           {local ? (
             <div
-              className="border rounded px-4 py-3 mt-4 text-[13px] leading-relaxed"
+              className="border rounded px-4 py-3 mt-4 text-[14.5px] leading-relaxed"
               style={{
                 borderColor: "var(--color-critico)",
                 color: "var(--color-critico)",
@@ -76,7 +76,7 @@ export default async function HojaDeCodigos({
             </div>
           ) : (
             <div
-              className="border rounded px-4 py-3 mt-4 text-[13px] leading-relaxed"
+              className="border rounded px-4 py-3 mt-4 text-[14.5px] leading-relaxed"
               style={{
                 borderColor: "var(--color-operativo)",
                 color: "var(--color-tenue)",
@@ -120,7 +120,7 @@ export default async function HojaDeCodigos({
                 <div className="adhesivo-cabeza">
                   <SimboloPBI className="w-5 h-5 shrink-0" />
                   <div className="leading-none min-w-0">
-                    <div className="font-[family-name:var(--font-placa)] font-semibold text-white text-[9.5px] tracking-wide">
+                    <div className="font-[family-name:var(--font-placa)] font-semibold text-white text-[10.5px] tracking-wide">
                       CONTROL DE GENERACIÓN
                     </div>
                     <div className="font-[family-name:var(--font-mono)] text-[6.5px] text-white/55 mt-[3px] truncate">
@@ -154,7 +154,7 @@ export default async function HojaDeCodigos({
             ))}
           </div>
         ) : (
-          <p className="text-[13px] mt-6" style={{ color: "var(--color-tenue)" }}>
+          <p className="text-[14.5px] mt-6" style={{ color: "var(--color-tenue)" }}>
             No hay equipos en esa sede.
           </p>
         )}

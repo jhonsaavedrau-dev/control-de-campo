@@ -59,7 +59,7 @@ export function Led({ estado }: { estado: EstadoEquipo }) {
         className="w-[7px] h-[7px] rounded-full shrink-0"
         style={{ background: color }}
       />
-      <span className="font-[family-name:var(--font-mono)] text-[11px]">
+      <span className="font-[family-name:var(--font-mono)] text-[12.5px]">
         {ETIQUETA_ESTADO[estado]}
       </span>
     </div>

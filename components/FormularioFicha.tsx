@@ -72,7 +72,7 @@ export default function FormularioFicha({
     <form onSubmit={guardar} className="px-5 pt-4 pb-6">
       {mensaje ? (
         <div
-          className="border rounded px-3 py-2.5 mb-4 text-[12.5px]"
+          className="border rounded px-3 py-2.5 mb-4 text-[13.5px]"
           style={{
             borderColor: `var(--color-${mensaje.tono === "ok" ? "operativo" : "critico"})`,
             color: `var(--color-${mensaje.tono === "ok" ? "operativo" : "critico"})`,
@@ -179,7 +179,7 @@ export default function FormularioFicha({
           <input name="e.frecuencia_mto" inputMode="decimal" defaultValue={equipo.frecuencia_mto ?? ""} placeholder="350" className="entrada font-[family-name:var(--font-mono)]" />
         </Campo>
       </div>
-      <p className="text-[11px] -mt-1 mb-1" style={{ color: "var(--color-sin-info)" }}>
+      <p className="text-[12.5px] -mt-1 mb-1" style={{ color: "var(--color-sin-info)" }}>
         Con esos dos datos el sistema avisa solo cuándo toca el preventivo.
       </p>
       <Campo etiqueta="Observaciones del equipo">
@@ -190,7 +190,7 @@ export default function FormularioFicha({
         <>
           <div className="rotulo">
             Controlador
-            <span className="font-[family-name:var(--font-mono)] text-[10px]" style={{ color: "var(--color-sin-info)" }}>
+            <span className="font-[family-name:var(--font-mono)] text-[11.5px]" style={{ color: "var(--color-sin-info)" }}>
               {controlador.id_controlador}
             </span>
           </div>
@@ -270,7 +270,7 @@ export default function FormularioFicha({
       </div>
 
       <p
-        className="text-center mt-4 text-[11.5px] leading-relaxed"
+        className="text-center mt-4 text-[12.5px] leading-relaxed"
         style={{ color: "var(--color-sin-info)" }}
       >
         Puedes guardar con campos vacíos. La idea es ir completando la ficha a
@@ -290,7 +290,7 @@ function Campo({
       <label className="entrada-rotulo">{etiqueta}</label>
       {children}
       {ayuda ? (
-        <p className="text-[11px] mt-1" style={{ color: "var(--color-sin-info)" }}>
+        <p className="text-[12.5px] mt-1" style={{ color: "var(--color-sin-info)" }}>
           {ayuda}
         </p>
       ) : null}

@@ -26,7 +26,7 @@ export default async function Entrar({
             Control de Generación
           </h1>
           <p
-            className="font-[family-name:var(--font-mono)] text-[11px] mt-1"
+            className="font-[family-name:var(--font-mono)] text-[12.5px] mt-1"
             style={{ color: "var(--color-tenue)" }}
           >
             Petroleum Blending International SAS ESP
@@ -37,7 +37,7 @@ export default async function Entrar({
           {hayLogin ? (
             <FormularioEntrar destino={destino} />
           ) : (
-            <p className="text-[13px]" style={{ color: "var(--color-tenue)" }}>
+            <p className="text-[14.5px]" style={{ color: "var(--color-tenue)" }}>
               El login todavía no está configurado en este servidor. Falta la
               variable <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>.
             </p>
@@ -45,7 +45,7 @@ export default async function Entrar({
         </div>
 
         <p
-          className="text-[11.5px] text-center mt-5 leading-relaxed"
+          className="text-[12.5px] text-center mt-5 leading-relaxed"
           style={{ color: "var(--color-sin-info)" }}
         >
           Si escaneaste el código de un equipo, entra y te lleva directo a su

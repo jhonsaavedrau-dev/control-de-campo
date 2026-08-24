@@ -7,9 +7,7 @@ import {
   IcoRayo, IcoCombustible, IcoReloj, IcoChip, IcoFlecha, IcoLupa,
   IcoUbicacion, IcoHerramienta,
 } from "@/components/Iconos";
-import {
-  usuarioActual, esAdministrador, loginConfigurado, puedeEditar,
-} from "@/lib/sesion";
+import { usuarioActual } from "@/lib/sesion";
 import {
   mantenimientoDe, soloPendientes, colorMantenimiento, frase,
 } from "@/lib/mantenimiento";
@@ -70,7 +68,7 @@ export default async function Inicio({
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5 mb-7">
             <div>
               <div
-                className="font-[family-name:var(--font-mono)] text-[10px] tracking-[0.14em] uppercase"
+                className="font-[family-name:var(--font-mono)] text-[11.5px] tracking-[0.14em] uppercase"
                 style={{ color: "var(--color-sin-info)" }}
               >
                 Petroleum Blending International SAS ESP
@@ -79,7 +77,7 @@ export default async function Inicio({
                 Control de Generación
               </h1>
               <p
-                className="text-[13.5px] mt-2"
+                className="text-[14.5px] mt-2"
                 style={{ color: "var(--color-tenue)" }}
               >
                 {r.equipos} equipos de generación en {r.sedes} sedes ·{" "}
@@ -115,7 +113,7 @@ export default async function Inicio({
               className="entrada flex-1"
             />
             <button
-              className="rounded px-5 font-[family-name:var(--font-mono)] text-[11px] tracking-[0.08em] border transition-colors"
+              className="rounded px-5 font-[family-name:var(--font-mono)] text-[12.5px] tracking-[0.08em] border transition-colors"
               style={{
                 borderColor: "var(--color-borde)",
                 borderBottomColor: "var(--color-borde-fuerte)",
@@ -127,7 +125,7 @@ export default async function Inicio({
             {busqueda ? (
               <Link
                 href="/"
-                className="rounded px-4 flex items-center font-[family-name:var(--font-mono)] text-[11px] tracking-[0.08em] border"
+                className="rounded px-4 flex items-center font-[family-name:var(--font-mono)] text-[12.5px] tracking-[0.08em] border"
                 style={{
                   borderColor: "var(--color-borde)",
                   background: "var(--color-panel)",
@@ -143,7 +141,7 @@ export default async function Inicio({
           {!busqueda && pendientes.length ? (
             <section className="mb-7">
               <div
-                className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-[0.1em] mb-2.5 flex items-center gap-1.5"
+                className="font-[family-name:var(--font-mono)] text-[11.5px] uppercase tracking-[0.1em] mb-2.5 flex items-center gap-1.5"
                 style={{ color: "var(--color-tenue)" }}
               >
                 <IcoHerramienta className="w-3 h-3" />
@@ -168,18 +166,18 @@ export default async function Inicio({
                       }}
                     >
                       <div className="flex items-baseline justify-between gap-3">
-                        <span className="font-[family-name:var(--font-mono)] text-[13px]">
+                        <span className="font-[family-name:var(--font-mono)] text-[14.5px]">
                           {equipo.id_equipo}
                         </span>
                         <span
-                          className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-wide"
+                          className="font-[family-name:var(--font-mono)] text-[11.5px] uppercase tracking-wide"
                           style={{ color }}
                         >
                           {m.situacion === "vencido" ? "vencido" : "próximo"}
                         </span>
                       </div>
                       <div
-                        className="text-[11.5px] mt-0.5 truncate"
+                        className="text-[12.5px] mt-0.5 truncate"
                         style={{ color: "var(--color-tenue)" }}
                       >
                         {equipo.sede?.nombre ?? ""}
@@ -196,7 +194,7 @@ export default async function Inicio({
                           }}
                         />
                       </div>
-                      <div className="text-[11.5px] mt-1.5" style={{ color }}>
+                      <div className="text-[12.5px] mt-1.5" style={{ color }}>
                         {frase(m)}
                       </div>
                     </Link>
@@ -243,13 +241,13 @@ export default async function Inicio({
                             <div className="font-[family-name:var(--font-placa)] font-semibold text-[27px] leading-none text-white">
                               {e.id_equipo}
                             </div>
-                            <div className="font-[family-name:var(--font-mono)] text-[10.5px] mt-1 truncate text-white/55">
+                            <div className="font-[family-name:var(--font-mono)] text-[11.5px] mt-1 truncate text-white/55">
                               {e.nombre ? `${e.nombre} · ` : ""}
                               {e.fabricante} {e.modelo}
                             </div>
                           </div>
                           <span
-                            className="font-[family-name:var(--font-mono)] text-[8.5px] uppercase tracking-[0.08em] px-1.5 py-1 rounded shrink-0"
+                            className="font-[family-name:var(--font-mono)] text-[10.5px] uppercase tracking-[0.08em] px-1.5 py-1 rounded shrink-0"
                             style={{
                               background: color,
                               color: tono === "pendiente" ? "#2a1a02" : "#fff",
@@ -286,7 +284,7 @@ export default async function Inicio({
 
                       {/* Pie: controlador y última visita */}
                       <div
-                        className="flex items-center justify-between px-4 py-2.5 text-[10.5px]"
+                        className="flex items-center justify-between px-4 py-2.5 text-[11.5px]"
                         style={{
                           background: "var(--color-realce)",
                           color: "var(--color-sin-info)",
@@ -326,49 +324,26 @@ export default async function Inicio({
               className="panel py-14 text-center"
               style={{ color: "var(--color-sin-info)" }}
             >
-              <p className="text-[14px]">
+              <p className="text-[15.5px]">
                 Ningún equipo coincide con «{q}».
               </p>
             </div>
           ) : null}
 
-          {/* --- Pie de navegación --- */}
+          {/* --- Pie de navegación ---
+              Solo queda el historial. Lo demas se subio al menu de la
+              cabecera: aqui abajo, tras quince equipos, no lo veia nadie. */}
           <div
-            className="flex flex-wrap items-center justify-between gap-4 pt-5 mt-2"
+            className="flex items-center justify-between gap-4 pt-5 mt-2"
             style={{ borderTop: "1px solid var(--color-borde)" }}
           >
             <Link
               href="/intervenciones"
-              className="font-[family-name:var(--font-mono)] text-[11px] tracking-wide"
+              className="font-[family-name:var(--font-mono)] text-[12.5px] tracking-wide"
               style={{ color: "var(--color-activo)" }}
             >
               Ver las {r.intervenciones} intervenciones registradas →
             </Link>
-            {!loginConfigurado() || puedeEditar(usuario) ? (
-              <Link
-                href="/nuevo"
-                className="font-[family-name:var(--font-mono)] text-[11px] tracking-wide"
-                style={{ color: "var(--color-activo)" }}
-              >
-                + Dar de alta un equipo o sede
-              </Link>
-            ) : null}
-            <Link
-              href="/qr"
-              className="font-[family-name:var(--font-mono)] text-[11px] tracking-wide"
-              style={{ color: "var(--color-sin-info)" }}
-            >
-              Códigos QR
-            </Link>
-            {!loginConfigurado() || esAdministrador(usuario) ? (
-              <Link
-                href="/admin"
-                className="font-[family-name:var(--font-mono)] text-[11px] tracking-wide"
-                style={{ color: "var(--color-sin-info)" }}
-              >
-                Administración
-              </Link>
-            ) : null}
           </div>
         </div>
       </main>
@@ -407,7 +382,7 @@ function CabeceraSede({
       }}
     >
       <span
-        className="font-[family-name:var(--font-mono)] text-[11px] font-medium tracking-[0.06em] px-2 py-1 rounded shrink-0"
+        className="font-[family-name:var(--font-mono)] text-[12.5px] font-medium tracking-[0.06em] px-2 py-1 rounded shrink-0"
         style={{
           background: "var(--color-marino)",
           color: "var(--color-amarillo)",
@@ -422,7 +397,7 @@ function CabeceraSede({
 
       {ubicacion ? (
         <span
-          className="hidden sm:flex items-center gap-1.5 text-[11.5px]"
+          className="hidden sm:flex items-center gap-1.5 text-[12.5px]"
           style={{ color: "var(--color-sin-info)" }}
         >
           <IcoUbicacion className="w-3.5 h-3.5" />
@@ -434,7 +409,7 @@ function CabeceraSede({
         {grupos.map((g) => (
           <span
             key={g.tono}
-            className="flex items-center gap-1.5 font-[family-name:var(--font-mono)] text-[11px] tabular-nums"
+            className="flex items-center gap-1.5 font-[family-name:var(--font-mono)] text-[12.5px] tabular-nums"
             style={{ color: "var(--color-tenue)" }}
             title={g.tono}
           >
@@ -451,7 +426,7 @@ function CabeceraSede({
           </span>
         ))}
         <span
-          className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-[0.08em] pl-2"
+          className="font-[family-name:var(--font-mono)] text-[11.5px] uppercase tracking-[0.08em] pl-2"
           style={{
             color: "var(--color-sin-info)",
             borderLeft: "1px solid var(--color-borde-suave)",
@@ -486,7 +461,7 @@ function Contador({
         {valor}
       </div>
       <div
-        className="text-[10px] mt-1.5 leading-tight uppercase tracking-[0.04em]"
+        className="text-[11.5px] mt-1.5 leading-tight uppercase tracking-[0.04em]"
         style={{ color: "var(--color-tenue)" }}
       >
         {etiqueta}
@@ -506,14 +481,14 @@ function Celda({
       style={{ background: "var(--color-campo)" }}
     >
       <div
-        className="flex items-center gap-1 text-[8.5px] uppercase tracking-[0.06em] font-medium"
+        className="flex items-center gap-1 text-[10.5px] uppercase tracking-[0.06em] font-medium"
         style={{ color: "var(--color-sin-info)" }}
       >
         {icono}
         {etiqueta}
       </div>
       <div
-        className="font-[family-name:var(--font-mono)] text-[12.5px] mt-0.5 tabular-nums truncate"
+        className="font-[family-name:var(--font-mono)] text-[13.5px] mt-0.5 tabular-nums truncate"
         style={{ color: valor ? "var(--color-tinta)" : "var(--color-sin-info)" }}
       >
         {valor || "—"}

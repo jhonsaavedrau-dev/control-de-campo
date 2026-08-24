@@ -109,19 +109,19 @@ export default function Sincronizador() {
           }}
         />
         <div className="flex-1 min-w-0">
-          <div className="font-[family-name:var(--font-mono)] text-[11px] uppercase tracking-wide opacity-70">
+          <div className="font-[family-name:var(--font-mono)] text-[12.5px] uppercase tracking-wide opacity-70">
             {sinSenal
               ? "Sin conexión"
               : cola.atascados
                 ? "Rechazado por el servidor"
                 : "Pendiente de subir"}
           </div>
-          <div className="text-[12.5px] mt-0.5">{texto}</div>
+          <div className="text-[13.5px] mt-0.5">{texto}</div>
         </div>
         {!sinSenal && !subiendo && n > 0 ? (
           <button
             onClick={() => void subir(true)}
-            className="shrink-0 rounded px-3 py-1.5 font-[family-name:var(--font-mono)] text-[11px]"
+            className="shrink-0 rounded px-3 py-1.5 font-[family-name:var(--font-mono)] text-[12.5px]"
             style={{ background: "var(--color-accion)", color: "#151109" }}
           >
             SUBIR

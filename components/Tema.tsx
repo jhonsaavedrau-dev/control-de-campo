@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { COOKIE_TEMA, DURACION_TEMA, type Tema } from "@/lib/tema";
 
 /**
  * El interruptor de claro y oscuro.
@@ -10,13 +11,14 @@ import { useEffect, useState } from "react";
  * cuando el teléfono se equivoca — un cuarto de máquinas sin ventana a
  * mediodía, o un patio al sol con el móvil en modo noche.
  *
- * La elección se guarda en el propio teléfono. No va con la cuenta a
- * propósito: es una propiedad del sitio donde estás, no de quién eres.
+ * La elección viaja en una cookie, no en el almacenamiento del
+ * navegador. Así el servidor ya sabe el tema al armar la página y la
+ * manda pintada: ni fogonazo blanco de madrugada, ni el desajuste que
+ * deja un guion escribiendo sobre el HTML después de renderizarlo.
+ *
+ * Va en el aparato y no en la cuenta a propósito: es una propiedad del
+ * sitio donde estás, no de quién eres.
  */
-
-type Tema = "auto" | "claro" | "oscuro";
-
-const LLAVE = "tema";
 
 const OPCIONES: { valor: Tema; texto: string; titulo: string }[] = [
   { valor: "claro", texto: "☀", titulo: "Siempre claro" },
@@ -24,34 +26,32 @@ const OPCIONES: { valor: Tema; texto: string; titulo: string }[] = [
   { valor: "oscuro", texto: "☾", titulo: "Siempre oscuro" },
 ];
 
-export function aplicarTema(t: Tema) {
+function guardar(t: Tema) {
   const raiz = document.documentElement;
-  if (t === "auto") raiz.removeAttribute("data-tema");
-  else raiz.setAttribute("data-tema", t);
+  if (t === "auto") {
+    raiz.removeAttribute("data-tema");
+    document.cookie = `${COOKIE_TEMA}=; path=/; max-age=0; samesite=lax`;
+  } else {
+    raiz.setAttribute("data-tema", t);
+    document.cookie = `${COOKIE_TEMA}=${t}; path=/; max-age=${DURACION_TEMA}; samesite=lax`;
+  }
 }
 
-export default function Tema() {
-  // Arranca sin decidir: hasta que el componente monta no se puede
-  // leer el almacenamiento del navegador, y pintar «claro» antes de
-  // saberlo haria parpadear el boton.
-  const [tema, setTema] = useState<Tema | null>(null);
+export default function Tema({ actual }: { actual: Tema }) {
+  const [tema, setTema] = useState<Tema>(actual);
 
-  useEffect(() => {
-    const guardado = localStorage.getItem(LLAVE) as Tema | null;
-    setTema(guardado === "claro" || guardado === "oscuro" ? guardado : "auto");
-  }, []);
+  // Si se cambió en otra pestaña, esta se pone al día al volver.
+  useEffect(() => setTema(actual), [actual]);
 
   function elegir(t: Tema) {
     setTema(t);
-    if (t === "auto") localStorage.removeItem(LLAVE);
-    else localStorage.setItem(LLAVE, t);
-    aplicarTema(t);
+    guardar(t);
   }
 
   return (
     <div
       className="flex rounded overflow-hidden border shrink-0"
-      style={{ borderColor: "rgba(255,255,255,0.2)" }}
+      style={{ borderColor: "var(--color-borde-fuerte)" }}
       role="group"
       aria-label="Claro u oscuro"
     >
@@ -65,10 +65,10 @@ export default function Tema() {
             title={o.titulo}
             aria-label={o.titulo}
             aria-pressed={activa}
-            className="w-[26px] h-[26px] text-[11px] leading-none transition-colors"
+            className="w-[38px] h-[34px] text-[13.5px] leading-none transition-colors"
             style={{
-              background: activa ? "rgba(255,255,255,0.16)" : "transparent",
-              color: activa ? "#fff" : "rgba(255,255,255,0.5)",
+              background: activa ? "var(--color-marino)" : "transparent",
+              color: activa ? "#fff" : "var(--color-tenue)",
             }}
           >
             {o.texto}
@@ -77,17 +77,4 @@ export default function Tema() {
       })}
     </div>
   );
-}
-
-/**
- * Aplica el tema guardado antes de que se pinte nada.
- *
- * Va como script suelto en el `<head>` y no como efecto de React: para
- * cuando React arranca, la pantalla ya se pintó, y el usuario habria
- * visto un fogonazo blanco antes del oscuro. De madrugada eso es
- * exactamente lo que se venia a evitar.
- */
-export function GuionTema() {
-  const guion = `try{var t=localStorage.getItem("${LLAVE}");if(t==="claro"||t==="oscuro")document.documentElement.setAttribute("data-tema",t)}catch(e){}`;
-  return <script dangerouslySetInnerHTML={{ __html: guion }} />;
 }

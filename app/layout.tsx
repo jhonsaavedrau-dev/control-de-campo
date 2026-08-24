@@ -1,25 +1,39 @@
 import type { Metadata, Viewport } from "next";
-import { Barlow_Semi_Condensed, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Barlow_Semi_Condensed, Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import Sincronizador from "@/components/Sincronizador";
-import { GuionTema } from "@/components/Tema";
+import { cookies } from "next/headers";
+import { COOKIE_TEMA, temaDeCookie } from "@/lib/tema";
 
+/** Condensada para las placas: un ID de equipo tiene que caber y verse. */
 const placa = Barlow_Semi_Condensed({
   subsets: ["latin"],
-  weight: ["500", "600"],
+  weight: ["500", "600", "700"],
   variable: "--fuente-placa",
+  display: "swap",
 });
 
-const cuerpo = IBM_Plex_Sans({
+/**
+ * Inter para el cuerpo.
+ *
+ * Esta hecha para pantalla y no para papel: letras altas, aberturas
+ * amplias y numeros que no se confunden. Eso es lo que se nota leyendo
+ * un serial de doce caracteres en un celular, a pleno sol y con guantes.
+ * Va como fuente variable, asi que los tres pesos no cuestan tres
+ * descargas.
+ */
+const cuerpo = Inter({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
   variable: "--fuente-cuerpo",
+  display: "swap",
 });
 
+/** Monoespaciada para los datos: seriales, IP, horometros, consecutivos. */
 const mono = IBM_Plex_Mono({
   subsets: ["latin"],
-  weight: ["400", "500"],
+  weight: ["400", "500", "600"],
   variable: "--fuente-mono",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -34,19 +48,22 @@ export const viewport: Viewport = {
   themeColor: "#f4f5f6",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // El tema sale de la cookie, asi que la pagina llega ya pintada. Sin
+  // cookie no se pone atributo y manda lo que diga el telefono.
+  const elegido = temaDeCookie((await cookies()).get(COOKIE_TEMA)?.value);
+  const tema = elegido === "auto" ? undefined : elegido;
+
   return (
     <html
       lang="es"
       className={`${placa.variable} ${cuerpo.variable} ${mono.variable}`}
+      data-tema={tema}
     >
-      <head>
-        <GuionTema />
-      </head>
       <body className="min-h-screen flex flex-col">
         {children}
         <Sincronizador />

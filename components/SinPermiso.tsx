@@ -19,7 +19,7 @@ export default function SinPermiso({
           {que} es solo para administradores
         </h1>
         <p
-          className="text-[13px] mt-2 leading-relaxed"
+          className="text-[14.5px] mt-2 leading-relaxed"
           style={{ color: "var(--color-tenue)" }}
         >
           Desde aquí se manejan las cuentas y las conexiones del sistema. Si

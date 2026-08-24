@@ -45,9 +45,9 @@ export default function BotonRearchivar() {
         background: "var(--color-panel)",
       }}
     >
-      <div className="text-[13px] font-medium">Rehacer las actas archivadas</div>
+      <div className="text-[14.5px] font-medium">Rehacer las actas archivadas</div>
       <p
-        className="text-[11.5px] mt-1 leading-relaxed"
+        className="text-[12.5px] mt-1 leading-relaxed"
         style={{ color: "var(--color-tenue)" }}
       >
         Vuelve a generar cada acta en PDF y reemplaza la de Drive en su sitio.
@@ -58,33 +58,33 @@ export default function BotonRearchivar() {
       <button
         onClick={rehacer}
         disabled={trabajando}
-        className="accion-secundaria text-[12px] py-1.5 px-3 mt-3"
+        className="accion-secundaria text-[13.5px] py-1.5 px-3 mt-3"
       >
         {trabajando ? "Rehaciendo…" : "Rehacer todas"}
       </button>
 
       {trabajando ? (
-        <p className="text-[11.5px] mt-2" style={{ color: "var(--color-tenue)" }}>
+        <p className="text-[12.5px] mt-2" style={{ color: "var(--color-tenue)" }}>
           Cada acta pasa por Drive, así que puede tardar. No cierres esta
           pantalla.
         </p>
       ) : null}
 
       {error ? (
-        <p className="text-[12px] mt-2" style={{ color: "var(--color-critico)" }}>
+        <p className="text-[13.5px] mt-2" style={{ color: "var(--color-critico)" }}>
           {error}
         </p>
       ) : null}
 
       {resultado ? (
-        <div className="mt-2.5 text-[12px]">
+        <div className="mt-2.5 text-[13.5px]">
           <p style={{ color: "var(--color-operativo)" }}>
             {resultado.rehechas} de {resultado.total} actas rehechas.
           </p>
           {resultado.fallidas.length ? (
             <ul className="mt-1.5 space-y-0.5" style={{ color: "var(--color-critico)" }}>
               {resultado.fallidas.map((f) => (
-                <li key={f.id} className="font-[family-name:var(--font-mono)] text-[11px]">
+                <li key={f.id} className="font-[family-name:var(--font-mono)] text-[12.5px]">
                   {f.id}: {f.motivo}
                 </li>
               ))}

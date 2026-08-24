@@ -9,7 +9,7 @@ export default function FormularioClave() {
   if (estado?.ok) {
     return (
       <div
-        className="border rounded px-4 py-3 text-[13px]"
+        className="border rounded px-4 py-3 text-[14.5px]"
         style={{
           borderColor: "var(--color-operativo)",
           color: "var(--color-operativo)",
@@ -36,7 +36,7 @@ export default function FormularioClave() {
           minLength={8}
           className="entrada"
         />
-        <p className="text-[11px] mt-1" style={{ color: "var(--color-sin-info)" }}>
+        <p className="text-[12.5px] mt-1" style={{ color: "var(--color-sin-info)" }}>
           Al menos 8 caracteres.
         </p>
       </div>
@@ -58,7 +58,7 @@ export default function FormularioClave() {
 
       {estado?.error ? (
         <div
-          className="border rounded px-3 py-2.5 text-[12.5px]"
+          className="border rounded px-3 py-2.5 text-[13.5px]"
           style={{
             borderColor: "var(--color-critico)",
             color: "var(--color-critico)",

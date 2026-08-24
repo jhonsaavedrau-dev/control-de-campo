@@ -38,7 +38,7 @@ export default async function CodigoQR({
           >
             <SimboloPBI className="w-7 h-7" />
             <div className="leading-none">
-              <div className="font-[family-name:var(--font-placa)] font-semibold text-white text-[13px]">
+              <div className="font-[family-name:var(--font-placa)] font-semibold text-white text-[14.5px]">
                 CONTROL DE GENERACIÓN
               </div>
               <div className="font-[family-name:var(--font-mono)] text-[8px] text-white/55 mt-0.5">
@@ -55,7 +55,7 @@ export default async function CodigoQR({
               {e.id_equipo}
             </div>
             <div
-              className="font-[family-name:var(--font-mono)] text-[11px] mt-1.5"
+              className="font-[family-name:var(--font-mono)] text-[12.5px] mt-1.5"
               style={{ color: "var(--color-tenue)" }}
             >
               {e.fabricante} {e.modelo} · {numero(e.potencia_nominal_kw, " kW")}
@@ -67,13 +67,13 @@ export default async function CodigoQR({
             />
 
             <div
-              className="font-[family-name:var(--font-mono)] text-[10px]"
+              className="font-[family-name:var(--font-mono)] text-[11.5px]"
               style={{ color: "var(--color-tenue)" }}
             >
               {s?.id_sede} · {s?.nombre}
             </div>
             <div
-              className="text-[11px] mt-2 font-medium"
+              className="text-[12.5px] mt-2 font-medium"
               style={{ color: "var(--color-marino)" }}
             >
               Escanea para ver la ficha y registrar la intervención
@@ -85,20 +85,20 @@ export default async function CodigoQR({
           className="no-imprimir mt-5 border rounded px-4 py-3"
           style={{ borderColor: "var(--color-borde)", background: "var(--color-panel)" }}
         >
-          <div className="text-[10px]" style={{ color: "var(--color-tenue)" }}>
+          <div className="text-[11.5px]" style={{ color: "var(--color-tenue)" }}>
             El código apunta a
           </div>
-          <div className="font-[family-name:var(--font-mono)] text-[12px] break-all mt-0.5">
+          <div className="font-[family-name:var(--font-mono)] text-[13.5px] break-all mt-0.5">
             {url}
           </div>
-          <p className="text-[12px] mt-2.5 leading-relaxed" style={{ color: esLocal ? "var(--color-pendiente)" : "var(--color-tenue)" }}>
+          <p className="text-[13.5px] mt-2.5 leading-relaxed" style={{ color: esLocal ? "var(--color-pendiente)" : "var(--color-tenue)" }}>
             {esLocal
               ? "Esta dirección solo funciona en este computador. No imprimas todavía: publica el sistema primero y los códigos quedarán definitivos."
               : "Dirección pública: este adhesivo ya se puede imprimir y pegar en el equipo."}
           </p>
           <Link
             href="/qr"
-            className="accion-secundaria text-[12px] py-1.5 px-3 mt-3 inline-block"
+            className="accion-secundaria text-[13.5px] py-1.5 px-3 mt-3 inline-block"
           >
             Imprimir todos los códigos en una hoja
           </Link>

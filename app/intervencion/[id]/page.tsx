@@ -54,7 +54,7 @@ export default async function ActaIntervencion({
                     FORMATO DE INTERVENCIÓN DE EQUIPO
                   </div>
                 </td>
-                <td className="celda w-[180px] text-[10.5px] leading-relaxed align-middle">
+                <td className="celda w-[180px] text-[11.5px] leading-relaxed align-middle">
                   <div>Código: ______________</div>
                   <div>Versión: ______________</div>
                   <div>Fecha: {fechaLarga(i.fecha)}</div>
@@ -219,10 +219,10 @@ export default async function ActaIntervencion({
           <table className="tabla">
             <tbody>
               <tr>
-                <td className="celda text-center font-semibold text-[11px] w-1/2">
+                <td className="celda text-center font-semibold text-[12.5px] w-1/2">
                   TÉCNICO RESPONSABLE
                 </td>
-                <td className="celda text-center font-semibold text-[11px] w-1/2">
+                <td className="celda text-center font-semibold text-[12.5px] w-1/2">
                   RESPONSABLE DEL CLIENTE
                 </td>
               </tr>
@@ -241,7 +241,7 @@ export default async function ActaIntervencion({
           </table>
 
           {i.observaciones_finales ? (
-            <p className="text-[11px] mt-2 leading-relaxed">
+            <p className="text-[12.5px] mt-2 leading-relaxed">
               <strong>Observaciones finales:</strong> {i.observaciones_finales}
             </p>
           ) : null}
@@ -256,7 +256,7 @@ export default async function ActaIntervencion({
           className="no-imprimir mt-4 border rounded px-4 py-3"
           style={{ borderColor: "var(--color-borde)", background: "var(--color-panel)" }}
         >
-          <p className="text-[12px] leading-relaxed" style={{ color: "var(--color-tenue)" }}>
+          <p className="text-[13.5px] leading-relaxed" style={{ color: "var(--color-tenue)" }}>
             Este documento replica <strong>Formato_Intervencion_PBI</strong> con
             sus 8 secciones y sus casillas. El PDF se genera solo al guardar la
             intervención y se archiva en <code>06_INTERVENCIONES</code> del
@@ -266,14 +266,14 @@ export default async function ActaIntervencion({
           <div className="flex gap-4 mt-2">
             <Link
               href={`/intervenciones?equipo=${i.id_equipo}`}
-              className="font-[family-name:var(--font-mono)] text-[11px]"
+              className="font-[family-name:var(--font-mono)] text-[12.5px]"
               style={{ color: "var(--color-activo)" }}
             >
               Historial del equipo →
             </Link>
             {c ? (
               <span
-                className="font-[family-name:var(--font-mono)] text-[11px]"
+                className="font-[family-name:var(--font-mono)] text-[12.5px]"
                 style={{ color: "var(--color-sin-info)" }}
               >
                 Controlador {c.id_controlador}
@@ -351,7 +351,7 @@ function Evidencia({ fotos }: { fotos: IntervencionFoto[] }) {
             {[0, 1].map((n) => (
               <td
                 key={n}
-                className="celda h-[150px] w-1/2 text-center align-middle text-[11px]"
+                className="celda h-[150px] w-1/2 text-center align-middle text-[12.5px]"
                 style={{ color: "var(--color-sin-info)" }}
               >
                 FOTO / EVIDENCIA
@@ -388,7 +388,7 @@ function Evidencia({ fotos }: { fotos: IntervencionFoto[] }) {
                   />
                 </a>
                 <div
-                  className="font-[family-name:var(--font-mono)] text-[9px] mt-1 truncate"
+                  className="font-[family-name:var(--font-mono)] text-[10.5px] mt-1 truncate"
                   style={{ color: "var(--color-sin-info)" }}
                 >
                   {f.nombre_archivo}
@@ -405,7 +405,7 @@ function Evidencia({ fotos }: { fotos: IntervencionFoto[] }) {
 
 function Firma({ nombre, fecha }: { nombre: string; fecha: string }) {
   return (
-    <div className="text-[10.5px] leading-[2.1]">
+    <div className="text-[11.5px] leading-[2.1]">
       <div>Firma: ______________________________</div>
       <div>Nombre: {nombre || "____________________________"}</div>
       <div>Fecha: {fecha || "____ / ____ / ______"}</div>

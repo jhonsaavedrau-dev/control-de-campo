@@ -28,7 +28,7 @@ export default async function AdminDatos() {
         <h1 className="font-[family-name:var(--font-placa)] font-semibold text-[24px]">
           Base de datos
         </h1>
-        <p className="text-[13px] mt-1" style={{ color: "var(--color-tenue)" }}>
+        <p className="text-[14.5px] mt-1" style={{ color: "var(--color-tenue)" }}>
           Dónde viven las sedes, los equipos y las intervenciones.
         </p>
 
@@ -52,14 +52,14 @@ export default async function AdminDatos() {
                   : "var(--color-pendiente)",
               }}
             />
-            <span className="font-medium text-[14px]">
+            <span className="font-medium text-[15.5px]">
               {enSupabase ? "Supabase (PostgreSQL)" : "Archivo local"}
             </span>
           </div>
 
           {enSupabase ? (
             <div
-              className="mt-3 font-[family-name:var(--font-mono)] text-[12px] leading-relaxed"
+              className="mt-3 font-[family-name:var(--font-mono)] text-[13.5px] leading-relaxed"
               style={{ color: "var(--color-tenue)" }}
             >
               {Object.entries(estado.conteos ?? {}).map(([t, n]) => (
@@ -71,7 +71,7 @@ export default async function AdminDatos() {
           ) : (
             <>
               <p
-                className="text-[12.5px] mt-2"
+                className="text-[13.5px] mt-2"
                 style={{ color: "var(--color-tenue)" }}
               >
                 Los datos se guardan en <code>.data/db.json</code>, dentro de
@@ -81,7 +81,7 @@ export default async function AdminDatos() {
               </p>
               {estado.problema ? (
                 <p
-                  className="text-[12px] mt-2"
+                  className="text-[13.5px] mt-2"
                   style={{ color: "var(--color-pendiente)" }}
                 >
                   {estado.problema}
@@ -95,7 +95,7 @@ export default async function AdminDatos() {
           <>
             <Rotulo>Cómo conectarlo</Rotulo>
             <ol
-              className="space-y-2 text-[13px] leading-relaxed"
+              className="space-y-2 text-[14.5px] leading-relaxed"
               style={{ color: "var(--color-tenue)" }}
             >
               <li>
@@ -114,7 +114,7 @@ export default async function AdminDatos() {
                 <strong>4.</strong> Vuelve aquí y pulsa el botón de abajo.
               </li>
             </ol>
-            <p className="text-[12px] mt-3" style={{ color: "var(--color-sin-info)" }}>
+            <p className="text-[13.5px] mt-3" style={{ color: "var(--color-sin-info)" }}>
               Los pasos detallados están en <code>CONECTAR-SUPABASE.md</code>.
             </p>
           </>
@@ -124,7 +124,7 @@ export default async function AdminDatos() {
 
         <Link
           href="/admin/drive"
-          className="block text-center mt-6 font-[family-name:var(--font-mono)] text-[11px]"
+          className="block text-center mt-6 font-[family-name:var(--font-mono)] text-[12.5px]"
           style={{ color: "var(--color-activo)" }}
         >
           Ver la conexión con Drive →

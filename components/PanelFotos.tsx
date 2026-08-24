@@ -110,7 +110,7 @@ export default function PanelFotos({
                     style={{ color: "var(--color-sin-info)" }}
                   >
                     <IcoCamara className="w-5 h-5" />
-                    <span className="font-[family-name:var(--font-mono)] text-[9px] uppercase tracking-wide">
+                    <span className="font-[family-name:var(--font-mono)] text-[10.5px] uppercase tracking-wide">
                       sin foto
                     </span>
                   </div>
@@ -118,7 +118,7 @@ export default function PanelFotos({
 
                 {cargando ? (
                   <div
-                    className="absolute inset-0 flex items-center justify-center font-[family-name:var(--font-mono)] text-[10px] text-white"
+                    className="absolute inset-0 flex items-center justify-center font-[family-name:var(--font-mono)] text-[11.5px] text-white"
                     style={{ background: "rgba(15,20,25,0.7)" }}
                   >
                     subiendo…
@@ -128,7 +128,7 @@ export default function PanelFotos({
 
               <div className="flex items-center justify-between mt-1.5 gap-1">
                 <span
-                  className="font-[family-name:var(--font-mono)] text-[9.5px] uppercase tracking-wide truncate"
+                  className="font-[family-name:var(--font-mono)] text-[10.5px] uppercase tracking-wide truncate"
                   style={{ color: "var(--color-tenue)" }}
                 >
                   {titulo}
@@ -161,7 +161,7 @@ export default function PanelFotos({
 
       {error ? (
         <p
-          className="text-[11.5px] mt-2"
+          className="text-[12.5px] mt-2"
           style={{ color: "var(--color-critico)" }}
         >
           {error}

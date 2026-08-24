@@ -53,7 +53,7 @@ export default function PanelEstructura({
 
       {corriendo ? (
         <p
-          className="text-[12px] text-center mt-2"
+          className="text-[13.5px] text-center mt-2"
           style={{ color: "var(--color-tenue)" }}
         >
           Puede tardar un par de minutos. No cierres la página.
@@ -62,7 +62,7 @@ export default function PanelEstructura({
 
       {error ? (
         <div
-          className="border rounded px-3 py-2.5 mt-3 text-[12.5px]"
+          className="border rounded px-3 py-2.5 mt-3 text-[13.5px]"
           style={{
             borderColor: "var(--color-critico)",
             color: "var(--color-critico)",
@@ -82,10 +82,10 @@ export default function PanelEstructura({
             background: "var(--color-panel)",
           }}
         >
-          <div className="text-[13px] font-medium">
+          <div className="text-[14.5px] font-medium">
             {resultado.equipos} equipos procesados
           </div>
-          <p className="text-[12.5px] mt-1" style={{ color: "var(--color-tenue)" }}>
+          <p className="text-[13.5px] mt-1" style={{ color: "var(--color-tenue)" }}>
             {resultado.carpetas_creadas.length === 0
               ? "Todas las carpetas ya existían. No hizo falta crear nada."
               : `${resultado.carpetas_creadas.length} carpetas nuevas.`}
@@ -94,13 +94,13 @@ export default function PanelEstructura({
           {resultado.carpetas_creadas.length ? (
             <details className="mt-2">
               <summary
-                className="cursor-pointer font-[family-name:var(--font-mono)] text-[11px]"
+                className="cursor-pointer font-[family-name:var(--font-mono)] text-[12.5px]"
                 style={{ color: "var(--color-activo)" }}
               >
                 Ver el detalle
               </summary>
               <ul
-                className="mt-2 font-[family-name:var(--font-mono)] text-[11px] leading-relaxed max-h-[220px] overflow-y-auto"
+                className="mt-2 font-[family-name:var(--font-mono)] text-[12.5px] leading-relaxed max-h-[220px] overflow-y-auto"
                 style={{ color: "var(--color-tenue)" }}
               >
                 {resultado.carpetas_creadas.map((c) => (
@@ -113,13 +113,13 @@ export default function PanelEstructura({
           {resultado.errores.length ? (
             <div className="mt-3">
               <div
-                className="text-[12px] font-medium"
+                className="text-[13.5px] font-medium"
                 style={{ color: "var(--color-critico)" }}
               >
                 {resultado.errores.length} equipos con problema
               </div>
               <ul
-                className="mt-1 font-[family-name:var(--font-mono)] text-[11px]"
+                className="mt-1 font-[family-name:var(--font-mono)] text-[12.5px]"
                 style={{ color: "var(--color-tenue)" }}
               >
                 {resultado.errores.map((e) => (

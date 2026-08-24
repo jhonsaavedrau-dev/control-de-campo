@@ -50,7 +50,7 @@ export default async function FichaEquipo({
                 <div className="min-w-0">
                   <div className="mb-2.5">
                     <span
-                      className="inline-flex items-center gap-1.5 font-[family-name:var(--font-mono)] text-[9.5px] uppercase tracking-[0.12em] px-2 py-1 rounded"
+                      className="inline-flex items-center gap-1.5 font-[family-name:var(--font-mono)] text-[10.5px] uppercase tracking-[0.12em] px-2 py-1 rounded"
                       style={{
                         background: "rgba(255,255,255,0.1)",
                         color: "var(--color-amarillo)",
@@ -65,7 +65,7 @@ export default async function FichaEquipo({
                   >
                     {e.id_equipo}
                   </h1>
-                  <p className="font-[family-name:var(--font-mono)] text-[12px] mt-2 text-white/60">
+                  <p className="font-[family-name:var(--font-mono)] text-[13.5px] mt-2 text-white/60">
                     {e.nombre ? `${e.nombre} — ` : ""}
                     {e.fabricante} {e.modelo}
                     {c ? (
@@ -109,7 +109,7 @@ export default async function FichaEquipo({
               ) : puedeEditarFicha ? (
                 <Link
                   href={`/nuevo?que=controlador&equipo=${e.id_equipo}`}
-                  className="bloque px-3.5 py-3 text-[12.5px] no-imprimir"
+                  className="bloque px-3.5 py-3 text-[13.5px] no-imprimir"
                   style={{
                     color: "var(--color-activo)",
                     borderLeft: "3px solid var(--color-borde)",
@@ -137,7 +137,7 @@ export default async function FichaEquipo({
 
               {e.observaciones ? (
                 <div
-                  className="panel-hondo px-3.5 py-3 text-[12.5px] leading-relaxed"
+                  className="panel-hondo px-3.5 py-3 text-[13.5px] leading-relaxed"
                   style={{
                     color: "var(--color-tenue)",
                     borderLeft: "3px solid var(--color-pendiente)",
@@ -198,7 +198,7 @@ export default async function FichaEquipo({
                         style={{ alignItems: "flex-start" }}
                       >
                         <span
-                          className="font-[family-name:var(--font-mono)] text-[10px] font-medium shrink-0 px-1.5 py-0.5 rounded"
+                          className="font-[family-name:var(--font-mono)] text-[11.5px] font-medium shrink-0 px-1.5 py-0.5 rounded"
                           style={{
                             background: "var(--color-hundido)",
                             color: "var(--color-tenue)",
@@ -207,11 +207,11 @@ export default async function FichaEquipo({
                           {fechaCorta(i.fecha)}
                         </span>
                         <span className="flex-1 min-w-0">
-                          <span className="block text-[12.5px] font-medium leading-snug line-clamp-2">
+                          <span className="block text-[13.5px] font-medium leading-snug line-clamp-2">
                             {i.actividades_realizadas}
                           </span>
                           <span
-                            className="block font-[family-name:var(--font-mono)] text-[10px] mt-1"
+                            className="block font-[family-name:var(--font-mono)] text-[11.5px] mt-1"
                             style={{ color: "var(--color-sin-info)" }}
                           >
                             {ETIQUETA_TIPO[i.tipo_intervencion]} ·{" "}
@@ -227,7 +227,7 @@ export default async function FichaEquipo({
                         className="campo-fila justify-center"
                         style={{ color: "var(--color-activo)" }}
                       >
-                        <span className="font-[family-name:var(--font-mono)] text-[10.5px] uppercase tracking-wide">
+                        <span className="font-[family-name:var(--font-mono)] text-[11.5px] uppercase tracking-wide">
                           Ver las {intervenciones.length}
                         </span>
                         <IcoFlecha className="w-3.5 h-3.5" />
@@ -241,13 +241,13 @@ export default async function FichaEquipo({
                       // el vacío también comunica: aún no hay historia
                     />
                     <p
-                      className="text-[12.5px]"
+                      className="text-[13.5px]"
                       style={{ color: "var(--color-tenue)" }}
                     >
                       Sin intervenciones registradas
                     </p>
                     <p
-                      className="text-[11px] mt-1"
+                      className="text-[12.5px] mt-1"
                       style={{ color: "var(--color-sin-info)" }}
                     >
                       La primera abre su historial
@@ -299,7 +299,7 @@ export default async function FichaEquipo({
             />
             {e.actualizado_por ? (
               <span
-                className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-wide"
+                className="font-[family-name:var(--font-mono)] text-[11.5px] uppercase tracking-wide"
                 style={{ color: "var(--color-sin-info)" }}
               >
                 Ficha actualizada por {e.actualizado_por}

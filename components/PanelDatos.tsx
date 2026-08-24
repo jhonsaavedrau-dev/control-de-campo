@@ -46,7 +46,7 @@ export default function PanelDatos({ habilitado }: { habilitado: boolean }) {
       </button>
 
       <p
-        className="text-[11.5px] text-center mt-2"
+        className="text-[12.5px] text-center mt-2"
         style={{ color: "var(--color-sin-info)" }}
       >
         Se puede repetir sin duplicar nada. No toca las intervenciones ya
@@ -64,13 +64,13 @@ export default function PanelDatos({ habilitado }: { habilitado: boolean }) {
             background: "var(--color-panel)",
           }}
         >
-          <div className="text-[13px] font-medium">
+          <div className="text-[14.5px] font-medium">
             {resultado.cargado ? "Datos cargados" : "No se pudo cargar todo"}
           </div>
 
           {resultado.pasos?.length ? (
             <ul
-              className="mt-2 font-[family-name:var(--font-mono)] text-[11.5px] leading-relaxed"
+              className="mt-2 font-[family-name:var(--font-mono)] text-[12.5px] leading-relaxed"
               style={{ color: "var(--color-tenue)" }}
             >
               {resultado.pasos.map((p) => (
@@ -83,7 +83,7 @@ export default function PanelDatos({ habilitado }: { habilitado: boolean }) {
 
           {resultado.error ? (
             <p
-              className="text-[12px] mt-2"
+              className="text-[13.5px] mt-2"
               style={{ color: "var(--color-critico)" }}
             >
               {resultado.error}
@@ -92,7 +92,7 @@ export default function PanelDatos({ habilitado }: { habilitado: boolean }) {
 
           {resultado.errores?.length ? (
             <ul
-              className="mt-2 font-[family-name:var(--font-mono)] text-[11px] leading-relaxed"
+              className="mt-2 font-[family-name:var(--font-mono)] text-[12.5px] leading-relaxed"
               style={{ color: "var(--color-critico)" }}
             >
               {resultado.errores.map((e) => (

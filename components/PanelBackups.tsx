@@ -80,7 +80,7 @@ export default function PanelBackups({
         Backups del controlador
         {backups?.length ? (
           <span
-            className="font-[family-name:var(--font-mono)] text-[10px]"
+            className="font-[family-name:var(--font-mono)] text-[11.5px]"
             style={{ color: "var(--color-sin-info)" }}
           >
             {backups.length}
@@ -89,7 +89,7 @@ export default function PanelBackups({
       </div>
 
       {backups === null ? (
-        <p className="text-[12.5px]" style={{ color: "var(--color-sin-info)" }}>
+        <p className="text-[13.5px]" style={{ color: "var(--color-sin-info)" }}>
           Consultando Drive…
         </p>
       ) : backups.length ? (
@@ -101,16 +101,16 @@ export default function PanelBackups({
               className="bitacora-fila"
             >
               <div className="flex-1 min-w-0">
-                <div className="text-[12.5px] font-medium truncate">{b.nombre}</div>
+                <div className="text-[13.5px] font-medium truncate">{b.nombre}</div>
                 <div
-                  className="font-[family-name:var(--font-mono)] text-[10.5px] mt-0.5"
+                  className="font-[family-name:var(--font-mono)] text-[11.5px] mt-0.5"
                   style={{ color: "var(--color-tenue)" }}
                 >
                   {b.fecha ? b.fecha.slice(0, 10) : ""} {peso(b.tamano)}
                 </div>
               </div>
               <span
-                className="font-[family-name:var(--font-mono)] text-[10px] shrink-0"
+                className="font-[family-name:var(--font-mono)] text-[11.5px] shrink-0"
                 style={{ color: "var(--color-activo)" }}
               >
                 BAJAR
@@ -123,7 +123,7 @@ export default function PanelBackups({
           className="border rounded px-4 py-5 text-center"
           style={{ borderColor: "var(--color-borde)" }}
         >
-          <p className="text-[12.5px]" style={{ color: "var(--color-tenue)" }}>
+          <p className="text-[13.5px]" style={{ color: "var(--color-tenue)" }}>
             {problema ?? "Todavía no hay backups de este controlador."}
           </p>
         </div>
@@ -143,17 +143,17 @@ export default function PanelBackups({
             ev.target.value = "";
           }}
         />
-        <span className="text-[13px] font-medium">
+        <span className="text-[14.5px] font-medium">
           {subiendo ? "Subiendo…" : "Dejar un backup nuevo"}
         </span>
-        <span className="text-[11px]" style={{ color: "var(--color-sin-info)" }}>
+        <span className="text-[12.5px]" style={{ color: "var(--color-sin-info)" }}>
           Después de configurar el controlador
         </span>
       </label>
 
       {aviso ? (
         <p
-          className="text-[12px] mt-2 text-center"
+          className="text-[13.5px] mt-2 text-center"
           style={{ color: "var(--color-tenue)" }}
         >
           {aviso}

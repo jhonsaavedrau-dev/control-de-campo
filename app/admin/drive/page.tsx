@@ -33,7 +33,7 @@ export default async function AdminDrive() {
         <h1 className="font-[family-name:var(--font-placa)] font-semibold text-[24px]">
           Conexión con Google Drive
         </h1>
-        <p className="text-[13px] mt-1" style={{ color: "var(--color-tenue)" }}>
+        <p className="text-[14.5px] mt-1" style={{ color: "var(--color-tenue)" }}>
           Aquí se archivan las actas y las fotografías de cada intervención.
         </p>
 
@@ -55,18 +55,18 @@ export default async function AdminDrive() {
                   : "var(--color-pendiente)",
               }}
             />
-            <span className="font-medium text-[14px]">
+            <span className="font-medium text-[15.5px]">
               {e.configurado ? "Conectado" : "Todavía sin conectar"}
             </span>
           </div>
 
           {e.configurado ? (
-            <p className="text-[12.5px] mt-2" style={{ color: "var(--color-tenue)" }}>
+            <p className="text-[13.5px] mt-2" style={{ color: "var(--color-tenue)" }}>
               El robot ve la carpeta <strong>{e.carpetaRaiz?.nombre}</strong>. Ya
               puede crear la estructura y archivar documentos.
             </p>
           ) : (
-            <p className="text-[12.5px] mt-2" style={{ color: "var(--color-tenue)" }}>
+            <p className="text-[13.5px] mt-2" style={{ color: "var(--color-tenue)" }}>
               {e.problema}
             </p>
           )}
@@ -128,7 +128,7 @@ export default async function AdminDrive() {
                 → pega este correo → permiso <strong>Editor</strong>:
                 {correo ? (
                   <code
-                    className="block mt-2 p-2 rounded break-all select-all font-[family-name:var(--font-mono)] text-[11px]"
+                    className="block mt-2 p-2 rounded break-all select-all font-[family-name:var(--font-mono)] text-[12.5px]"
                     style={{
                       background: "var(--color-campo)",
                       border: "1px solid var(--color-borde)",
@@ -144,7 +144,7 @@ export default async function AdminDrive() {
 
         <Rotulo>Estructura que se va a crear</Rotulo>
         <div
-          className="border rounded p-4 font-[family-name:var(--font-mono)] text-[11px] leading-relaxed overflow-x-auto"
+          className="border rounded p-4 font-[family-name:var(--font-mono)] text-[12.5px] leading-relaxed overflow-x-auto"
           style={{ borderColor: "var(--color-borde)", background: "var(--color-panel)" }}
         >
           {ejemplo ? (
@@ -156,7 +156,7 @@ ${SUBCARPETAS_EQUIPO.map((s) => `      ${s}/`).join("\n")}`}
             </pre>
           ) : null}
         </div>
-        <p className="text-[11.5px] mt-2" style={{ color: "var(--color-sin-info)" }}>
+        <p className="text-[12.5px] mt-2" style={{ color: "var(--color-sin-info)" }}>
           Igual para los {equipos.length} equipos. Lo que ya exista se reutiliza:
           se puede ejecutar las veces que haga falta sin duplicar nada.
         </p>
@@ -180,7 +180,7 @@ function Paso({
       style={{ borderColor: "var(--color-borde)", background: "var(--color-panel)" }}
     >
       <span
-        className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center font-[family-name:var(--font-mono)] text-[11px]"
+        className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center font-[family-name:var(--font-mono)] text-[12.5px]"
         style={{
           background: listo ? "var(--color-operativo)" : "var(--color-campo)",
           color: listo ? "#fff" : "var(--color-tenue)",
@@ -190,8 +190,8 @@ function Paso({
         {listo ? "✓" : n}
       </span>
       <div className="min-w-0">
-        <div className="text-[13px] font-medium">{titulo}</div>
-        <div className="text-[12px] mt-1" style={{ color: "var(--color-tenue)" }}>
+        <div className="text-[14.5px] font-medium">{titulo}</div>
+        <div className="text-[13.5px] mt-1" style={{ color: "var(--color-tenue)" }}>
           {children}
         </div>
       </div>

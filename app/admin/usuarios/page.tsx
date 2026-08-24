@@ -48,7 +48,7 @@ export default async function Cuentas() {
         <h1 className="font-[family-name:var(--font-placa)] font-semibold text-[24px]">
           Cuentas
         </h1>
-        <p className="text-[13px] mt-1" style={{ color: "var(--color-tenue)" }}>
+        <p className="text-[14.5px] mt-1" style={{ color: "var(--color-tenue)" }}>
           {problema
             ? "Quién entra al sistema y con qué permiso."
             : `${activas} ${activas === 1 ? "persona activa" : "personas activas"} de ${cuentas.length}.`}
@@ -56,7 +56,7 @@ export default async function Cuentas() {
 
         {problema ? (
           <div
-            className="border rounded px-4 py-3 text-[13px] mt-4 leading-relaxed"
+            className="border rounded px-4 py-3 text-[14.5px] mt-4 leading-relaxed"
             style={{
               borderColor: "var(--color-pendiente)",
               color: "var(--color-pendiente)",
@@ -71,7 +71,7 @@ export default async function Cuentas() {
             <PanelUsuarios cuentas={cuentas} yo={yo?.id ?? ""} />
 
             <p
-              className="text-[12px] mt-5 leading-relaxed"
+              className="text-[13.5px] mt-5 leading-relaxed"
               style={{ color: "var(--color-sin-info)" }}
             >
               Dar de baja no borra a nadie: las actas firmadas siguen

@@ -34,7 +34,7 @@ export default async function Administracion() {
         <h1 className="font-[family-name:var(--font-placa)] font-semibold text-[24px]">
           Administración
         </h1>
-        <p className="text-[13px] mt-1" style={{ color: "var(--color-tenue)" }}>
+        <p className="text-[14.5px] mt-1" style={{ color: "var(--color-tenue)" }}>
           Cómo está conectado el sistema.
         </p>
 
@@ -105,14 +105,14 @@ export default async function Administracion() {
             background: "var(--color-panel)",
           }}
         >
-          <div className="text-[13px] font-medium">Guía del técnico</div>
+          <div className="text-[14.5px] font-medium">Guía del técnico</div>
           <div
-            className="font-[family-name:var(--font-mono)] text-[12px] mt-1.5"
+            className="font-[family-name:var(--font-mono)] text-[13.5px] mt-1.5"
             style={{ color: "var(--color-activo)" }}
           >
             Descargar PDF de una hoja
           </div>
-          <div className="text-[11.5px] mt-1" style={{ color: "var(--color-tenue)" }}>
+          <div className="text-[12.5px] mt-1" style={{ color: "var(--color-tenue)" }}>
             Para mandar por WhatsApp. Se genera al momento: descárgala de nuevo
             cada vez y nunca mandarás una versión vieja.
           </div>
@@ -124,7 +124,7 @@ export default async function Administracion() {
 
         <Rotulo>Para publicarlo en internet</Rotulo>
         <ol
-          className="space-y-2 text-[13px] leading-relaxed"
+          className="space-y-2 text-[14.5px] leading-relaxed"
           style={{ color: "var(--color-tenue)" }}
         >
           <li>
@@ -139,7 +139,7 @@ export default async function Administracion() {
             la dirección definitiva.
           </li>
         </ol>
-        <p className="text-[12px] mt-3" style={{ color: "var(--color-sin-info)" }}>
+        <p className="text-[13.5px] mt-3" style={{ color: "var(--color-sin-info)" }}>
           Mientras los QR apunten a <code>localhost</code>, solo funcionan en
           este computador.
         </p>
@@ -169,20 +169,20 @@ function Tarjeta({
       }}
     >
       <div className="flex items-center justify-between gap-3">
-        <span className="text-[13px] font-medium">{titulo}</span>
+        <span className="text-[14.5px] font-medium">{titulo}</span>
         <span
           className="w-2.5 h-2.5 rounded-full shrink-0"
           style={{ background: color }}
         />
       </div>
       <div
-        className="font-[family-name:var(--font-mono)] text-[12px] mt-1.5"
+        className="font-[family-name:var(--font-mono)] text-[13.5px] mt-1.5"
         style={{ color }}
       >
         {valor}
       </div>
       {detalle ? (
-        <div className="text-[11.5px] mt-1" style={{ color: "var(--color-tenue)" }}>
+        <div className="text-[12.5px] mt-1" style={{ color: "var(--color-tenue)" }}>
           {detalle}
         </div>
       ) : null}

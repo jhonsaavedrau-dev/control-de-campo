@@ -217,7 +217,7 @@ export default function FormularioIntervencion({
           {CHECKLIST.map((g) => (
             <div key={g.grupo}>
               <div
-                className="flex items-center gap-2 font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-[0.1em] mb-2"
+                className="flex items-center gap-2 font-[family-name:var(--font-mono)] text-[11.5px] uppercase tracking-[0.1em] mb-2"
                 style={{ color: "var(--color-tenue)" }}
               >
                 <IcoLista className="w-3 h-3" />
@@ -228,7 +228,7 @@ export default function FormularioIntervencion({
                 {g.tareas.map((t) => (
                   <label
                     key={t}
-                    className="flex items-center gap-2.5 text-[13.5px] cursor-pointer py-2 px-2.5 rounded transition-colors has-checked:bg-[color-mix(in_srgb,var(--color-activo)_9%,transparent)] hover:bg-[var(--color-realce)]"
+                    className="flex items-center gap-2.5 text-[14.5px] cursor-pointer py-2 px-2.5 rounded transition-colors has-checked:bg-[color-mix(in_srgb,var(--color-activo)_9%,transparent)] hover:bg-[var(--color-realce)]"
                     style={{ border: "1px solid var(--color-borde-suave)" }}
                   >
                     <input
@@ -397,7 +397,7 @@ export default function FormularioIntervencion({
                     className="w-full h-full object-cover"
                   />
                   <span
-                    className="absolute bottom-0 left-0 right-0 font-[family-name:var(--font-mono)] text-[9px] px-1.5 py-0.5"
+                    className="absolute bottom-0 left-0 right-0 font-[family-name:var(--font-mono)] text-[10.5px] px-1.5 py-0.5"
                     style={{ background: "rgba(15,20,25,0.72)", color: "#fff" }}
                   >
                     {idx + 1}
@@ -406,7 +406,7 @@ export default function FormularioIntervencion({
                   <button
                     type="button"
                     onClick={() => setFotos((p) => p.filter((_, i) => i !== idx))}
-                    className="absolute top-1 right-1 w-6 h-6 rounded-full text-[13px] leading-none flex items-center justify-center"
+                    className="absolute top-1 right-1 w-6 h-6 rounded-full text-[14.5px] leading-none flex items-center justify-center"
                     style={{ background: "var(--color-critico)", color: "#fff" }}
                     aria-label={`Quitar foto ${idx + 1}`}
                   >
@@ -416,7 +416,7 @@ export default function FormularioIntervencion({
               ))}
             </div>
             <p
-              className="text-[11.5px] mt-2"
+              className="text-[12.5px] mt-2"
               style={{ color: "var(--color-sin-info)" }}
             >
               {fotos.length} de 6 · toca la × para quitar una
@@ -424,7 +424,7 @@ export default function FormularioIntervencion({
           </>
         ) : (
           <p
-            className="text-[11.5px] mt-2 text-center"
+            className="text-[12.5px] mt-2 text-center"
             style={{ color: "var(--color-sin-info)" }}
           >
             Ninguna foto todavía
@@ -447,7 +447,7 @@ export default function FormularioIntervencion({
       </div>
 
       <p
-        className="text-center mt-4 font-[family-name:var(--font-mono)] text-[10.5px]"
+        className="text-center mt-4 font-[family-name:var(--font-mono)] text-[11.5px]"
         style={{ color: "var(--color-sin-info)" }}
       >
         El consecutivo INT-{new Date().getFullYear()}-NNNN se asigna al guardar.
@@ -490,7 +490,7 @@ function Grupo({
       </label>
       {children}
       {ayuda ? (
-        <p className="text-[11px] mt-1" style={{ color: "var(--color-sin-info)" }}>
+        <p className="text-[12.5px] mt-1" style={{ color: "var(--color-sin-info)" }}>
           {ayuda}
         </p>
       ) : null}
@@ -518,7 +518,7 @@ function Plegable({
         {titulo}
         <span className="cuenta">{detalle}</span>
         <span
-          className="font-[family-name:var(--font-mono)] text-[13px] leading-none transition-transform group-open:rotate-90"
+          className="font-[family-name:var(--font-mono)] text-[14.5px] leading-none transition-transform group-open:rotate-90"
           style={{ color: "var(--color-amarillo)", marginLeft: "8px" }}
         >
           ›
@@ -535,7 +535,7 @@ function Radio({
   nombre: string; valor: string; etiqueta: string; porDefecto?: boolean;
 }) {
   return (
-    <label className="inline-flex items-center gap-2 text-[13.5px] cursor-pointer">
+    <label className="inline-flex items-center gap-2 text-[14.5px] cursor-pointer">
       <input
         type="radio"
         name={nombre}
@@ -556,7 +556,7 @@ function Nota({
 }) {
   return (
     <div
-      className="border rounded px-3 py-2.5 mb-4 text-[12.5px]"
+      className="border rounded px-3 py-2.5 mb-4 text-[13.5px]"
       style={{
         borderColor: `var(--color-${tono})`,
         color: `var(--color-${tono})`,

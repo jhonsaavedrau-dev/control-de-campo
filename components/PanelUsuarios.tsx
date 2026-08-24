@@ -46,7 +46,7 @@ export default function PanelUsuarios({
           <Fila key={c.id} cuenta={c} soyYo={c.id === yo} />
         ))}
         {!cuentas.length ? (
-          <p className="text-[13px]" style={{ color: "var(--color-tenue)" }}>
+          <p className="text-[14.5px]" style={{ color: "var(--color-tenue)" }}>
             Todavía no hay nadie. Crea la primera cuenta arriba.
           </p>
         ) : null}
@@ -72,7 +72,7 @@ function FormularioNueva() {
   return (
     <div className="panel p-4">
       <div
-        className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-wide mb-3"
+        className="font-[family-name:var(--font-mono)] text-[11.5px] uppercase tracking-wide mb-3"
         style={{ color: "var(--color-tenue)" }}
       >
         Crear una cuenta
@@ -107,7 +107,7 @@ function FormularioNueva() {
             placeholder="fnino@pbi.com.co"
             className="entrada"
           />
-          <p className="text-[11px] mt-1" style={{ color: "var(--color-sin-info)" }}>
+          <p className="text-[12.5px] mt-1" style={{ color: "var(--color-sin-info)" }}>
             Con este correo entra al sistema.
           </p>
         </div>
@@ -144,11 +144,11 @@ function FormularioNueva() {
                   className="mt-0.5"
                 />
                 <span>
-                  <span className="text-[13px] font-medium block">
+                  <span className="text-[14.5px] font-medium block">
                     {ETIQUETA_ROL[valor]}
                   </span>
                   <span
-                    className="text-[11.5px]"
+                    className="text-[12.5px]"
                     style={{ color: "var(--color-tenue)" }}
                   >
                     {que}
@@ -222,12 +222,12 @@ function Fila({ cuenta, soyYo }: { cuenta: CuentaAdmin; soyYo: boolean }) {
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <IcoPersona className="w-3.5 h-3.5 shrink-0" />
-              <span className="text-[13.5px] font-medium truncate">
+              <span className="text-[14.5px] font-medium truncate">
                 {cuenta.nombre_completo}
               </span>
               {soyYo ? (
                 <span
-                  className="font-[family-name:var(--font-mono)] text-[9px] uppercase px-1 rounded shrink-0"
+                  className="font-[family-name:var(--font-mono)] text-[10.5px] uppercase px-1 rounded shrink-0"
                   style={{
                     background: "var(--color-realce)",
                     color: "var(--color-tenue)",
@@ -238,14 +238,14 @@ function Fila({ cuenta, soyYo }: { cuenta: CuentaAdmin; soyYo: boolean }) {
               ) : null}
             </div>
             <div
-              className="font-[family-name:var(--font-mono)] text-[11.5px] mt-0.5 truncate"
+              className="font-[family-name:var(--font-mono)] text-[12.5px] mt-0.5 truncate"
               style={{ color: "var(--color-tenue)" }}
             >
               {cuenta.correo}
             </div>
             {cuenta.telefono ? (
               <div
-                className="font-[family-name:var(--font-mono)] text-[11px] mt-0.5"
+                className="font-[family-name:var(--font-mono)] text-[12.5px] mt-0.5"
                 style={{ color: "var(--color-sin-info)" }}
               >
                 {cuenta.telefono}
@@ -255,13 +255,13 @@ function Fila({ cuenta, soyYo }: { cuenta: CuentaAdmin; soyYo: boolean }) {
 
           <div className="text-right shrink-0">
             <div
-              className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-wide"
+              className="font-[family-name:var(--font-mono)] text-[11.5px] uppercase tracking-wide"
               style={{ color: "var(--color-tenue)" }}
             >
               {ETIQUETA_ROL[cuenta.rol]}
             </div>
             <div
-              className="font-[family-name:var(--font-mono)] text-[10px] mt-0.5"
+              className="font-[family-name:var(--font-mono)] text-[11.5px] mt-0.5"
               style={{ color }}
             >
               {!cuenta.activo
@@ -280,7 +280,7 @@ function Fila({ cuenta, soyYo }: { cuenta: CuentaAdmin; soyYo: boolean }) {
             style={{ borderTop: "1px dashed var(--color-borde)" }}
           >
             <p
-              className="text-[11.5px] leading-relaxed"
+              className="text-[12.5px] leading-relaxed"
               style={{ color: "var(--color-pendiente)" }}
             >
               Está en el sistema pero nunca tuvo cuenta para entrar. Ponle
@@ -317,7 +317,7 @@ function Fila({ cuenta, soyYo }: { cuenta: CuentaAdmin; soyYo: boolean }) {
           <button
             type="button"
             onClick={() => setEditando((v) => !v)}
-            className="accion-secundaria text-[11.5px] py-1 px-2 inline-flex items-center gap-1"
+            className="accion-secundaria text-[12.5px] py-1 px-2 inline-flex items-center gap-1"
           >
             <IcoLapiz className="w-3 h-3" />
             {editando ? "Cerrar" : "Editar"}
@@ -327,7 +327,7 @@ function Fila({ cuenta, soyYo }: { cuenta: CuentaAdmin; soyYo: boolean }) {
             <button
               type="button"
               onClick={() => setCambiandoClave((v) => !v)}
-              className="accion-secundaria text-[11.5px] py-1 px-2 inline-flex items-center gap-1"
+              className="accion-secundaria text-[12.5px] py-1 px-2 inline-flex items-center gap-1"
             >
               <IcoLlave className="w-3 h-3" />
               {cambiandoClave ? "Cerrar" : "Contraseña nueva"}
@@ -344,7 +344,7 @@ function Fila({ cuenta, soyYo }: { cuenta: CuentaAdmin; soyYo: boolean }) {
               />
               <button
                 disabled={cambiandoBaja}
-                className="accion-secundaria text-[11.5px] py-1 px-2"
+                className="accion-secundaria text-[12.5px] py-1 px-2"
                 style={cuenta.activo ? { color: "var(--color-critico)" } : undefined}
               >
                 {cambiandoBaja ? "…" : cuenta.activo ? "Dar de baja" : "Reactivar"}
@@ -483,13 +483,13 @@ function CampoClave({ id, compacto }: { id: string; compacto?: boolean }) {
         <button
           type="button"
           onClick={() => setValor(generarClave())}
-          className="accion-secundaria text-[11.5px] py-1 px-2 shrink-0"
+          className="accion-secundaria text-[12.5px] py-1 px-2 shrink-0"
           title="Proponer otra contraseña"
         >
           Otra
         </button>
       </div>
-      <p className="text-[11px] mt-1" style={{ color: "var(--color-sin-info)" }}>
+      <p className="text-[12.5px] mt-1" style={{ color: "var(--color-sin-info)" }}>
         Mínimo {LARGO_MINIMO} caracteres. Se ve en pantalla a propósito, para
         que puedas dictarla; cámbiala por la que quieras.
       </p>
@@ -530,12 +530,12 @@ function ClaveNueva({
       }}
     >
       {nota ? (
-        <p className="text-[12px] mb-2" style={{ color: "var(--color-tenue)" }}>
+        <p className="text-[13.5px] mb-2" style={{ color: "var(--color-tenue)" }}>
           {nota}
         </p>
       ) : null}
       <div
-        className="font-[family-name:var(--font-mono)] text-[9.5px] uppercase tracking-wide"
+        className="font-[family-name:var(--font-mono)] text-[10.5px] uppercase tracking-wide"
         style={{ color: "var(--color-tenue)" }}
       >
         {correo}
@@ -546,12 +546,12 @@ function ClaveNueva({
       <button
         type="button"
         onClick={copiar}
-        className="accion-secundaria text-[11.5px] py-1 px-2 mt-2"
+        className="accion-secundaria text-[12.5px] py-1 px-2 mt-2"
       >
         {copiado ? "Copiado" : "Copiar para WhatsApp"}
       </button>
       <p
-        className="text-[11.5px] mt-2 leading-relaxed"
+        className="text-[12.5px] mt-2 leading-relaxed"
         style={{ color: "var(--color-pendiente)" }}
       >
         Cópiala ahora: el sistema no la guarda y al salir de esta pantalla no
@@ -571,7 +571,7 @@ function Aviso({
   const color = tipo === "error" ? "var(--color-critico)" : "var(--color-operativo)";
   return (
     <div
-      className="border rounded px-3 py-2 text-[12.5px] mt-2"
+      className="border rounded px-3 py-2 text-[13.5px] mt-2"
       style={{ borderColor: color, color, background: "var(--color-campo)" }}
     >
       {children}

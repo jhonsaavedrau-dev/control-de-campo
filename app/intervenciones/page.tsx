@@ -105,7 +105,7 @@ export default async function Intervenciones({
           {equipo ? `Historial de ${equipo}` : "Intervenciones"}
         </h1>
         <p
-          className="font-[family-name:var(--font-mono)] text-[11px] mt-1"
+          className="font-[family-name:var(--font-mono)] text-[12.5px] mt-1"
           style={{ color: "var(--color-tenue)" }}
         >
           {filtradas.length} de {todas.length} registro
@@ -124,7 +124,7 @@ export default async function Intervenciones({
               className="entrada flex-1"
             />
             <button
-              className="rounded px-4 font-[family-name:var(--font-mono)] text-[11px] tracking-[0.08em] border shrink-0"
+              className="rounded px-4 font-[family-name:var(--font-mono)] text-[12.5px] tracking-[0.08em] border shrink-0"
               style={{
                 borderColor: "var(--color-borde)",
                 borderBottomColor: "var(--color-borde-fuerte)",
@@ -139,7 +139,7 @@ export default async function Intervenciones({
               deja la pantalla limpia hasta que hace falta filtrar. */}
           <details className="mt-2.5" open={Boolean(tipo || resultado || tecnico || desde || hasta)}>
             <summary
-              className="cursor-pointer font-[family-name:var(--font-mono)] text-[10.5px] uppercase tracking-wide select-none"
+              className="cursor-pointer font-[family-name:var(--font-mono)] text-[11.5px] uppercase tracking-wide select-none"
               style={{ color: "var(--color-tenue)" }}
             >
               Más filtros
@@ -235,12 +235,12 @@ export default async function Intervenciones({
                 >
                   <div className="bitacora-fecha">{fechaCorta(i.fecha)}</div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-medium truncate">
+                    <div className="text-[14.5px] font-medium truncate">
                       {ETIQUETA_TIPO[i.tipo_intervencion]} ·{" "}
                       {i.actividades_realizadas}
                     </div>
                     <div
-                      className="font-[family-name:var(--font-mono)] text-[11px] mt-0.5 truncate"
+                      className="font-[family-name:var(--font-mono)] text-[12.5px] mt-0.5 truncate"
                       style={{ color: "var(--color-tenue)" }}
                     >
                       {i.id_intervencion} · {i.id_equipo} · {i.tecnico_nombre}
@@ -259,7 +259,7 @@ export default async function Intervenciones({
                   </Link>
                 ) : <span />}
                 <span
-                  className="font-[family-name:var(--font-mono)] text-[11px]"
+                  className="font-[family-name:var(--font-mono)] text-[12.5px]"
                   style={{ color: "var(--color-tenue)" }}
                 >
                   {actual} de {paginas}
@@ -274,7 +274,7 @@ export default async function Intervenciones({
           </>
         ) : (
           <p
-            className="text-center text-[13px] py-12"
+            className="text-center text-[14.5px] py-12"
             style={{ color: "var(--color-sin-info)" }}
           >
             {todas.length
