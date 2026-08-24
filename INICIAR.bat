@@ -5,7 +5,7 @@ cd /d "%~dp0"
 echo.
 echo   ====================================================
 echo    CONTROL DE GENERACION - PBI
-echo    Gestion Energy SAS
+echo    Petroleum Blending International SAS ESP
 echo   ====================================================
 echo.
 

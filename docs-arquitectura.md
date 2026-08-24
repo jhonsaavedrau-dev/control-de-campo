@@ -1,5 +1,5 @@
 # Sistema de Control de Campo PBI
-## Control de Generación — Gestión Energy SAS
+## Control de Generación — Petroleum Blending International SAS ESP
 
 ### Documento de arquitectura y decisiones de proyecto
 
@@ -7,7 +7,7 @@
 
 ## 1. Objetivo del sistema
 
-Digitalizar el proceso de operación, mantenimiento y documentación de los equipos de generación eléctrica de Gestión Energy SAS, reemplazando el modelo actual basado en Excel, Google Sheets y Drive dispersos por un sistema centralizado donde cada equipo tiene una identidad digital propia, accesible mediante un código QR.
+Digitalizar el proceso de operación, mantenimiento y documentación de los equipos de generación eléctrica de Petroleum Blending International SAS ESP, reemplazando el modelo actual basado en Excel, Google Sheets y Drive dispersos por un sistema centralizado donde cada equipo tiene una identidad digital propia, accesible mediante un código QR.
 
 El flujo objetivo para el técnico en campo es:
 
@@ -84,7 +84,7 @@ Lo que se reconstruye:
 Ver archivo adjunto `schema.sql`. Resumen de tablas:
 
 - `usuarios`: técnicos, supervisores y administradores.
-- `sedes`: sitios operativos de Gestión Energy SAS.
+- `sedes`: sitios operativos de Petroleum Blending International SAS ESP.
 - `equipos`: grupos electrógenos físicos.
 - `controladores`: paneles de control asociados a cada equipo, cada uno con su propia ficha QR.
 - `intervenciones`: núcleo del sistema, un registro por cada mantenimiento, diagnóstico o inspección.

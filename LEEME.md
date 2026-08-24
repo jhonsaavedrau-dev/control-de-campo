@@ -1,6 +1,6 @@
 # Control de Generación — PBI
 
-Sistema de Control de Campo para **Gestión Energy SAS**.
+Sistema de Control de Campo para **Petroleum Blending International SAS ESP**.
 Equipos de generación, controladores e intervenciones.
 
 ---

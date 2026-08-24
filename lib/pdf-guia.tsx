@@ -175,7 +175,7 @@ const Guia = (
             </Text>
           </View>
           <Text style={s.empresa}>
-            Petroleum Blending International SAS ESP{"\n"}Petroleum Blending International SAS ESP
+            Petroleum Blending International SAS ESP
           </Text>
         </View>
       </View>

@@ -5,6 +5,7 @@ import { motorDeDatos, resumen } from "@/lib/db";
 import { Encabezado, PieDePagina } from "@/components/Marco";
 import { Rotulo } from "@/components/Piezas";
 import SinPermiso from "@/components/SinPermiso";
+import BotonRearchivar from "@/components/BotonRearchivar";
 import { exigirAdministrador } from "@/lib/sesion";
 import { listarCuentas, servicioConfigurado } from "@/lib/usuarios";
 
@@ -90,6 +91,36 @@ export default async function Administracion() {
               : "Crear cuentas, cambiar permisos y contraseñas"
           }
         />
+
+        <Rotulo>Documentos</Rotulo>
+        {/* La guia se arma en el momento, asi que la copia descargada
+            siempre lleva los textos que dice el sistema hoy. Antes habia
+            que acordarse de la direccion de la ruta para sacarla. */}
+        <a
+          href="/api/guia"
+          className="block border rounded p-4 hover:shadow-sm transition-shadow"
+          style={{
+            borderColor: "var(--color-borde)",
+            borderLeft: "3px solid var(--color-activo)",
+            background: "var(--color-panel)",
+          }}
+        >
+          <div className="text-[13px] font-medium">Guía del técnico</div>
+          <div
+            className="font-[family-name:var(--font-mono)] text-[12px] mt-1.5"
+            style={{ color: "var(--color-activo)" }}
+          >
+            Descargar PDF de una hoja
+          </div>
+          <div className="text-[11.5px] mt-1" style={{ color: "var(--color-tenue)" }}>
+            Para mandar por WhatsApp. Se genera al momento: descárgala de nuevo
+            cada vez y nunca mandarás una versión vieja.
+          </div>
+        </a>
+
+        <div className="mt-3">
+          <BotonRearchivar />
+        </div>
 
         <Rotulo>Para publicarlo en internet</Rotulo>
         <ol

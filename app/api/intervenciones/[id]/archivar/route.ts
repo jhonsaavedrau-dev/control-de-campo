@@ -5,7 +5,7 @@ import {
 } from "@/lib/db";
 import { generarActaPdf, nombreArchivoActa } from "@/lib/pdf-acta";
 import { asegurarEstructuraEquipo } from "@/lib/estructura-drive";
-import { subirArchivo } from "@/lib/drive";
+import { reemplazarArchivo } from "@/lib/drive";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -46,7 +46,7 @@ export async function POST(
     const pdf = await generarActaPdf(registro);
     const nombre = nombreArchivoActa(registro.intervencion);
 
-    const subido = await subirArchivo({
+    const subido = await reemplazarArchivo({
       carpetaId: estructura.carpeta_intervenciones_id,
       nombre,
       tipo: "application/pdf",

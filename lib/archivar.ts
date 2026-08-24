@@ -7,7 +7,7 @@ import {
 } from "./db";
 import { generarActaPdf, nombreArchivoActa } from "./pdf-acta";
 import { asegurarEstructuraEquipo } from "./estructura-drive";
-import { subirArchivo } from "./drive";
+import { reemplazarArchivo } from "./drive";
 import { subirFotosIntervencion, fotosParaPdf } from "./fotos";
 import type { FotoEntrante } from "./fotos";
 
@@ -88,7 +88,7 @@ export async function archivarActa(
 
     let subido;
     try {
-      subido = await subirArchivo({
+      subido = await reemplazarArchivo({
         carpetaId: estructura.carpeta_intervenciones_id,
         nombre,
         tipo: "application/pdf",
