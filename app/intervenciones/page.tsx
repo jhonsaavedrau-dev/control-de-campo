@@ -104,15 +104,20 @@ export default async function Intervenciones({
         <h1 className="font-[family-name:var(--font-placa)] font-semibold text-[22px]">
           {equipo ? `Historial de ${equipo}` : "Intervenciones"}
         </h1>
-        <p
-          className="font-[family-name:var(--font-mono)] text-[12.5px] mt-1"
-          style={{ color: "var(--color-tenue)" }}
-        >
-          {filtradas.length} de {todas.length} registro
-          {todas.length === 1 ? "" : "s"}
-          {hayFiltro ? " · filtrado" : ""}
-        </p>
+        {todas.length ? (
+          <p
+            className="font-[family-name:var(--font-mono)] text-[12.5px] mt-1"
+            style={{ color: "var(--color-tenue)" }}
+          >
+            {/* «0 de 0 registros» no dice nada. Con filtro se comparan las
+                dos cifras; sin filtro sobra la segunda. */}
+            {hayFiltro
+              ? `${filtradas.length} de ${todas.length} · filtrado`
+              : `${todas.length} registro${todas.length === 1 ? "" : "s"}`}
+          </p>
+        ) : null}
 
+        {todas.length ? (
         <form className="mt-4 no-imprimir">
           {equipo ? <input type="hidden" name="equipo" value={equipo} /> : null}
 
@@ -223,6 +228,7 @@ export default async function Intervenciones({
             </div>
           </details>
         </form>
+        ) : null}
 
         {visibles.length ? (
           <>
@@ -273,14 +279,31 @@ export default async function Intervenciones({
             ) : null}
           </>
         ) : (
-          <p
-            className="text-center text-[14.5px] py-12"
-            style={{ color: "var(--color-sin-info)" }}
-          >
-            {todas.length
-              ? "Ninguna intervención coincide con ese filtro."
-              : "Todavía no hay intervenciones registradas."}
-          </p>
+          <div className="text-center py-14 px-4">
+            <p className="text-[15.5px]" style={{ color: "var(--color-tenue)" }}>
+              {todas.length
+                ? "Ninguna intervención coincide con ese filtro."
+                : "Todavía no hay intervenciones registradas."}
+            </p>
+            {!todas.length ? (
+              <p
+                className="text-[13.5px] mt-2 leading-relaxed max-w-[42ch] mx-auto"
+                style={{ color: "var(--color-sin-info)" }}
+              >
+                La primera se registra desde la ficha de un equipo, con el botón
+                «Registrar intervención». O escaneando su código QR en planta.
+              </p>
+            ) : null}
+            {!todas.length ? (
+              <Link
+                href="/"
+                className="accion-secundaria inline-flex mt-5"
+                style={{ width: "auto" }}
+              >
+                Ver los equipos
+              </Link>
+            ) : null}
+          </div>
         )}
       </main>
 

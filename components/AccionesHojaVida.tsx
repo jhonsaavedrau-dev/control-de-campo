@@ -57,10 +57,13 @@ export default function AccionesHojaVida({
         className="text-[13.5px] mb-2 leading-relaxed"
         style={{ color: "var(--color-tenue)" }}
       >
-        Ficha técnica del equipo y los {totalIntervenciones}{" "}
-        {totalIntervenciones === 1 ? "mantenimiento" : "mantenimientos"}{" "}
-        {totalIntervenciones === 1 ? "registrado" : "registrados"}, en el formato
-        oficial. Se arma al momento, así que siempre está al día.
+        {/* «los 0 mantenimientos registrados» no se dice. Sin ninguno,
+            la frase cambia entera. */}
+        {totalIntervenciones === 0
+          ? "Ficha técnica del equipo en el formato oficial, todavía sin mantenimientos registrados. Se arma al momento, así que siempre está al día."
+          : totalIntervenciones === 1
+            ? "Ficha técnica del equipo y el mantenimiento registrado, en el formato oficial. Se arma al momento, así que siempre está al día."
+            : `Ficha técnica del equipo y sus ${totalIntervenciones} mantenimientos, en el formato oficial. Se arma al momento, así que siempre está al día.`}
       </p>
 
       <div className="space-y-2">

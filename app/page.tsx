@@ -85,7 +85,7 @@ export default async function Inicio({
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 lg:w-[420px]">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 lg:w-[460px]">
               <Contador
                 valor={r.operativos}
                 etiqueta="Operativos"
@@ -100,6 +100,14 @@ export default async function Inicio({
                 valor={r.fuera_de_servicio}
                 etiqueta="Fuera de servicio"
                 tono="critico"
+              />
+              {/* Sin este, los equipos que aun no tienen estado no salian
+                  en ningun sitio: la cabecera decia "15 equipos" y los
+                  contadores sumaban 5. */}
+              <Contador
+                valor={r.sin_informacion}
+                etiqueta="Sin información"
+                tono="sin-info"
               />
             </div>
           </div>
@@ -338,14 +346,28 @@ export default async function Inicio({
             style={{ borderTop: "1px solid var(--color-borde)" }}
           >
             {/* Con relleno propio: como texto suelto medía 19 px de alto
-                y con el dedo se falla mas de lo que se acierta. */}
-            <Link
-              href="/intervenciones"
-              className="inline-flex items-center min-h-[44px] -mx-2 px-2 rounded font-[family-name:var(--font-mono)] text-[12.5px] tracking-wide"
-              style={{ color: "var(--color-activo)" }}
-            >
-              Ver las {r.intervenciones} intervenciones registradas →
-            </Link>
+                y con el dedo se falla mas de lo que se acierta.
+                Y sin actas no se ofrece ir a verlas: "ver las 0
+                intervenciones registradas" es un enlace a una pantalla
+                vacia. */}
+            {r.intervenciones ? (
+              <Link
+                href="/intervenciones"
+                className="inline-flex items-center min-h-[44px] -mx-2 px-2 rounded font-[family-name:var(--font-mono)] text-[12.5px] tracking-wide"
+                style={{ color: "var(--color-activo)" }}
+              >
+                {r.intervenciones === 1
+                  ? "Ver la intervención registrada →"
+                  : `Ver las ${r.intervenciones} intervenciones registradas →`}
+              </Link>
+            ) : (
+              <span
+                className="inline-flex items-center min-h-[44px] font-[family-name:var(--font-mono)] text-[12.5px] tracking-wide"
+                style={{ color: "var(--color-sin-info)" }}
+              >
+                Todavía no hay intervenciones registradas
+              </span>
+            )}
           </div>
         </div>
       </main>
@@ -448,7 +470,7 @@ function Contador({
 }: {
   valor: number;
   etiqueta: string;
-  tono: "operativo" | "pendiente" | "critico";
+  tono: "operativo" | "pendiente" | "critico" | "sin-info";
 }) {
   const color = `var(--color-${tono})`;
   return (

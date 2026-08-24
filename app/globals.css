@@ -49,6 +49,14 @@
   --color-amarillo: #ffc629;
   --color-cian: #29a9e0;
 
+  /* --- Tinta de los testigos de estado ---
+     Van sobre su propio fondo tintado, no sobre el panel, asi que
+     necesitan su propio color: el verde que se lee sobre menta clara
+     desaparece sobre verde oscuro. */
+  --tinta-operativo: #1c7a44;
+  --tinta-pendiente: #8f5a09;
+  --tinta-critico:   #a52322;
+
   /* --- Consola de aviso ---
      La barra que sale cuando no hay señal. Va oscura aunque la
      pantalla este en claro: es la unica cosa que tiene que verse
@@ -622,18 +630,20 @@ a.bitacora-fila:hover { background: var(--color-realce); }
   box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 22%, transparent);
 }
 .testigo-operativo {
-  color: #1c7a44;
-  background: color-mix(in srgb, var(--color-operativo) 13%, #fff);
+  color: var(--tinta-operativo);
+  /* Contra el panel y no contra #fff: mezclado con blanco fijo, en modo
+     oscuro salia una insignia menta clara sobre pagina oscura. */
+  background: color-mix(in srgb, var(--color-operativo) 13%, var(--color-panel));
   border-color: color-mix(in srgb, var(--color-operativo) 40%, transparent);
 }
 .testigo-pendiente {
-  color: #8f5a09;
-  background: color-mix(in srgb, var(--color-pendiente) 14%, #fff);
+  color: var(--tinta-pendiente);
+  background: color-mix(in srgb, var(--color-pendiente) 14%, var(--color-panel));
   border-color: color-mix(in srgb, var(--color-pendiente) 40%, transparent);
 }
 .testigo-critico {
-  color: #a52322;
-  background: color-mix(in srgb, var(--color-critico) 12%, #fff);
+  color: var(--tinta-critico);
+  background: color-mix(in srgb, var(--color-critico) 12%, var(--color-panel));
   border-color: color-mix(in srgb, var(--color-critico) 38%, transparent);
 }
 .testigo-sin-info {
@@ -811,6 +821,9 @@ a.bitacora-fila:hover { background: var(--color-realce); }
 
     --color-reticula: rgba(190, 214, 255, 0.045);
 
+    --tinta-operativo: #6fe0a2;
+    --tinta-pendiente: #f5c67a;
+    --tinta-critico:   #ff9d99;
     --color-consola: #26334a;
     --color-consola-borde: #4a5d80;
     --color-consola-tinta: #f2f6fb;
@@ -849,6 +862,9 @@ a.bitacora-fila:hover { background: var(--color-realce); }
 
   --color-reticula: rgba(190, 214, 255, 0.045);
 
+    --tinta-operativo: #6fe0a2;
+    --tinta-pendiente: #f5c67a;
+    --tinta-critico:   #ff9d99;
     --color-consola: #26334a;
     --color-consola-borde: #4a5d80;
     --color-consola-tinta: #f2f6fb;

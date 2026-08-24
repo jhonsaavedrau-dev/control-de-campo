@@ -252,6 +252,9 @@ export async function resumen() {
     ).length,
     fuera_de_servicio: equipos.filter((e) => e.estado === "fuera_de_servicio")
       .length,
+    // Sin este, los equipos que aun no tienen estado no salen en ningun
+    // contador: la pantalla decia "15 equipos" y los numeros sumaban 5.
+    sin_informacion: equipos.filter((e) => e.estado === "sin_informacion").length,
     intervenciones: intervenciones.length,
   };
 }

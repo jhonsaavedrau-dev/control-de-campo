@@ -102,7 +102,7 @@
       "voltaje_v": 480,
       "frecuencia_hz": 60,
       "rpm": 1800,
-      "horometro_actual": 0,
+      "horometro_actual": null,
       "estado": "operativo",
       "foto_equipo_url": "",
       "foto_planta_url": "",
