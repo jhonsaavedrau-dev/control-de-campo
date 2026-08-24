@@ -4,8 +4,19 @@
     {
       "name": "control-campo",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 3000
+    },
+    {
+      "name": "control-campo-sin-login",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "dev-sin-login.mjs"
+      ],
+      "port": 3100
     }
   ]
 }

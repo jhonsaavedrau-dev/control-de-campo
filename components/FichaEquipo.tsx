@@ -347,7 +347,7 @@ export function EnlaceSede({
   return (
     <Link
       href="/"
-      className="inline-flex items-center gap-2 font-[family-name:var(--font-mono)] text-[11.5px] uppercase tracking-[0.08em] transition-colors hover:text-[color:var(--color-activo)]"
+      className="inline-flex items-center gap-2 min-h-[44px] -mx-1 px-1 rounded font-[family-name:var(--font-mono)] text-[11.5px] uppercase tracking-[0.08em] transition-colors hover:text-[color:var(--color-activo)]"
       style={{ color: "var(--color-sin-info)" }}
     >
       <span

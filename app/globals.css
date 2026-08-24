@@ -994,7 +994,9 @@ a.bitacora-fila:hover { background: var(--color-realce); }
   }
 
   .pastilla {
-    min-height: 42px;
+    /* 44 y no 42: es el minimo que acierta un pulgar sin mirar, y estas
+       son las pestañas por las que se navega el formulario entero. */
+    min-height: 44px;
     font-size: 12.5px;
     padding: 10px 12px;
     display: inline-flex;
@@ -1004,6 +1006,14 @@ a.bitacora-fila:hover { background: var(--color-realce); }
   /* Un poco mas de aire entre filas: con el dedo hay que poder tocar
      una sin rozar la de al lado. */
   .bitacora-fila { padding-top: 13px; padding-bottom: 13px; }
+
+  /* Un <summary> es solo texto y mide lo que la linea: sin relleno
+     propio, «Mas filtros» quedaba en 17 px de alto. */
+  summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
 
   .rotulo { margin-top: 26px; }
 }

@@ -337,9 +337,11 @@ export default async function Inicio({
             className="flex items-center justify-between gap-4 pt-5 mt-2"
             style={{ borderTop: "1px solid var(--color-borde)" }}
           >
+            {/* Con relleno propio: como texto suelto medía 19 px de alto
+                y con el dedo se falla mas de lo que se acierta. */}
             <Link
               href="/intervenciones"
-              className="font-[family-name:var(--font-mono)] text-[12.5px] tracking-wide"
+              className="inline-flex items-center min-h-[44px] -mx-2 px-2 rounded font-[family-name:var(--font-mono)] text-[12.5px] tracking-wide"
               style={{ color: "var(--color-activo)" }}
             >
               Ver las {r.intervenciones} intervenciones registradas →
