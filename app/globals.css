@@ -1242,3 +1242,19 @@ a.bitacora-fila:hover { background: var(--color-realce); }
 .fila-editable { cursor: pointer; }
 .fila-editable:hover td,
 .fila-editable:hover th { background: var(--color-campo); }
+
+/* Un dato que no puede ser: se marca en el propio numero. */
+.aviso-dato {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 4px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--color-critico);
+  vertical-align: 1px;
+  cursor: help;
+}

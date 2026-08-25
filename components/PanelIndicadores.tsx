@@ -119,13 +119,26 @@ export default function PanelIndicadores({
                 <td className="num">
                   <span
                     style={{
-                      color: f.disponibilidad.banda
-                        ? colorBanda(f.disponibilidad.banda)
-                        : "var(--color-sin-info)",
+                      color: f.disponibilidad.advertencia
+                        ? "var(--color-critico)"
+                        : f.disponibilidad.banda
+                          ? colorBanda(f.disponibilidad.banda)
+                          : "var(--color-sin-info)",
                     }}
                   >
                     {porcentaje(f.disponibilidad.resultado, 0)}
                   </span>
+                  {/* Un 116% no se descubre leyendo la tabla entera: hay
+                      que verlo desde el propio numero. */}
+                  {f.disponibilidad.advertencia ? (
+                    <span
+                      className="aviso-dato"
+                      title={f.disponibilidad.advertencia}
+                      aria-label={f.disponibilidad.advertencia}
+                    >
+                      !
+                    </span>
+                  ) : null}
                 </td>
                 <td className="num">
                   {f.fallas}
@@ -471,6 +484,19 @@ function Editor({
             </p>
           </div>
 
+          {/* Los dos: el de disponibilidad estaba calculado y no se
+              enseñaba en ninguna parte. */}
+          {fila.disponibilidad.advertencia ? (
+            <p
+              className="text-[12.5px] leading-relaxed pl-3"
+              style={{
+                borderLeft: "2px solid var(--color-critico)",
+                color: "var(--color-critico)",
+              }}
+            >
+              {fila.disponibilidad.advertencia}
+            </p>
+          ) : null}
           {fila.confiabilidad.advertencia ? (
             <p
               className="text-[12.5px] leading-relaxed pl-3"
