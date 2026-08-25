@@ -8,10 +8,11 @@ import {
   BloqueFotos, BloqueDocumentos, BloqueMantenimiento, EnlaceSede,
 } from "@/components/FichaEquipo";
 import {
-  IcoHerramienta, IcoCodigoQR, IcoLapiz, IcoFlecha, IcoChip,
+  IcoHerramienta, IcoCodigoQR, IcoLapiz, IcoFlecha, IcoChip, IcoDocumento,
 } from "@/components/Iconos";
 import PanelBackups from "@/components/PanelBackups";
 import AccionesHojaVida from "@/components/AccionesHojaVida";
+import PanelManuales from "@/components/PanelManuales";
 import { ETIQUETA_TIPO, ETIQUETA_ESTADO, semaforo } from "@/lib/tipos";
 import { usuarioActual, puedeEditar } from "@/lib/sesion";
 
@@ -270,6 +271,20 @@ export default async function FichaEquipo({
                   </div>
                 </div>
               ) : null}
+
+              <div className="bloque no-imprimir">
+                <div className="bloque-cabeza">
+                  <IcoDocumento />
+                  Manuales
+                  <span className="cuenta">01_MANUALES</span>
+                </div>
+                <div className="bloque-cuerpo">
+                  <PanelManuales
+                    idEquipo={e.id_equipo}
+                    puedeAdjuntar={puedeEditarFicha}
+                  />
+                </div>
+              </div>
 
               <div className="bloque no-imprimir">
                 <div className="bloque-cabeza">

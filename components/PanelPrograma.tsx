@@ -270,7 +270,7 @@ function Rejilla({
                     >
                       <button
                         type="button"
-                        className={`celda celda-${m.situacion}`}
+                        className={`celda-mes celda-${m.situacion}`}
                         title={titulo}
                         aria-label={titulo}
                         onClick={() => (puedeEditar ? alAbrir(f, i + 1) : undefined)}

@@ -48,22 +48,25 @@ export default async function ActaIntervencion({
           <table className="tabla">
             <tbody>
               <tr>
-                <td className="celda w-[110px] text-center align-middle">
+                <td className="celda w-[64px] sm:w-[110px] text-center align-middle">
                   <Image
                     src="/logo-pbi.png"
                     alt="PBI"
                     width={90}
                     height={45}
-                    className="mx-auto h-auto w-[90px]"
+                    className="mx-auto h-auto w-[52px] sm:w-[90px]"
                     priority
                   />
                 </td>
                 <td className="celda text-center align-middle">
-                  <div className="font-[family-name:var(--font-placa)] font-semibold text-[15px] tracking-wide">
+                  {/* El titulo se encoge antes que salirse: en pantallas
+                      muy estrechas no cabe de una pieza y el recuadro de
+                      un documento no puede reventar. */}
+                  <div className="font-[family-name:var(--font-placa)] font-semibold text-[12px] sm:text-[15px] tracking-wide hyphens-auto">
                     FORMATO DE INTERVENCIÓN DE EQUIPO
                   </div>
                 </td>
-                <td className="celda w-[180px] text-[11.5px] leading-relaxed align-middle">
+                <td className="celda w-[104px] sm:w-[180px] text-[10.5px] sm:text-[11.5px] leading-relaxed align-middle">
                   <div>Código: ______________</div>
                   <div>Versión: ______________</div>
                   <div>Fecha: {fechaLarga(i.fecha)}</div>
@@ -348,8 +351,14 @@ function Casillas<T extends string>({
   return (
     <span className="flex flex-wrap gap-x-4 gap-y-1">
       {opciones.map(([v, etiqueta]) => (
-        <span key={v} className="whitespace-nowrap">
-          <span className="casilla">{v === valor ? "☑" : "☐"}</span> {etiqueta}
+        // Sin nowrap: "Satisfactorio con observaciones" no cabe de una
+        // pieza en un telefono y se salia del recuadro. Lo unico que no
+        // debe partirse es la casilla de su primera palabra, y de eso se
+        // encarga el espacio duro.
+        <span key={v}>
+          <span className="casilla">{v === valor ? "☑" : "☐"}</span>
+          {" "}
+          {etiqueta}
         </span>
       ))}
     </span>

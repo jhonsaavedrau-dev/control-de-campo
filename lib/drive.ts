@@ -256,13 +256,15 @@ export type ArchivoDrive = {
   mimeType: string;
   modifiedTime?: string;
   size?: string;
+  /** El enlace para abrirlo en Drive. Solo cuando se pide. */
+  webViewLink?: string;
 };
 
 export async function listarHijos(padreId: string): Promise<ArchivoDrive[]> {
   const q = `'${padreId}' in parents and trashed = false`;
   const r = await llamar<{ files: ArchivoDrive[] }>(
     `${API}/files?q=${encodeURIComponent(q)}` +
-      `&fields=files(id,name,mimeType,modifiedTime,size)` +
+      `&fields=files(id,name,mimeType,modifiedTime,size,webViewLink)` +
       `&pageSize=200&orderBy=name&supportsAllDrives=true&includeItemsFromAllDrives=true`,
   );
   return r.files;

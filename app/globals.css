@@ -435,6 +435,13 @@ a.bitacora-fila:hover { background: var(--color-realce); }
 }
 .acta .tabla { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .acta .celda {
+  /* Explicito a proposito: una casilla de un documento tiene que crecer
+     con lo que lleva dentro, pase lo que pase en el resto de la hoja.
+     Una regla global de una sola palabra —`.celda`, la del programa— le
+     metia display:grid y alto fijo, y la firma y las fotos se salian del
+     recuadro pintandose encima de lo de abajo. */
+  display: table-cell;
+  height: auto;
   border: 1px solid #000;
   padding: 5px 8px;
   font-size: 11.5px;
@@ -1139,9 +1146,15 @@ a.bitacora-fila:hover { background: var(--color-realce); }
   border-left: 1px solid var(--color-borde);
 }
 
-/* ---- La celda de cada mes ---- */
+/* ---- La casilla de cada mes ---- */
 
-.celda {
+/* Se llama `celda-mes` y no `celda` por una razon concreta: `.celda` es
+   tambien la clase de cada casilla del acta, y este bloque le metia
+   `display: grid` y `height: 44px`. Las celdas del acta dejaban de
+   crecer con su contenido, asi que la firma y las fotos se salian del
+   recuadro y se pintaban encima de lo de abajo. Un selector de una sola
+   palabra en una hoja global alcanza a todo el sistema. */
+.celda-mes {
   width: 100%;
   height: 44px;
   display: grid;
@@ -1152,14 +1165,14 @@ a.bitacora-fila:hover { background: var(--color-realce); }
   cursor: pointer;
   transition: background 120ms ease;
 }
-.celda:disabled { cursor: default; }
-.celda:not(:disabled):hover { background: var(--color-campo); }
-.celda:focus-visible {
+.celda-mes:disabled { cursor: default; }
+.celda-mes:not(:disabled):hover { background: var(--color-campo); }
+.celda-mes:focus-visible {
   outline: 2px solid var(--color-activo);
   outline-offset: -2px;
 }
 
-.celda .marca {
+.celda-mes .marca {
   width: 15px;
   height: 15px;
   border-radius: 50%;
@@ -1178,14 +1191,14 @@ a.bitacora-fila:hover { background: var(--color-realce); }
   background: var(--color-operativo);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-operativo) 20%, transparent);
 }
-.celda .raya {
+.celda-mes .raya {
   width: 9px;
   height: 1px;
   background: var(--color-borde-fuerte);
 }
 
 /* La semana, discreta: sirve al planear, estorba al leer el año. */
-.celda .sem {
+.celda-mes .sem {
   position: absolute;
   right: 6px;
   bottom: 4px;
@@ -1354,12 +1367,12 @@ a.bitacora-fila:hover { background: var(--color-realce); }
 
 /* La celda del programa: marco tenue en reposo para que se lea como
    casilla, no como dibujo. */
-.celda:not(:disabled) { border-radius: 4px; }
-.celda:not(:disabled):hover {
+.celda-mes:not(:disabled) { border-radius: 4px; }
+.celda-mes:not(:disabled):hover {
   background: var(--color-campo);
   box-shadow: inset 0 0 0 1px var(--color-borde-fuerte);
 }
-.celda:not(:disabled):active { transform: scale(0.94); }
+.celda-mes:not(:disabled):active { transform: scale(0.94); }
 
 /* La fila de indicadores: el lapiz aparece al acercarse, y en el
    celular —donde no hay raton— se queda siempre visible. */
