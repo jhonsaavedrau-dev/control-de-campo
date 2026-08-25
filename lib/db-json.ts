@@ -1,5 +1,7 @@
 import fs from "node:fs/promises";
 import { depurarChecklist } from "./checklist";
+import { soloEditables, camposQueCambian } from "./edicion-intervencion";
+import type { CambiosIntervencion } from "./edicion-intervencion";
 import type { IntervencionParaContar } from "./mantenimiento";
 import type { TareaPrograma, ActaDelPrograma } from "./programa";
 import type { IndicadorMes } from "./indicadores";
@@ -282,6 +284,10 @@ export async function crearIntervencion(
     responsable_cliente: datos.responsable_cliente ?? "",
     observaciones_finales: datos.observaciones_finales ?? "",
 
+    editada_en: null,
+    editada_por: "",
+    motivo_edicion: "",
+
     carpeta_drive_id: "",
     carpeta_drive_url: "",
     pdf_drive_id: "",
@@ -366,8 +372,14 @@ export async function guardarFotosIntervencion(
   if (!fotos.length) return;
   const db = await leer();
   for (const f of fotos) {
+    // El id lleva el orden, y al corregir un acta se añaden fotos con
+    // numeración nueva: si coincidiera con una existente, se desplaza.
+    let orden = f.orden;
+    while (db.intervencion_fotos.some((x) => x.id === `${idIntervencion}-${orden}`)) {
+      orden += 1;
+    }
     db.intervencion_fotos.push({
-      id: `${idIntervencion}-${f.orden}`,
+      id: `${idIntervencion}-${orden}`,
       id_intervencion: idIntervencion,
       ...f,
     });
@@ -649,4 +661,71 @@ export async function guardarIndicadorMes(
 
   await escribir(db);
   return fila;
+}
+
+/**
+ * Corrige un acta ya guardada.
+ *
+ * Solo toca los campos de la lista blanca y deja constancia de quien la
+ * corrigio, cuando y por que: el acta lo imprime al pie. Si no cambia
+ * nada de verdad, no se marca como editada — asi abrir el formulario y
+ * cerrarlo no ensucia el historial.
+ *
+ * El horometro y el estado del equipo se recalculan igual que al
+ * registrarla: corregir un horometro mal tecleado tiene que arreglar
+ * tambien la ficha del equipo, que es donde se ve.
+ */
+export async function actualizarIntervencion(
+  id: string,
+  crudo: Record<string, unknown>,
+  quien: string,
+  motivo: string,
+): Promise<{ intervencion: Intervencion; cambiados: string[] }> {
+  const db = await leer();
+  const i = db.intervenciones.find((x) => x.id_intervencion === id);
+  if (!i) throw new Error(`La intervención ${id} no existe`);
+
+  const cambios: CambiosIntervencion = soloEditables(crudo);
+  if ("checklist" in cambios) {
+    cambios.checklist = depurarChecklist(cambios.checklist);
+  }
+  const cambiados = camposQueCambian(i, cambios);
+  if (!cambiados.length) return { intervencion: i, cambiados: [] };
+
+  Object.assign(i, cambios);
+  i.editada_en = new Date().toISOString();
+  i.editada_por = quien;
+  i.motivo_edicion = motivo;
+
+  const equipo = db.equipos.find((e) => e.id_equipo === i.id_equipo);
+  if (equipo) {
+    if (i.horometro != null) equipo.horometro_actual = i.horometro;
+    if (i.estado_final) equipo.estado = i.estado_final;
+  }
+
+  await escribir(db);
+  return { intervencion: i, cambiados };
+}
+
+/**
+ * Quita fotos de un acta corregida.
+ *
+ * Borra la fila; el archivo de Drive lo manda a la papelera quien
+ * llama, que es el unico que sabe hablar con Drive. Devuelve las que
+ * de verdad existian para no mandar a la papelera lo que no era.
+ */
+export async function borrarFotosIntervencion(
+  idIntervencion: string,
+  driveIds: string[],
+): Promise<{ drive_file_id: string }[]> {
+  if (!driveIds.length) return [];
+  const db = await leer();
+  const quitadas = db.intervencion_fotos.filter(
+    (f) => f.id_intervencion === idIntervencion && driveIds.includes(f.drive_file_id),
+  );
+  db.intervencion_fotos = db.intervencion_fotos.filter(
+    (f) => !(f.id_intervencion === idIntervencion && driveIds.includes(f.drive_file_id)),
+  );
+  await escribir(db);
+  return quitadas.map((f) => ({ drive_file_id: f.drive_file_id }));
 }

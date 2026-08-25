@@ -72,6 +72,13 @@ export const equipoConSede = (...a: Parameters<typeof json.equipoConSede>) =>
 export const equiposConSede = (...a: Parameters<typeof json.equiposConSede>) =>
   usarSupabase() ? supabase.equiposConSede(...a) : json.equiposConSede(...a);
 
+export const actualizarIntervencion = (
+  ...a: Parameters<typeof json.actualizarIntervencion>
+) =>
+  usarSupabase()
+    ? supabase.actualizarIntervencion(...a)
+    : json.actualizarIntervencion(...a);
+
 export const crearIntervencion = (
   ...a: Parameters<typeof json.crearIntervencion>
 ) =>
@@ -92,6 +99,13 @@ export const guardarPdfIntervencion = (
   usarSupabase()
     ? supabase.guardarPdfIntervencion(...a)
     : json.guardarPdfIntervencion(...a);
+
+export const borrarFotosIntervencion = (
+  ...a: Parameters<typeof json.borrarFotosIntervencion>
+) =>
+  usarSupabase()
+    ? supabase.borrarFotosIntervencion(...a)
+    : json.borrarFotosIntervencion(...a);
 
 export const guardarFotosIntervencion = (
   ...a: Parameters<typeof json.guardarFotosIntervencion>

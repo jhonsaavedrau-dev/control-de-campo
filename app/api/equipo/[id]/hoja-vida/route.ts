@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { obtenerFichaEquipo, equipoConSede } from "@/lib/db";
 import { generarHojaVidaPdf, nombreArchivoHojaVida } from "@/lib/pdf-hoja-vida";
 import { asegurarEstructuraEquipo } from "@/lib/estructura-drive";
-import { asegurarCarpeta, subirArchivo } from "@/lib/drive";
+import { reemplazarArchivo } from "@/lib/drive";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -37,7 +37,17 @@ export async function GET(
   });
 }
 
-/** Deja una copia archivada en 07_INFORMES del equipo. */
+/**
+ * Deja una copia archivada en la carpeta del equipo.
+ *
+ * Antes iba a 07_INFORMES, que PBI quito por redundante. La hoja de
+ * vida es el documento del equipo, asi que vive en su carpeta, junto a
+ * las subcarpetas y no dentro de una.
+ *
+ * Se reemplaza en vez de acumular: es una foto del estado actual del
+ * equipo, no un historico. Subirla cada vez dejaba en Drive copias del
+ * mismo nombre, y la buena era la ultima sin que se notara cual.
+ */
 export async function POST(
   _p: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -52,15 +62,11 @@ export async function POST(
 
   try {
     const estructura = await asegurarEstructuraEquipo(par.equipo, par.sede);
-    const carpeta = await asegurarCarpeta(
-      estructura.carpeta_equipo_id,
-      "07_INFORMES",
-    );
     const pdf = await generarHojaVidaPdf(datos);
     const nombre = nombreArchivoHojaVida(datos.equipo);
 
-    const subido = await subirArchivo({
-      carpetaId: carpeta.id,
+    const subido = await reemplazarArchivo({
+      carpetaId: estructura.carpeta_equipo_id,
       nombre,
       tipo: "application/pdf",
       contenido: pdf,

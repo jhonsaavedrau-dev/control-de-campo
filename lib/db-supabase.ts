@@ -1,4 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { soloEditables, camposQueCambian } from "./edicion-intervencion";
+import type { CambiosIntervencion } from "./edicion-intervencion";
 import type {
   Sede, Equipo, Controlador, Intervencion, IntervencionFoto,
   Backup, Documento,
@@ -784,4 +786,90 @@ export async function guardarIndicadorMes(
     throw new Error(error.message);
   }
   return (data ?? [])[0] as IndicadorMes;
+}
+
+/**
+ * Corrige un acta ya guardada.
+ *
+ * Solo toca los campos de la lista blanca y deja constancia de quien la
+ * corrigio, cuando y por que: el acta lo imprime al pie. Si no cambia
+ * nada de verdad, no se marca como editada — asi abrir el formulario y
+ * cerrarlo no ensucia el historial.
+ *
+ * Va por `sinColumnasAusentes` para que la correccion siga funcionando
+ * aunque la migracion 07 no se haya ejecutado todavia: se guarda el
+ * dato corregido, que es lo que importa, y se avisa por consola de que
+ * la marca de edicion no se pudo escribir.
+ */
+export async function actualizarIntervencion(
+  id: string,
+  crudo: Record<string, unknown>,
+  quien: string,
+  motivo: string,
+): Promise<{ intervencion: Intervencion; cambiados: string[] }> {
+  const db = cliente();
+
+  const previas = await pedir<Intervencion[]>(
+    db.from("intervenciones").select("*").eq("id_intervencion", id).limit(1),
+  );
+  const antes = previas[0];
+  if (!antes) throw new Error(`La intervención ${id} no existe`);
+
+  const cambios: CambiosIntervencion = soloEditables(crudo);
+  if ("checklist" in cambios) {
+    cambios.checklist = depurarChecklist(cambios.checklist);
+  }
+  const cambiados = camposQueCambian(antes, cambios);
+  if (!cambiados.length) return { intervencion: antes, cambiados: [] };
+
+  const fila = {
+    ...cambios,
+    editada_en: new Date().toISOString(),
+    editada_por: quien,
+    motivo_edicion: motivo,
+  };
+
+  const filas = await sinColumnasAusentes<Intervencion[]>(
+    "intervenciones",
+    fila as Record<string, unknown>,
+    (f) =>
+      db.from("intervenciones").update(f).eq("id_intervencion", id).select(),
+  );
+  const intervencion = filas[0] ?? { ...antes, ...fila };
+
+  // La ficha del equipo guarda el ultimo valor conocido: corregir un
+  // horometro mal tecleado tiene que arreglarla tambien.
+  const delEquipo: Record<string, unknown> = {};
+  if (intervencion.horometro != null) {
+    delEquipo.horometro_actual = intervencion.horometro;
+  }
+  if (intervencion.estado_final) delEquipo.estado = intervencion.estado_final;
+  if (Object.keys(delEquipo).length) {
+    await db.from("equipos").update(delEquipo).eq("id_equipo", antes.id_equipo);
+  }
+
+  return { intervencion, cambiados };
+}
+
+/**
+ * Quita fotos de un acta corregida.
+ *
+ * Borra la fila; el archivo de Drive lo manda a la papelera quien
+ * llama, que es el unico que sabe hablar con Drive. Devuelve las que
+ * de verdad existian para no mandar a la papelera lo que no era.
+ */
+export async function borrarFotosIntervencion(
+  idIntervencion: string,
+  driveIds: string[],
+): Promise<{ drive_file_id: string }[]> {
+  if (!driveIds.length) return [];
+  const filas = await pedir<{ drive_file_id: string }[]>(
+    cliente()
+      .from("intervencion_fotos")
+      .delete()
+      .eq("id_intervencion", idIntervencion)
+      .in("drive_file_id", driveIds)
+      .select("drive_file_id"),
+  );
+  return filas;
 }

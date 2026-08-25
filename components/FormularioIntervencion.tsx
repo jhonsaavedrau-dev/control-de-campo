@@ -13,33 +13,60 @@ import {
 } from "@/lib/tipos";
 import type {
   TipoIntervencion, EstadoEquipo, ResultadoIntervencion,
+  Intervencion, IntervencionFoto,
 } from "@/lib/tipos";
 
 const TIPOS = Object.keys(ETIQUETA_TIPO) as TipoIntervencion[];
 const ESTADOS = Object.keys(ETIQUETA_ESTADO) as EstadoEquipo[];
 const RESULTADOS = Object.keys(ETIQUETA_RESULTADO) as ResultadoIntervencion[];
 
+/**
+ * El formulario de intervencion, en sus dos modos.
+ *
+ * Sin `edicion` registra un acta nueva. Con `edicion` corrige una ya
+ * guardada: los campos vienen rellenos, aparecen la fecha y la hora
+ * —que al registrar se ponen solas y por eso se apuntan mal cuando el
+ * acta se llena al dia siguiente— y hay que decir que se corrige.
+ *
+ * En correccion no hay cola sin señal. Guardar sin conexion un acta que
+ * todavia no existe tiene sentido; guardar a ciegas una correccion
+ * sobre algo que pudo cambiar mientras tanto, no.
+ */
 export default function FormularioIntervencion({
   idEquipo,
   idControlador,
   horometroActual,
   tecnicoSugerido,
+  edicion,
 }: {
   idEquipo: string;
   idControlador: string;
   horometroActual: number | null;
   tecnicoSugerido: string;
+  edicion?: { intervencion: Intervencion; fotos: IntervencionFoto[] };
 }) {
   const router = useRouter();
-  const [tipo, setTipo] = useState<TipoIntervencion | "">("");
+  const previa = edicion?.intervencion;
+  const corrigiendo = Boolean(previa);
+
+  const [tipo, setTipo] = useState<TipoIntervencion | "">(
+    previa?.tipo_intervencion ?? "",
+  );
   const [fotos, setFotos] = useState<File[]>([]);
+  // Las que ya estaban archivadas y se marcan para quitar.
+  const [quitar, setQuitar] = useState<string[]>([]);
+
+  const yaArchivadas = (edicion?.fotos ?? []).filter(
+    (f) => !quitar.includes(f.drive_file_id),
+  );
+  const hueco = Math.max(0, 6 - yaArchivadas.length);
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   function agregarFotos(ev: React.ChangeEvent<HTMLInputElement>) {
     const nuevas = Array.from(ev.target.files ?? []);
-    setFotos((prev) => [...prev, ...nuevas].slice(0, 6));
+    setFotos((prev) => [...prev, ...nuevas].slice(0, hueco));
     ev.target.value = "";
   }
 
@@ -95,7 +122,47 @@ export default function FormularioIntervencion({
       recibido_por: texto("recibido_por"),
       responsable_cliente: texto("responsable_cliente"),
       observaciones_finales: texto("observaciones_finales"),
+
+      // Solo se mandan al corregir: al registrar las pone el servidor.
+      ...(corrigiendo
+        ? {
+            fecha: texto("fecha"),
+            hora: texto("hora"),
+            motivo_edicion: texto("motivo_edicion"),
+          }
+        : {}),
     };
+
+    if (corrigiendo) {
+      try {
+        const paquete = new FormData();
+        paquete.append("datos", JSON.stringify(datos));
+        paquete.append("fotos_a_quitar", JSON.stringify(quitar));
+        for (const f of fotos) paquete.append("fotos", f);
+
+        const r = await fetch(`/api/intervenciones/${previa!.id_intervencion}`, {
+          method: "PATCH",
+          body: paquete,
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(j.error || "El servidor rechazó la corrección");
+
+        if (j.aviso) {
+          // La correccion esta guardada; lo que fallo es el archivado.
+          setEnviando(false);
+          setAviso(j.aviso);
+          return;
+        }
+        router.push(`/intervencion/${previa!.id_intervencion}`);
+        router.refresh();
+      } catch (e) {
+        setEnviando(false);
+        setError(
+          e instanceof Error ? e.message : "No se pudo guardar la corrección",
+        );
+      }
+      return;
+    }
 
     try {
       let cuerpo: BodyInit;
@@ -159,12 +226,58 @@ export default function FormularioIntervencion({
       ) : null}
       {error ? <Nota tono="critico">{error}</Nota> : null}
 
+      {corrigiendo ? (
+        <>
+          <Seccion
+            titulo="Qué se está corrigiendo"
+            icono={<IcoBandera />}
+            numero={previa!.id_intervencion}
+            tono="activo"
+          />
+          <Grupo
+            etiqueta="Motivo de la corrección"
+            obligatorio
+            ayuda="Queda impreso al pie del acta, con tu nombre y la fecha."
+          >
+            <textarea
+              name="motivo_edicion"
+              required
+              rows={2}
+              className="entrada"
+              placeholder="Ej.: el horómetro se digitó 12500 en vez de 1250."
+            />
+          </Grupo>
+          {/* La fecha y la hora solo aparecen aquí: al registrar las pone
+              el sistema, y por eso quedan mal cuando el acta se llena al
+              día siguiente. De la fecha depende en qué mes cuenta la
+              intervención dentro del programa. */}
+          <div className="grid grid-cols-2 gap-3">
+            <Grupo etiqueta="Fecha">
+              <input
+                type="date"
+                name="fecha"
+                defaultValue={previa!.fecha}
+                className="entrada font-[family-name:var(--font-mono)]"
+              />
+            </Grupo>
+            <Grupo etiqueta="Hora">
+              <input
+                type="time"
+                name="hora"
+                defaultValue={previa!.hora}
+                className="entrada font-[family-name:var(--font-mono)]"
+              />
+            </Grupo>
+          </div>
+        </>
+      ) : null}
+
       <Seccion titulo="Datos de la intervención" icono={<IcoPersona />} numero="1 de 5" />
       <Grupo etiqueta="Técnico responsable" obligatorio>
         <input
           name="tecnico_nombre"
           required
-          defaultValue={tecnicoSugerido}
+          defaultValue={previa?.tecnico_nombre || tecnicoSugerido}
           className="entrada"
           placeholder="Nombre y apellido"
         />
@@ -173,7 +286,12 @@ export default function FormularioIntervencion({
       {/* El cargo se elige, no se escribe: va impreso junto a la firma
           del acta y tiene que decir siempre lo mismo. */}
       <Grupo etiqueta="Cargo" obligatorio>
-        <select name="tecnico_cargo" required defaultValue="" className="entrada">
+        <select
+          name="tecnico_cargo"
+          required
+          defaultValue={previa?.tecnico_cargo ?? ""}
+          className="entrada"
+        >
           <option value="" disabled>
             Selecciona el cargo
           </option>
@@ -202,10 +320,10 @@ export default function FormularioIntervencion({
 
       <div className="grid grid-cols-2 gap-3">
         <Grupo etiqueta="Orden de servicio">
-          <input name="orden_servicio" className="entrada" placeholder="OS-2026-000" />
+          <input name="orden_servicio" defaultValue={previa?.orden_servicio ?? ""} className="entrada" placeholder="OS-2026-000" />
         </Grupo>
         <Grupo etiqueta="Permiso de trabajo">
-          <input name="permiso_trabajo" className="entrada" placeholder="PT-2026-000" />
+          <input name="permiso_trabajo" defaultValue={previa?.permiso_trabajo ?? ""} className="entrada" placeholder="PT-2026-000" />
         </Grupo>
       </div>
 
@@ -213,17 +331,17 @@ export default function FormularioIntervencion({
         <input
           name="horometro"
           inputMode="decimal"
-          defaultValue={horometroActual ?? ""}
+          defaultValue={previa ? (previa.horometro ?? "") : (horometroActual ?? "")}
           className="entrada font-[family-name:var(--font-mono)]"
         />
       </Grupo>
 
       <Seccion titulo="Intervención" icono={<IcoHerramienta />} numero="2 de 5" />
       <Grupo etiqueta="Motivo">
-        <textarea name="motivo" rows={2} className="entrada" placeholder="Por qué se interviene el equipo." />
+        <textarea name="motivo" defaultValue={previa?.motivo ?? ""} rows={2} className="entrada" placeholder="Por qué se interviene el equipo." />
       </Grupo>
       <Grupo etiqueta="Estado inicial">
-        <textarea name="estado_inicial" rows={2} className="entrada" placeholder="Cómo se encontró el equipo." />
+        <textarea name="estado_inicial" defaultValue={previa?.estado_inicial ?? ""} rows={2} className="entrada" placeholder="Cómo se encontró el equipo." />
       </Grupo>
       <Grupo
         etiqueta="Qué se le hizo"
@@ -251,6 +369,7 @@ export default function FormularioIntervencion({
                       type="checkbox"
                       name="checklist"
                       value={t}
+                      defaultChecked={previa?.checklist?.includes(t) ?? false}
                       className="w-[19px] h-[19px] shrink-0"
                       style={{ accentColor: "var(--color-activo)" }}
                     />
@@ -265,7 +384,7 @@ export default function FormularioIntervencion({
 
       <Grupo etiqueta="Actividades realizadas" obligatorio>
         <textarea
-          name="actividades_realizadas"
+          name="actividades_realizadas" defaultValue={previa?.actividades_realizadas ?? ""}
           required
           rows={4}
           className="entrada"
@@ -273,7 +392,11 @@ export default function FormularioIntervencion({
         />
       </Grupo>
       <Grupo etiqueta="Estado final del equipo">
-        <select name="estado_final" defaultValue="" className="entrada">
+        <select
+          name="estado_final"
+          defaultValue={previa?.estado_final ?? ""}
+          className="entrada"
+        >
           <option value="">Sin especificar</option>
           {ESTADOS.map((e) => (
             <option key={e} value={e}>
@@ -286,49 +409,64 @@ export default function FormularioIntervencion({
       {/* 3 */}
       <Plegable titulo="Grupo electrógeno" detalle="3 de 5 · opcional" icono={<IcoGenerador />}>
         <Grupo etiqueta="Observaciones del motor">
-          <textarea name="motor_obs" rows={2} className="entrada" />
+          <textarea name="motor_obs" defaultValue={previa?.motor_obs ?? ""} rows={2} className="entrada" />
         </Grupo>
         <Grupo etiqueta="Observaciones del alternador">
-          <textarea name="alternador_obs" rows={2} className="entrada" />
+          <textarea name="alternador_obs" defaultValue={previa?.alternador_obs ?? ""} rows={2} className="entrada" />
         </Grupo>
         <div className="grid grid-cols-2 gap-3">
           <Grupo etiqueta="Potencia (kW)">
-            <input name="potencia_kw" inputMode="decimal" className="entrada font-[family-name:var(--font-mono)]" />
+            <input name="potencia_kw" inputMode="decimal" defaultValue={previa?.potencia_kw ?? ""} className="entrada font-[family-name:var(--font-mono)]" />
           </Grupo>
           <Grupo etiqueta="Horas de operación">
-            <input name="horas_operacion" inputMode="decimal" className="entrada font-[family-name:var(--font-mono)]" />
+            <input name="horas_operacion" inputMode="decimal" defaultValue={previa?.horas_operacion ?? ""} className="entrada font-[family-name:var(--font-mono)]" />
           </Grupo>
         </div>
         <Grupo etiqueta="Estado del equipo">
-          <textarea name="estado_equipo_obs" rows={2} className="entrada" />
+          <textarea name="estado_equipo_obs" defaultValue={previa?.estado_equipo_obs ?? ""} rows={2} className="entrada" />
         </Grupo>
       </Plegable>
 
       {/* 4 */}
       <Plegable titulo="Controlador" detalle="4 de 5 · opcional" icono={<IcoChip />}>
         <Grupo etiqueta="Alarmas y eventos">
-          <textarea name="alarmas_eventos" rows={2} className="entrada" />
+          <textarea name="alarmas_eventos" defaultValue={previa?.alarmas_eventos ?? ""} rows={2} className="entrada" />
         </Grupo>
         <Grupo etiqueta="Parámetros modificados">
-          <textarea name="parametros_modificados" rows={2} className="entrada" />
+          <textarea name="parametros_modificados" defaultValue={previa?.parametros_modificados ?? ""} rows={2} className="entrada" />
         </Grupo>
         <Grupo etiqueta="Configuración realizada">
-          <textarea name="configuracion_realizada" rows={2} className="entrada" />
+          <textarea name="configuracion_realizada" defaultValue={previa?.configuracion_realizada ?? ""} rows={2} className="entrada" />
         </Grupo>
         <Grupo etiqueta="Observaciones del controlador">
-          <textarea name="observaciones_controlador" rows={2} className="entrada" />
+          <textarea name="observaciones_controlador" defaultValue={previa?.observaciones_controlador ?? ""} rows={2} className="entrada" />
         </Grupo>
         <Grupo etiqueta="¿Se realizó backup?">
           <div className="flex gap-4 pt-1">
-            <Radio nombre="backup_realizado" valor="si" etiqueta="Sí" />
-            <Radio nombre="backup_realizado" valor="no" etiqueta="No" porDefecto />
+            <Radio
+              nombre="backup_realizado"
+              valor="si"
+              etiqueta="Sí"
+              porDefecto={previa?.backup_realizado === true}
+            />
+            <Radio
+              nombre="backup_realizado"
+              valor="no"
+              etiqueta="No"
+              porDefecto={!previa?.backup_realizado}
+            />
           </div>
         </Grupo>
       </Plegable>
 
       <Seccion titulo="Cierre" icono={<IcoBandera />} numero="5 de 5" />
       <Grupo etiqueta="Resultado" obligatorio>
-        <select name="resultado" required defaultValue="" className="entrada">
+        <select
+          name="resultado"
+          required
+          defaultValue={previa?.resultado ?? ""}
+          className="entrada"
+        >
           <option value="" disabled>
             Seleccione…
           </option>
@@ -340,27 +478,87 @@ export default function FormularioIntervencion({
         </select>
       </Grupo>
       <Grupo etiqueta="Recomendaciones">
-        <textarea name="recomendaciones" rows={2} className="entrada" />
+        <textarea name="recomendaciones" defaultValue={previa?.recomendaciones ?? ""} rows={2} className="entrada" />
       </Grupo>
       <Grupo etiqueta="Pendientes">
-        <textarea name="pendientes" rows={2} className="entrada" placeholder="Lo que queda por hacer." />
+        <textarea name="pendientes" defaultValue={previa?.pendientes ?? ""} rows={2} className="entrada" placeholder="Lo que queda por hacer." />
       </Grupo>
       <div className="grid grid-cols-2 gap-3">
         <Grupo etiqueta="Recibido por">
-          <input name="recibido_por" className="entrada" />
+          <input name="recibido_por" defaultValue={previa?.recibido_por ?? ""} className="entrada" />
         </Grupo>
         <Grupo etiqueta="Responsable del cliente">
-          <input name="responsable_cliente" className="entrada" />
+          <input name="responsable_cliente" defaultValue={previa?.responsable_cliente ?? ""} className="entrada" />
         </Grupo>
       </div>
       <Grupo etiqueta="Observaciones finales">
-        <textarea name="observaciones_finales" rows={2} className="entrada" />
+        <textarea name="observaciones_finales" defaultValue={previa?.observaciones_finales ?? ""} rows={2} className="entrada" />
       </Grupo>
 
       <Grupo
         etiqueta="Evidencia fotográfica"
-        ayuda="Hasta 6 fotos. Las dos primeras salen en el acta; todas quedan en Drive."
+        ayuda="Hasta 6 fotos. Todas salen en el acta y quedan en Drive."
       >
+        {edicion?.fotos.length ? (
+          <div className="mb-3">
+            <p
+              className="text-[12.5px] mb-2"
+              style={{ color: "var(--color-tenue)" }}
+            >
+              Ya en el acta. Toca la × para quitar una: se va a la papelera
+              de Drive y desaparece del PDF.
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {edicion.fotos.map((f, idx) => {
+                const fuera = quitar.includes(f.drive_file_id);
+                return (
+                  <div
+                    key={f.drive_file_id}
+                    className="relative aspect-square rounded overflow-hidden border"
+                    style={{
+                      borderColor: fuera
+                        ? "var(--color-critico)"
+                        : "var(--color-borde)",
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`/api/imagen/${f.drive_file_id}?w=300`}
+                      alt={`Foto ${idx + 1} del acta`}
+                      className="w-full h-full object-cover"
+                      style={{ opacity: fuera ? 0.3 : 1 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setQuitar((p) =>
+                          fuera
+                            ? p.filter((x) => x !== f.drive_file_id)
+                            : [...p, f.drive_file_id],
+                        )
+                      }
+                      className="absolute top-1 right-1 w-6 h-6 rounded-full text-[14.5px] leading-none flex items-center justify-center"
+                      style={{
+                        background: fuera
+                          ? "var(--color-activo)"
+                          : "var(--color-critico)",
+                        color: "#fff",
+                      }}
+                      aria-label={
+                        fuera
+                          ? `Conservar la foto ${idx + 1}`
+                          : `Quitar la foto ${idx + 1}`
+                      }
+                    >
+                      {fuera ? "↺" : "×"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
         {/* Dos entradas separadas a proposito: con capture el telefono
             abre la camara y no deja llegar a la galeria, asi que la
             galeria necesita su propio boton sin ese atributo. */}
@@ -416,8 +614,7 @@ export default function FormularioIntervencion({
                     className="absolute bottom-0 left-0 right-0 font-[family-name:var(--font-mono)] text-[10.5px] px-1.5 py-0.5"
                     style={{ background: "rgba(15,20,25,0.72)", color: "#fff" }}
                   >
-                    {idx + 1}
-                    {idx < 2 ? " · en el acta" : ""}
+                    {yaArchivadas.length + idx + 1}
                   </span>
                   <button
                     type="button"
@@ -435,10 +632,10 @@ export default function FormularioIntervencion({
               className="text-[12.5px] mt-2"
               style={{ color: "var(--color-sin-info)" }}
             >
-              {fotos.length} de 6 · toca la × para quitar una
+              {yaArchivadas.length + fotos.length} de 6 · toca la × para quitar una
             </p>
           </>
-        ) : (
+        ) : yaArchivadas.length ? null : (
           <p
             className="text-[12.5px] mt-2 text-center"
             style={{ color: "var(--color-sin-info)" }}
@@ -446,12 +643,25 @@ export default function FormularioIntervencion({
             Ninguna foto todavía
           </p>
         )}
+
+        {hueco === 0 ? (
+          <p
+            className="text-[12.5px] mt-2 text-center"
+            style={{ color: "var(--color-pendiente)" }}
+          >
+            El acta ya tiene las seis fotos. Quita alguna para poder añadir otra.
+          </p>
+        ) : null}
       </Grupo>
 
       <div className="mt-6 space-y-2">
         <button disabled={enviando} className="accion accion-registrar">
           <IcoHerramienta className="w-4 h-4" />
-          {enviando ? "Guardando…" : "Guardar intervención"}
+          {enviando
+            ? "Guardando…"
+            : corrigiendo
+              ? "Guardar la corrección"
+              : "Guardar intervención"}
         </button>
         <button
           type="button"
@@ -466,7 +676,9 @@ export default function FormularioIntervencion({
         className="text-center mt-4 font-[family-name:var(--font-mono)] text-[11.5px]"
         style={{ color: "var(--color-sin-info)" }}
       >
-        El consecutivo INT-{new Date().getFullYear()}-NNNN se asigna al guardar.
+        {corrigiendo
+          ? "Al guardar se rehace el PDF y se reemplaza el archivado en Drive."
+          : `El consecutivo INT-${new Date().getFullYear()}-NNNN se asigna al guardar.`}
       </p>
     </form>
   );

@@ -88,12 +88,32 @@ const s = StyleSheet.create({
   evidenciaTexto: { fontSize: 7.5, color: "#888888" },
   foto: { width: "100%", height: "100%", objectFit: "contain" },
 
+  corregida: {
+    fontSize: 7,
+    marginTop: 6,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: NEGRO,
+  },
+
   pie: {
     position: "absolute", bottom: 16, left: 30, right: 30,
     fontSize: 6.5, color: "#666666",
     flexDirection: "row", justifyContent: "space-between",
   },
 });
+
+/** Fecha y hora de una marca de tiempo, para el pie de la correccion. */
+const fechaHora = (iso: string) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${dd}/${mm}/${d.getFullYear()} a las ${hh}:${mi}`;
+};
 
 /** Agrupa las fotos de dos en dos para pintarlas en filas. */
 function parejas<T>(lista: T[]): (T | undefined)[][] {
@@ -369,6 +389,17 @@ function Acta({
             </View>
           </View>
         </View>
+
+        {/* La correccion, si la hubo. Va antes del pie y en el cuerpo del
+            documento: un acta que se reescribio en silencio no sirve
+            como evidencia. */}
+        {i.editada_en ? (
+          <Text style={s.corregida}>
+            Acta corregida el {fechaHora(i.editada_en)} por{" "}
+            {i.editada_por || "—"}
+            {i.motivo_edicion ? ` · ${i.motivo_edicion}` : ""}
+          </Text>
+        ) : null}
 
         {i.observaciones_finales ? (
           <Text style={{ fontSize: 7.5, marginTop: 6 }}>

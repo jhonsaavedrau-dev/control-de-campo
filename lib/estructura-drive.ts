@@ -8,21 +8,32 @@ import type { Equipo, Sede } from "./tipos";
  *   SD-XXX_NOMBRE_SEDE/
  *     01_EQUIPOS/
  *       GE-XXX_MARCA_MODELO/
- *         01_MANUALES  02_DIAGRAMAS  03_CONTROLADOR  04_BACKUPS
- *         05_FOTOS     06_INTERVENCIONES             07_INFORMES
+ *         01_MANUALES  03_CONTROLADOR  04_BACKUPS
+ *         05_FOTOS     06_INTERVENCIONES
  *
  * Las carpetas se ubican por relación de IDs, nunca por ruta fija, y la
  * búsqueda tolera que el nombre real use guion o guion bajo.
  */
 
+/**
+ * Faltan el 02 y el 07 a propósito: PBI pidió quitar DIAGRAMAS e
+ * INFORMES por redundantes —los diagramas viven en los manuales y el
+ * informe de cada intervención es su acta, que ya está en el 06—. Las
+ * treinta y cuatro que existían estaban vacías y se mandaron a la
+ * papelera de Drive.
+ *
+ * Los números NO se renumeran. El sistema ubica cada carpeta por su
+ * nombre exacto: llamar «02_CONTROLADOR» al que hoy es «03_CONTROLADOR»
+ * no renombraría nada, crearía una carpeta nueva al lado y dejaría
+ * huérfano lo que ya está guardado dentro. Un hueco en la numeración es
+ * más barato que eso.
+ */
 export const SUBCARPETAS_EQUIPO = [
   "01_MANUALES",
-  "02_DIAGRAMAS",
   "03_CONTROLADOR",
   "04_BACKUPS",
   "05_FOTOS",
   "06_INTERVENCIONES",
-  "07_INFORMES",
 ] as const;
 
 /**

@@ -31,7 +31,7 @@ export default function AccionesHojaVida({
       const j = await r.json();
       setAviso(
         j.archivado
-          ? `Archivada en 07_INFORMES como ${j.nombre}`
+          ? `Archivada en la carpeta del equipo como ${j.nombre}`
           : j.error || "No se pudo archivar",
       );
     } catch {

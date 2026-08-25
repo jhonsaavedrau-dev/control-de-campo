@@ -7,7 +7,9 @@
  * puerta de entrada deja pasar y la capa de datos cae al archivo local
  * `.data/db.json`. Sirve para revisar el diseño de todas las pantallas
  * sin tener que entrar con una cuenta real, y sin poder tocar por
- * accidente los datos de produccion.
+ * accidente los datos de produccion — ni los de Supabase ni los de
+ * Drive, que tambien son reales: archivar un acta de prueba subiria un
+ * PDF de mentira a la carpeta del equipo.
  *
  * Va en el puerto 3100 para poder tenerlo abierto a la vez que el
  * normal, y comparar.
@@ -21,6 +23,7 @@ for (const llave of [
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
   "SUPABASE_SERVICE_KEY",
+  "DRIVE_CARPETA_RAIZ",
 ]) {
   entorno[llave] = "";
 }

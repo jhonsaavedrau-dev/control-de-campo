@@ -8,7 +8,9 @@ import {
 import { generarActaPdf, nombreArchivoActa } from "./pdf-acta";
 import { asegurarEstructuraEquipo } from "./estructura-drive";
 import { reemplazarArchivo } from "./drive";
-import { subirFotosIntervencion, fotosParaPdf } from "./fotos";
+import {
+  subirFotosIntervencion, fotosParaPdf, fotosArchivadas, MAX_FOTOS_ACTA,
+} from "./fotos";
 import type { FotoEntrante } from "./fotos";
 
 export type ResultadoArchivado =
@@ -59,15 +61,23 @@ export async function archivarActa(
     const par = await equipoConSede(registro.intervencion.id_equipo);
     if (!par) return { archivado: false, error: "El equipo no existe" };
 
+    // Las que ya estaban archivadas. Al registrar un acta nueva esto
+    // viene vacío; importa al corregir una que ya tenía evidencia, para
+    // que la corrección no la borre del PDF.
+    const previas = await fotosArchivadas(registro.fotos ?? []);
+    const sitio = Math.max(0, MAX_FOTOS_ACTA - previas.length);
+
     // Las fotos se incrustan en el acta, así que van primero.
     let fotosSubidas = 0;
-    if (fotos.length) {
+    const nuevas = fotos.slice(0, sitio);
+    if (nuevas.length) {
       try {
         const subidas = await subirFotosIntervencion({
           idIntervencion,
           equipo: par.equipo,
           sede: par.sede,
-          fotos,
+          fotos: nuevas,
+          desdeOrden: registro.fotos?.length ?? 0,
         });
         await guardarFotosIntervencion(idIntervencion, subidas);
         fotosSubidas = subidas.length;
@@ -76,7 +86,10 @@ export async function archivarActa(
       }
     }
 
-    const pdf = await generarActaPdf(registro, fotosParaPdf(fotos));
+    const pdf = await generarActaPdf(registro, [
+      ...previas,
+      ...fotosParaPdf(nuevas),
+    ]);
     const nombre = nombreArchivoActa(registro.intervencion);
 
     const estructura = await asegurarEstructuraEquipo(par.equipo, par.sede);

@@ -267,6 +267,11 @@ export type Intervencion = {
   responsable_cliente: string;
   observaciones_finales: string;
 
+  // Correccion posterior. Un acta se puede corregir, pero se nota.
+  editada_en: string | null;
+  editada_por: string;
+  motivo_edicion: string;
+
   // Drive
   carpeta_drive_id: string;
   carpeta_drive_url: string;

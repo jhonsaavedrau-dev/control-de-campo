@@ -46,11 +46,18 @@ export async function subirFotosIntervencion({
   equipo,
   sede,
   fotos,
+  desdeOrden = 0,
 }: {
   idIntervencion: string;
   equipo: Equipo;
   sede: Sede;
   fotos: FotoEntrante[];
+  /**
+   * Cuantas fotos tiene ya el acta. Al corregir una que ya tenia
+   * evidencia, las nuevas siguen la numeracion en vez de pisar el
+   * nombre de archivo de las que estaban.
+   */
+  desdeOrden?: number;
 }): Promise<FotoSubida[]> {
   if (!fotos.length) return [];
 
@@ -72,7 +79,8 @@ export async function subirFotosIntervencion({
   for (let i = 0; i < fotos.length; i++) {
     const foto = fotos[i];
     const ext = EXTENSIONES[foto.tipo] ?? "jpg";
-    const nombre = `${idIntervencion}_${String(i + 1).padStart(2, "0")}.${ext}`;
+    const orden = desdeOrden + i;
+    const nombre = `${idIntervencion}_${String(orden + 1).padStart(2, "0")}.${ext}`;
 
     const r = await subirArchivo({
       carpetaId: carpetaIntervencion.id,
@@ -85,7 +93,7 @@ export async function subirFotosIntervencion({
       drive_file_id: r.id,
       drive_url: r.webViewLink,
       nombre_archivo: nombre,
-      orden: i,
+      orden,
     });
   }
 

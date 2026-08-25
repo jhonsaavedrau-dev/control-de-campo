@@ -7,6 +7,7 @@ import { fechaLarga, numero } from "@/components/Piezas";
 import { ETIQUETA_TIPO } from "@/lib/tipos";
 import AccionesActa from "@/components/AccionesActa";
 import { firmaDeTecnico } from "@/lib/firmas";
+import { usuarioActual, puedeEditar, loginConfigurado } from "@/lib/sesion";
 import type {
   TipoIntervencion, EstadoEquipo, ResultadoIntervencion, TipoCombustible,
   IntervencionFoto,
@@ -32,7 +33,10 @@ export default async function ActaIntervencion({
 
   // La misma firma que va en el PDF: lo que se ve en pantalla y lo que
   // queda archivado tienen que ser el mismo documento.
-  const firma = await firmaDeTecnico(i.tecnico_nombre);
+  const [firma, usuario] = await Promise.all([
+    firmaDeTecnico(i.tecnico_nombre),
+    usuarioActual(),
+  ]);
 
   return (
     <>
@@ -244,6 +248,18 @@ export default async function ActaIntervencion({
             </tbody>
           </table>
 
+          {/* La corrección, si la hubo. Lo mismo que imprime el PDF. */}
+          {i.editada_en ? (
+            <p
+              className="text-[12px] mt-2 leading-relaxed border px-2.5 py-2"
+              style={{ borderColor: "#000" }}
+            >
+              <strong>Acta corregida</strong> el {fechaHoraLarga(i.editada_en)}{" "}
+              por {i.editada_por || "—"}
+              {i.motivo_edicion ? ` · ${i.motivo_edicion}` : ""}
+            </p>
+          ) : null}
+
           {i.observaciones_finales ? (
             <p className="text-[12.5px] mt-2 leading-relaxed">
               <strong>Observaciones finales:</strong> {i.observaciones_finales}
@@ -254,6 +270,7 @@ export default async function ActaIntervencion({
         <AccionesActa
           idIntervencion={i.id_intervencion}
           urlDrive={i.pdf_drive_url}
+          puedeCorregir={!loginConfigurado() || puedeEditar(usuario)}
         />
 
         <div
@@ -405,6 +422,17 @@ function Evidencia({ fotos }: { fotos: IntervencionFoto[] }) {
       </tbody>
     </table>
   );
+}
+
+/** Fecha y hora de una marca de tiempo, para el pie de la corrección. */
+function fechaHoraLarga(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${dd}/${mm}/${d.getFullYear()} a las ${hh}:${mi}`;
 }
 
 function Firma({

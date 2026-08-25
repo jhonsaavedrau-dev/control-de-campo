@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 /**
  * Acciones del acta: descargar el PDF y archivarlo en Drive.
@@ -11,9 +12,12 @@ import { useRouter } from "next/navigation";
 export default function AccionesActa({
   idIntervencion,
   urlDrive,
+  puedeCorregir,
 }: {
   idIntervencion: string;
   urlDrive: string;
+  /** Solo supervisión corrige un acta ya guardada. */
+  puedeCorregir: boolean;
 }) {
   const router = useRouter();
   const [archivando, setArchivando] = useState(false);
@@ -74,6 +78,15 @@ export default function AccionesActa({
           {archivando ? "Archivando en Drive…" : "Archivar en Drive"}
         </button>
       )}
+
+      {puedeCorregir ? (
+        <Link
+          href={`/intervencion/${idIntervencion}/editar`}
+          className="accion accion-secundaria"
+        >
+          Corregir el acta
+        </Link>
+      ) : null}
 
       {mensaje ? (
         <div
