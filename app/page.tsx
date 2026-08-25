@@ -78,7 +78,12 @@ export default async function Inicio({
                 className="font-[family-name:var(--font-mono)] text-[11.5px] tracking-[0.14em] uppercase"
                 style={{ color: "var(--color-sin-info)" }}
               >
-                Petroleum Blending International SAS ESP
+                {/* La razon social completa no cabe en un telefono: se
+                    cortaba en "PETROLEUM BLENDING INTER…". PBI pidio la
+                    sigla, que es como se nombran ellos. El nombre entero
+                    sigue en el pie y en los documentos, que es donde
+                    tiene valor legal. */}
+                PBI SAS ESP
               </div>
               <h1 className="font-[family-name:var(--font-placa)] font-semibold text-[34px] sm:text-[40px] leading-none mt-1.5">
                 Control de Generación

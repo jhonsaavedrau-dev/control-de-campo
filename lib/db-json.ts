@@ -11,7 +11,7 @@ import {
 } from "./altas";
 import path from "node:path";
 import type {
-  BaseDatos, Intervencion, Equipo, Sede, Controlador,
+  BaseDatos, Intervencion, Equipo, Sede, Controlador, ReporteFalla,
 } from "./tipos";
 
 /**
@@ -728,4 +728,113 @@ export async function borrarFotosIntervencion(
   );
   await escribir(db);
   return quitadas.map((f) => ({ drive_file_id: f.drive_file_id }));
+}
+
+/* ---------- Reportes de falla (FOR-MTO-53) ---------- */
+
+/** El consecutivo del año: RF-AAAA-NNNN. */
+function siguienteIdReporte(existentes: string[], anio: number) {
+  const marca = `RF-${anio}-`;
+  const ultimo = existentes
+    .filter((id) => id.startsWith(marca))
+    .map((id) => parseInt(id.slice(marca.length), 10))
+    .filter((n) => !Number.isNaN(n))
+    .reduce((max, n) => Math.max(max, n), 0);
+  return `${marca}${String(ultimo + 1).padStart(4, "0")}`;
+}
+
+export type EntradaReporteFalla = Partial<ReporteFalla> & {
+  id_equipo: string;
+  fecha_evento: string;
+};
+
+export async function crearReporteFalla(
+  datos: EntradaReporteFalla,
+): Promise<ReporteFalla> {
+  const db = await leer();
+  db.reportes_falla ??= [];
+
+  const equipo = db.equipos.find((e) => e.id_equipo === datos.id_equipo);
+  if (!equipo) throw new Error(`El equipo ${datos.id_equipo} no existe`);
+  const sede = db.sedes.find((x) => x.id_sede === equipo.id_sede) ?? null;
+
+  const anio = new Date(`${datos.fecha_evento}T00:00:00`).getFullYear();
+
+  const reporte: ReporteFalla = {
+    id_reporte: siguienteIdReporte(
+      db.reportes_falla.map((r) => r.id_reporte),
+      anio,
+    ),
+    id_equipo: equipo.id_equipo,
+    id_sede: equipo.id_sede,
+
+    // La cabecera se rellena sola, pero queda escrita: es la foto de
+    // como se llamaba todo esto el dia del evento.
+    bloque: datos.bloque || sede?.nombre || "",
+    campo: datos.campo || sede?.ubicacion || sede?.nombre || "",
+    sistema: datos.sistema || "GENERACIÓN",
+    denominacion_equipos:
+      datos.denominacion_equipos ||
+      [equipo.fabricante, equipo.modelo].filter(Boolean).join(" "),
+    codigo_serial: datos.codigo_serial || equipo.serial || equipo.id_equipo,
+    horometro: datos.horometro ?? equipo.horometro_actual ?? null,
+
+    fecha_evento: datos.fecha_evento,
+    hora_inicio: datos.hora_inicio ?? "",
+    hora_fin: datos.hora_fin ?? "",
+    fecha_final: datos.fecha_final || null,
+
+    descripcion_evento: datos.descripcion_evento ?? "",
+    conclusion: datos.conclusion ?? "",
+    id_intervencion: datos.id_intervencion || null,
+
+    pdf_drive_id: "",
+    pdf_drive_url: "",
+    creado_por: datos.creado_por ?? "",
+    created_at: new Date().toISOString(),
+  };
+
+  db.reportes_falla.push(reporte);
+  await escribir(db);
+  return reporte;
+}
+
+export async function listarReportesFalla(filtro?: {
+  anio?: number;
+  idEquipo?: string;
+}): Promise<ReporteFalla[]> {
+  const db = await leer();
+  return (db.reportes_falla ?? [])
+    .filter((r) => {
+      if (filtro?.idEquipo && r.id_equipo !== filtro.idEquipo) return false;
+      if (filtro?.anio && !r.fecha_evento.startsWith(String(filtro.anio))) {
+        return false;
+      }
+      return true;
+    })
+    .sort((a, b) => b.fecha_evento.localeCompare(a.fecha_evento));
+}
+
+export async function obtenerReporteFalla(
+  id: string,
+): Promise<{ reporte: ReporteFalla; equipo: Equipo | null; sede: Sede | null } | null> {
+  const db = await leer();
+  const reporte = (db.reportes_falla ?? []).find((r) => r.id_reporte === id);
+  if (!reporte) return null;
+  const equipo = db.equipos.find((e) => e.id_equipo === reporte.id_equipo) ?? null;
+  const sede = db.sedes.find((s) => s.id_sede === reporte.id_sede) ?? null;
+  return { reporte, equipo, sede };
+}
+
+export async function guardarPdfReporteFalla(
+  id: string,
+  driveId: string,
+  driveUrl: string,
+): Promise<void> {
+  const db = await leer();
+  const r = (db.reportes_falla ?? []).find((x) => x.id_reporte === id);
+  if (!r) return;
+  r.pdf_drive_id = driveId;
+  r.pdf_drive_url = driveUrl;
+  await escribir(db);
 }

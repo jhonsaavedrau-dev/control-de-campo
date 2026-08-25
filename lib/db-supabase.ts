@@ -2,10 +2,10 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { soloEditables, camposQueCambian } from "./edicion-intervencion";
 import type { CambiosIntervencion } from "./edicion-intervencion";
 import type {
-  Sede, Equipo, Controlador, Intervencion, IntervencionFoto,
+  Sede, Equipo, Controlador, Intervencion, IntervencionFoto, ReporteFalla,
   Backup, Documento,
 } from "./tipos";
-import type { EntradaIntervencion } from "./db-json";
+import type { EntradaIntervencion, EntradaReporteFalla } from "./db-json";
 import { depurarChecklist } from "./checklist";
 import type { IntervencionParaContar } from "./mantenimiento";
 import type { TareaPrograma, ActaDelPrograma } from "./programa";
@@ -872,4 +872,140 @@ export async function borrarFotosIntervencion(
       .select("drive_file_id"),
   );
   return filas;
+}
+
+/* ---------- Reportes de falla (FOR-MTO-53) ---------- */
+
+/** Falta la tabla de reportes: la migracion 08 no se ha ejecutado. */
+export class FaltaReportesFallaError extends Error {
+  constructor() {
+    super("La tabla de reportes de falla todavia no existe.");
+    this.name = "FaltaReportesFallaError";
+  }
+}
+
+function faltaTablaReportes(e: { code?: string; message?: string }) {
+  return (
+    e?.code === "42P01" ||
+    e?.code === "PGRST205" ||
+    /reportes_falla/i.test(e?.message ?? "")
+  );
+}
+
+export async function crearReporteFalla(
+  datos: EntradaReporteFalla,
+): Promise<ReporteFalla> {
+  const db = cliente();
+
+  const par = await equipoConSede(datos.id_equipo);
+  if (!par) throw new Error(`El equipo ${datos.id_equipo} no existe`);
+  const { equipo, sede } = par;
+
+  const anio = new Date(`${datos.fecha_evento}T00:00:00`).getFullYear();
+
+  const fila = {
+    id_equipo: equipo.id_equipo,
+    id_sede: equipo.id_sede,
+    bloque: datos.bloque || sede?.nombre || "",
+    campo: datos.campo || sede?.ubicacion || sede?.nombre || "",
+    sistema: datos.sistema || "GENERACIÓN",
+    denominacion_equipos:
+      datos.denominacion_equipos ||
+      [equipo.fabricante, equipo.modelo].filter(Boolean).join(" "),
+    codigo_serial: datos.codigo_serial || equipo.serial || equipo.id_equipo,
+    horometro: datos.horometro ?? equipo.horometro_actual ?? null,
+    fecha_evento: datos.fecha_evento,
+    hora_inicio: datos.hora_inicio ?? "",
+    hora_fin: datos.hora_fin ?? "",
+    fecha_final: datos.fecha_final || null,
+    descripcion_evento: datos.descripcion_evento ?? "",
+    conclusion: datos.conclusion ?? "",
+    id_intervencion: datos.id_intervencion || null,
+    creado_por: datos.creado_por ?? "",
+  };
+
+  // El consecutivo se calcula aqui y se reintenta si dos reportes
+  // caen a la vez, igual que el de las actas.
+  for (let intento = 0; intento < 6; intento++) {
+    const { data: previos, error: errorPrevios } = await db
+      .from("reportes_falla")
+      .select("id_reporte")
+      .like("id_reporte", `RF-${anio}-%`);
+    if (errorPrevios) {
+      if (faltaTablaReportes(errorPrevios)) throw new FaltaReportesFallaError();
+      throw errorConCodigo(errorPrevios);
+    }
+
+    const marca = `RF-${anio}-`;
+    const ultimo = (previos ?? [])
+      .map((p) => parseInt(String(p.id_reporte).slice(marca.length), 10))
+      .filter((n) => !Number.isNaN(n))
+      .reduce((max, n) => Math.max(max, n), 0);
+    const id = `${marca}${String(ultimo + 1 + intento).padStart(4, "0")}`;
+
+    const { data, error } = await db
+      .from("reportes_falla")
+      .insert({ id_reporte: id, ...fila })
+      .select();
+
+    if (!error) return (data as ReporteFalla[])[0];
+    if (faltaTablaReportes(error)) throw new FaltaReportesFallaError();
+    // 23505: otro reporte se llevo ese consecutivo. Se prueba el
+    // siguiente en vez de fallar.
+    if (error.code !== "23505") throw errorConCodigo(error);
+  }
+
+  throw new Error("No se pudo asignar un consecutivo al reporte de falla.");
+}
+
+export async function listarReportesFalla(filtro?: {
+  anio?: number;
+  idEquipo?: string;
+}): Promise<ReporteFalla[]> {
+  const db = cliente();
+  let consulta = db.from("reportes_falla").select("*");
+  if (filtro?.idEquipo) consulta = consulta.eq("id_equipo", filtro.idEquipo);
+  if (filtro?.anio) {
+    consulta = consulta
+      .gte("fecha_evento", `${filtro.anio}-01-01`)
+      .lte("fecha_evento", `${filtro.anio}-12-31`);
+  }
+
+  const { data, error } = await consulta.order("fecha_evento", {
+    ascending: false,
+  });
+  if (error) {
+    if (faltaTablaReportes(error)) throw new FaltaReportesFallaError();
+    throw errorConCodigo(error);
+  }
+  return (data ?? []) as ReporteFalla[];
+}
+
+export async function obtenerReporteFalla(id: string) {
+  const db = cliente();
+  const { data, error } = await db
+    .from("reportes_falla")
+    .select("*")
+    .eq("id_reporte", id)
+    .limit(1);
+  if (error) {
+    if (faltaTablaReportes(error)) throw new FaltaReportesFallaError();
+    throw errorConCodigo(error);
+  }
+  const reporte = (data ?? [])[0] as ReporteFalla | undefined;
+  if (!reporte) return null;
+
+  const par = await equipoConSede(reporte.id_equipo);
+  return { reporte, equipo: par?.equipo ?? null, sede: par?.sede ?? null };
+}
+
+export async function guardarPdfReporteFalla(
+  id: string,
+  driveId: string,
+  driveUrl: string,
+): Promise<void> {
+  await cliente()
+    .from("reportes_falla")
+    .update({ pdf_drive_id: driveId, pdf_drive_url: driveUrl })
+    .eq("id_reporte", id);
 }

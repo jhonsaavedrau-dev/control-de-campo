@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
 import { MESES } from "@/lib/programa";
-import { IcoLapiz } from "./Iconos";
+import { IcoLapiz, IcoLista } from "./Iconos";
 import {
   ETIQUETA_BANDA, ACCION_BANDA, colorBanda, porcentaje, FRASES, META,
 } from "@/lib/indicadores";
@@ -40,6 +41,8 @@ type Fila = {
   tendenciaDisponibilidad: string;
   obsConfiabilidad: string;
   tendenciaConfiabilidad: string;
+  /** Los reportes de falla del mes, FOR-MTO-53. */
+  reportes: { id: string; fecha: string; conclusion: string }[];
 };
 
 export default function PanelIndicadores({
@@ -158,6 +161,16 @@ export default function PanelIndicadores({
                 </td>
                 <td className="num">
                   {f.fallas}
+                  {/* De donde sale el numero. Un reporte de falla es un
+                      evento; las correctivas solo lo aproximan. */}
+                  {!f.fallasManual && f.reportes.length ? (
+                    <span
+                      className="marca-auto"
+                      title={`De ${f.reportes.length === 1 ? "el reporte de falla" : `los ${f.reportes.length} reportes de falla`} del mes.`}
+                    >
+                      ¶
+                    </span>
+                  ) : null}
                   {/* Solo cuando corrige al conteo: un 0 escrito sobre un 0
                       contado no es una correccion, es ruido. */}
                   {f.fallasManual && f.fallas !== f.fallasAutomaticas ? (
@@ -213,11 +226,13 @@ export default function PanelIndicadores({
         </div>
       ) : null}
 
+      <Analisis filas={filas} />
+
       <p className="text-[12.5px] mt-2.5" style={{ color: "var(--color-sin-info)" }}>
         Las horas de operación se calculan restando el horómetro del mes
-        anterior. Las fallas se cuentan solas desde las correctivas del mes; un
-        punto rojo avisa de que ese número se escribió a mano y no coincide con
-        lo contado.
+        anterior. Las fallas salen de los reportes de falla del mes (¶) y, si no
+        hay ninguno, de las correctivas; un punto rojo avisa de que ese número se
+        escribió a mano y no coincide con lo contado.
       </p>
 
       {abierto !== null ? (
@@ -230,6 +245,169 @@ export default function PanelIndicadores({
         />
       ) : null}
     </>
+  );
+}
+
+/**
+ * Lo escrito de cada mes: la observacion y el analisis de la tendencia.
+ *
+ * Existe porque no se veia. Los cuatro textos se cargaban en el editor
+ * —hay que abrir un mes para escribirlos— y despues no aparecian en
+ * ningun sitio: quien no puede editar no llegaba a leerlos nunca, y
+ * quien si, tenia que ir mes por mes abriendo la ficha.
+ *
+ * En el Excel esos textos son media hoja del formato: son la
+ * explicacion de por que el numero es el que es, y sin ellos la tabla
+ * dice que paso pero no por que.
+ *
+ * Solo salen los meses que tienen algo escrito. Un listado con doce
+ * huecos vacios no es informacion.
+ */
+function Analisis({ filas }: { filas: Fila[] }) {
+  const conTexto = filas.filter(
+    (f) =>
+      f.obsDisponibilidad ||
+      f.tendenciaDisponibilidad ||
+      f.obsConfiabilidad ||
+      f.tendenciaConfiabilidad ||
+      f.reportes.length,
+  );
+
+  if (!conTexto.length) {
+    return (
+      <p
+        className="text-[13.5px] mt-4"
+        style={{ color: "var(--color-sin-info)" }}
+      >
+        Todavía no hay observaciones ni reportes de falla en este año.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-5">
+      <div className="bloque-cabeza" style={{ borderRadius: "5px" }}>
+        <IcoLista className="w-4 h-4" />
+        Observaciones y análisis de la tendencia
+        <span className="cuenta">
+          {conTexto.length} {conTexto.length === 1 ? "mes" : "meses"}
+        </span>
+      </div>
+
+      <div className="mt-3 space-y-2.5">
+        {conTexto.map((f) => (
+          <div key={f.mes} className="panel px-3.5 py-3">
+            <div
+              className="font-[family-name:var(--font-mono)] text-[11px] uppercase tracking-[0.12em]"
+              style={{ color: "var(--color-tenue)" }}
+            >
+              {MESES[f.mes - 1]}
+            </div>
+
+            <div className="grid gap-x-5 gap-y-2.5 sm:grid-cols-2 mt-2">
+              <Escrito
+                indicador="Disponibilidad"
+                color="var(--serie-disponibilidad)"
+                observacion={f.obsDisponibilidad}
+                tendencia={f.tendenciaDisponibilidad}
+              />
+              <Escrito
+                indicador="Confiabilidad"
+                color="var(--serie-confiabilidad)"
+                observacion={f.obsConfiabilidad}
+                tendencia={f.tendenciaConfiabilidad}
+              />
+            </div>
+
+            {/* Los eventos del mes. Es lo que explica el numero de
+                fallas, y de ahi salen la confiabilidad y el MTBF: sin
+                esto hay que creerse el numero a ciegas. */}
+            {f.reportes.length ? (
+              <div
+                className="mt-3 pt-2.5"
+                style={{ borderTop: "1px solid var(--color-borde-suave)" }}
+              >
+                <div
+                  className="font-[family-name:var(--font-mono)] text-[10.5px] uppercase tracking-[0.1em]"
+                  style={{ color: "var(--color-tenue)" }}
+                >
+                  {f.reportes.length === 1
+                    ? "1 reporte de falla"
+                    : `${f.reportes.length} reportes de falla`}
+                </div>
+                <ul className="mt-1.5 space-y-1">
+                  {f.reportes.map((r) => (
+                    <li key={r.id} className="text-[13.5px] leading-snug">
+                      <Link
+                        href={`/falla/${r.id}`}
+                        className="font-[family-name:var(--font-mono)] text-[12.5px] hover:underline"
+                        style={{ color: "var(--color-activo)" }}
+                      >
+                        {r.id}
+                      </Link>
+                      <span style={{ color: "var(--color-sin-info)" }}>
+                        {" · "}
+                        {r.fecha.split("-").reverse().join("/")}
+                      </span>
+                      {r.conclusion ? (
+                        <span className="block" style={{ color: "var(--color-tenue)" }}>
+                          {r.conclusion.length > 180
+                            ? `${r.conclusion.slice(0, 180).trimEnd()}…`
+                            : r.conclusion}
+                        </span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Escrito({
+  indicador,
+  color,
+  observacion,
+  tendencia,
+}: {
+  indicador: string;
+  color: string;
+  observacion: string;
+  tendencia: string;
+}) {
+  if (!observacion && !tendencia) return null;
+  return (
+    <div>
+      <div className="flex items-center gap-1.5">
+        {/* La pastilla de color lleva la identidad; el texto se queda en
+            tinta normal para que se pueda leer. */}
+        <span
+          className="inline-block w-2 h-2 rounded-full shrink-0"
+          style={{ background: color }}
+        />
+        <span
+          className="font-[family-name:var(--font-mono)] text-[10.5px] uppercase tracking-[0.1em]"
+          style={{ color: "var(--color-tenue)" }}
+        >
+          {indicador}
+        </span>
+      </div>
+      {observacion ? (
+        <p className="text-[13.5px] leading-relaxed mt-1">{observacion}</p>
+      ) : null}
+      {tendencia ? (
+        <p
+          className="text-[13.5px] leading-relaxed mt-1.5 pl-2.5"
+          style={{ borderLeft: "2px solid var(--color-borde)" }}
+        >
+          {tendencia}
+        </p>
+      ) : null}
+    </div>
   );
 }
 

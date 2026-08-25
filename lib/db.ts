@@ -166,3 +166,31 @@ export const actualizarControlador = (
 
 export type { EntradaIntervencion } from "./db-json";
 export type { Intervencion, Equipo, Sede, Controlador } from "./tipos";
+
+/* ---------- Reportes de falla (FOR-MTO-53) ---------- */
+
+export const crearReporteFalla = (
+  ...a: Parameters<typeof json.crearReporteFalla>
+) =>
+  usarSupabase() ? supabase.crearReporteFalla(...a) : json.crearReporteFalla(...a);
+
+export const listarReportesFalla = (
+  ...a: Parameters<typeof json.listarReportesFalla>
+) =>
+  usarSupabase()
+    ? supabase.listarReportesFalla(...a)
+    : json.listarReportesFalla(...a);
+
+export const obtenerReporteFalla = (
+  ...a: Parameters<typeof json.obtenerReporteFalla>
+) =>
+  usarSupabase()
+    ? supabase.obtenerReporteFalla(...a)
+    : json.obtenerReporteFalla(...a);
+
+export const guardarPdfReporteFalla = (
+  ...a: Parameters<typeof json.guardarPdfReporteFalla>
+) =>
+  usarSupabase()
+    ? supabase.guardarPdfReporteFalla(...a)
+    : json.guardarPdfReporteFalla(...a);

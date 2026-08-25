@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { equiposConSede, indicadoresDelAnio } from "@/lib/db";
+import {
+  equiposConSede, indicadoresDelAnio, listarReportesFalla,
+} from "@/lib/db";
 import { Encabezado, PieDePagina } from "@/components/Marco";
 import PanelIndicadores from "@/components/PanelIndicadores";
 import { usuarioActual, puedeEditar, loginConfigurado } from "@/lib/sesion";
@@ -8,6 +10,7 @@ import {
   horasDelMes, horasOperadas, disponibilidad, confiabilidad, mtbf, META,
 } from "@/lib/indicadores";
 import type { IndicadorMes } from "@/lib/indicadores";
+import type { ReporteFalla } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
 
@@ -18,9 +21,17 @@ export const dynamic = "force-dynamic";
  * confiabilidad— y las horas se digitan en las dos, aunque son el mismo
  * número. Aquí se escriben una vez y alimentan los dos indicadores.
  *
- * El número de fallas ya no se cuenta a mano: sale de las correctivas
- * del mes. Y como no se guarda, si se corrige el tipo de un acta el
- * indicador se corrige solo.
+ * El número de fallas ya no se cuenta a mano. Sale, por este orden:
+ *
+ *   1. De los reportes de falla del mes (FOR-MTO-53), cuando los hay.
+ *      Un reporte es un evento, uno y solo uno.
+ *   2. Si no hay ninguno, de las correctivas del mes. Es una
+ *      aproximación: dos correctivas del mismo evento cuentan dos, y un
+ *      evento sin intervención no cuenta ninguno.
+ *   3. Un número escrito a mano manda sobre los dos.
+ *
+ * Y como no se guarda, si se corrige el tipo de un acta o se registra
+ * el reporte que faltaba, el indicador se corrige solo.
  */
 export default async function Indicadores({
   searchParams,
@@ -59,6 +70,7 @@ export default async function Indicadores({
 
   let meses: IndicadorMes[] = [];
   let correctivas: { fecha: string; id_intervencion: string }[] = [];
+  let reportes: ReporteFalla[] = [];
   let falta = false;
   if (elegido) {
     try {
@@ -69,17 +81,32 @@ export default async function Indicadores({
       falta = (e as Error)?.name === "FaltaIndicadoresError";
       if (!falta) throw e;
     }
+    try {
+      reportes = await listarReportesFalla({ anio, idEquipo });
+    } catch (e) {
+      // La migración 08 todavía no se ha ejecutado. Los indicadores no
+      // dependen de ella: se siguen contando las correctivas.
+      if ((e as Error)?.name !== "FaltaReportesFallaError") throw e;
+    }
   }
 
   const porMes = new Map(meses.map((m) => [m.mes, m]));
   const fallasAutomaticas = Array.from({ length: 12 }, (_, i) =>
     correctivas.filter((c) => Number(String(c.fecha).split("-")[1]) === i + 1).length,
   );
+  const reportesPorMes = Array.from({ length: 12 }, (_, i) =>
+    reportes.filter(
+      (r) => Number(String(r.fecha_evento).split("-")[1]) === i + 1,
+    ),
+  );
 
   const filas = Array.from({ length: 12 }, (_, i) => {
     const mes = i + 1;
     const d = porMes.get(mes) ?? null;
-    const automaticas = fallasAutomaticas[i];
+    // Un reporte de falla es un evento. Cuando los hay, mandan sobre el
+    // conteo de correctivas, que solo es una aproximación.
+    const delMes = reportesPorMes[i];
+    const automaticas = delMes.length || fallasAutomaticas[i];
     const fallas = d?.fallas ?? automaticas;
 
     // Las horas salen de restar la lectura del mes anterior. Diciembre
@@ -107,6 +134,11 @@ export default async function Indicadores({
       fallas,
       fallasAutomaticas: automaticas,
       fallasManual: d?.fallas != null,
+      reportes: delMes.map((r) => ({
+        id: r.id_reporte,
+        fecha: r.fecha_evento,
+        conclusion: r.conclusion,
+      })),
       // Las horas ya deducidas, no el valor crudo: si no, el MTBF sale
       // vacio justo en los meses que el sistema calcula solo.
       mtbf: mtbf(horas, fallas),

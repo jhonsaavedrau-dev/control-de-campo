@@ -315,6 +315,7 @@ export type BaseDatos = {
   intervencion_fotos: IntervencionFoto[];
   backups: Backup[];
   documentos: Documento[];
+  reportes_falla?: ReporteFalla[];
 };
 
 /**
@@ -331,3 +332,42 @@ export const CARGOS_TECNICO = [
 ] as const;
 
 export type CargoTecnico = (typeof CARGOS_TECNICO)[number];
+
+/**
+ * Reporte de falla, FOR-MTO-53.
+ *
+ * Es el documento donde se explica un evento. No sustituye al acta: el
+ * acta dice que se le hizo al equipo y el reporte dice que le paso. De
+ * aqui sale ademas el numero de fallas del mes en los indicadores.
+ */
+export type ReporteFalla = {
+  id_reporte: string;
+  id_equipo: string;
+  id_sede: string;
+
+  bloque: string;
+  campo: string;
+  sistema: string;
+  denominacion_equipos: string;
+  codigo_serial: string;
+  horometro: number | null;
+
+  /** De esta fecha depende en que mes cuenta la falla. */
+  fecha_evento: string;
+  hora_inicio: string;
+  hora_fin: string;
+  /** Nulo mientras el reporte sea preliminar. */
+  fecha_final: string | null;
+
+  descripcion_evento: string;
+  conclusion: string;
+
+  /** El acta de la correctiva, si la hubo. */
+  id_intervencion: string | null;
+
+  pdf_drive_id: string;
+  pdf_drive_url: string;
+
+  creado_por: string;
+  created_at?: string;
+};

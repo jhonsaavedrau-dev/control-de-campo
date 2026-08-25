@@ -105,7 +105,9 @@ export default async function Programa({
             FOR-MTO-17 · {sedes.find(([id]) => id === sede)?.[1]?.nombre ?? ""}
           </div>
           <h1 className="font-[family-name:var(--font-placa)] font-semibold text-[34px] sm:text-[40px] leading-none mt-1.5">
-            Programa {anio}
+            {/* Sin el año: ya está en las pastillas de abajo, y
+                repetirlo hacía leer dos veces lo mismo. */}
+            Programa de mantenimiento
           </h1>
 
           {/* Sedes y años */}
