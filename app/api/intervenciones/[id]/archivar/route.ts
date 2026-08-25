@@ -4,6 +4,7 @@ import {
   guardarCarpetasEquipo,
 } from "@/lib/db";
 import { generarActaPdf, nombreArchivoActa } from "@/lib/pdf-acta";
+import { fotosArchivadas } from "@/lib/fotos";
 import { asegurarEstructuraEquipo } from "@/lib/estructura-drive";
 import { reemplazarArchivo } from "@/lib/drive";
 
@@ -43,7 +44,10 @@ export async function POST(
       estructura.carpeta_intervenciones_id,
     );
 
-    const pdf = await generarActaPdf(registro);
+    const pdf = await generarActaPdf(
+      registro,
+      await fotosArchivadas(registro.fotos ?? []),
+    );
     const nombre = nombreArchivoActa(registro.intervencion);
 
     const subido = await reemplazarArchivo({

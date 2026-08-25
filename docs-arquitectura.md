@@ -65,7 +65,7 @@ La búsqueda de la carpeta correspondiente sigue haciéndose por relación de ID
 Lo que se traslada sin cambios, porque ya estaba correctamente resuelto a nivel de diseño:
 
 - El modelo de entidades: Sedes, Equipos, Controladores, Intervenciones.
-- Los campos del formulario de intervención (técnico, tipo, orden de servicio, permiso de trabajo, horómetro, trabajo realizado, novedad, resultado, backup, recibido por, pendientes, responsable del cliente, observaciones, evidencia fotográfica).
+- Los campos del formulario de intervención (técnico, tipo, orden de servicio, permiso de trabajo, horómetro, trabajo realizado, novedad, resultado, backup, recibido por, pendientes, responsable del cliente, observaciones, evidencia fotográfica). Se añade el **cargo** del técnico, y el cierre del acta deja una sola firma: la columna «responsable del cliente» se imprimía vacía en cada acta y PBI pidió quitarla — quien recibe sigue quedando escrito en la sección 6.
 - El formato del identificador de intervención: `INT-AAAA-NNNN`, consecutivo por año.
 - La estructura de carpetas en Drive y la lógica de búsqueda por ID.
 - El abandono definitivo de la plantilla `FOR-MTO-06`.

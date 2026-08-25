@@ -77,6 +77,7 @@ export default async function ActaIntervencion({
               <Fila campo="Equipo / TAG" dato={[e?.id_equipo, e?.nombre].filter(Boolean).join(" · ")} mono />
               <Fila campo="Fecha" dato={`${fechaLarga(i.fecha)}   ${i.hora}`} />
               <Fila campo="Técnico responsable" dato={i.tecnico_nombre} />
+              <Fila campo="Cargo" dato={i.tecnico_cargo} />
               <tr>
                 <td className="celda etiqueta">Tipo de intervención</td>
                 <td className="celda">
@@ -221,28 +222,22 @@ export default async function ActaIntervencion({
           <Evidencia fotos={fotos} />
 
           <Seccion n="8" titulo="CIERRE" />
+          {/* Una sola firma: PBI quito la columna del cliente. Quien
+              recibe ya queda escrito en la seccion 6. */}
           <table className="tabla">
             <tbody>
               <tr>
-                <td className="celda text-center font-semibold text-[12.5px] w-1/2">
+                <td className="celda text-center font-semibold text-[12.5px]">
                   TÉCNICO RESPONSABLE
-                </td>
-                <td className="celda text-center font-semibold text-[12.5px] w-1/2">
-                  RESPONSABLE DEL CLIENTE
                 </td>
               </tr>
               <tr>
                 <td className="celda">
                   <Firma
                     nombre={i.tecnico_nombre}
+                    cargo={i.tecnico_cargo}
                     fecha={fechaLarga(i.fecha)}
                     firma={firma}
-                  />
-                </td>
-                <td className="celda">
-                  <Firma
-                    nombre={i.recibido_por || i.responsable_cliente}
-                    fecha={i.recibido_por ? fechaLarga(i.fecha) : ""}
                   />
                 </td>
               </tr>
@@ -414,10 +409,12 @@ function Evidencia({ fotos }: { fotos: IntervencionFoto[] }) {
 
 function Firma({
   nombre,
+  cargo,
   fecha,
   firma,
 }: {
   nombre: string;
+  cargo: string;
   fecha: string;
   /** La firma digital, ya en data URL, si su dueño tiene una cargada. */
   firma?: string | null;
@@ -442,6 +439,7 @@ function Firma({
         <div>Firma: ______________________________</div>
       )}
       <div>Nombre: {nombre || "____________________________"}</div>
+      <div>Cargo: {cargo || "____________________________"}</div>
       <div>Fecha: {fecha || "____ / ____ / ______"}</div>
     </div>
   );

@@ -335,6 +335,7 @@ export async function crearIntervencion(
     fecha,
     hora,
     tecnico_nombre: datos.tecnico_nombre,
+    tecnico_cargo: datos.tecnico_cargo ?? "",
     orden_servicio: datos.orden_servicio ?? "",
     permiso_trabajo: datos.permiso_trabajo ?? "",
     tipo_intervencion: datos.tipo_intervencion,

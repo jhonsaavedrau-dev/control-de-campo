@@ -1,6 +1,7 @@
 import { obtenerIntervencion } from "@/lib/db";
 import { generarActaPdf, nombreArchivoActa } from "@/lib/pdf-acta";
 import { descargarArchivo } from "@/lib/drive";
+import { fotosArchivadas } from "@/lib/fotos";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,11 @@ export async function GET(
     }
   }
 
-  if (!pdf) pdf = await generarActaPdf(registro);
+  // Se rehace con su evidencia: sin esto el acta regenerada salia con
+  // los dos huecos de foto vacios.
+  if (!pdf) {
+    pdf = await generarActaPdf(registro, await fotosArchivadas(registro.fotos ?? []));
+  }
 
   return new Response(new Uint8Array(pdf), {
     headers: {

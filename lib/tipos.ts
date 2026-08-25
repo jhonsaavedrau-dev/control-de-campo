@@ -220,6 +220,8 @@ export type Intervencion = {
 
   // 1. Datos de la intervención
   tecnico_nombre: string;
+  /** Cargo con el que firma. Vacio en las actas anteriores a 2026-08. */
+  tecnico_cargo: string;
   orden_servicio: string;
   permiso_trabajo: string;
   tipo_intervencion: TipoIntervencion;
@@ -309,3 +311,18 @@ export type BaseDatos = {
   backups: Backup[];
   documentos: Documento[];
 };
+
+/**
+ * Los cargos con los que se firma un acta.
+ *
+ * Son los tres que PBI usa en campo, tal como los dicto Karol. Se
+ * eligen de una lista y no se escriben: el cargo va en un documento
+ * firmado y "mecanico"/"Mecánico"/"mec." no pueden ser tres cosas.
+ */
+export const CARGOS_TECNICO = [
+  "Operador Mantenedor",
+  "Supervisor de generación",
+  "Mecánico",
+] as const;
+
+export type CargoTecnico = (typeof CARGOS_TECNICO)[number];

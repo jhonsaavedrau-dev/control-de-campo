@@ -4,6 +4,7 @@ import {
   guardarPdfIntervencion, guardarCarpetasEquipo,
 } from "@/lib/db";
 import { generarActaPdf, nombreArchivoActa } from "@/lib/pdf-acta";
+import { fotosArchivadas } from "@/lib/fotos";
 import { asegurarEstructuraEquipo } from "@/lib/estructura-drive";
 import { reemplazarArchivo } from "@/lib/drive";
 import { exigirAdministrador } from "@/lib/sesion";
@@ -54,7 +55,10 @@ export async function POST() {
         carpetaId: estructura.carpeta_intervenciones_id,
         nombre: nombreArchivoActa(registro.intervencion),
         tipo: "application/pdf",
-        contenido: await generarActaPdf(registro),
+        contenido: await generarActaPdf(
+          registro,
+          await fotosArchivadas(registro.fotos ?? []),
+        ),
       });
 
       await guardarPdfIntervencion(id, subido.id, subido.webViewLink);

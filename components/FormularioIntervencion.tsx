@@ -9,7 +9,7 @@ import {
   IcoChip, IcoBandera, IcoLista,
 } from "@/components/Iconos";
 import {
-  ETIQUETA_TIPO, ETIQUETA_ESTADO, ETIQUETA_RESULTADO,
+  ETIQUETA_TIPO, ETIQUETA_ESTADO, ETIQUETA_RESULTADO, CARGOS_TECNICO,
 } from "@/lib/tipos";
 import type {
   TipoIntervencion, EstadoEquipo, ResultadoIntervencion,
@@ -66,6 +66,7 @@ export default function FormularioIntervencion({
       tipo_intervencion: tipo,
 
       tecnico_nombre: texto("tecnico_nombre"),
+      tecnico_cargo: texto("tecnico_cargo"),
       orden_servicio: texto("orden_servicio"),
       permiso_trabajo: texto("permiso_trabajo"),
       horometro: num("horometro"),
@@ -167,6 +168,21 @@ export default function FormularioIntervencion({
           className="entrada"
           placeholder="Nombre y apellido"
         />
+      </Grupo>
+
+      {/* El cargo se elige, no se escribe: va impreso junto a la firma
+          del acta y tiene que decir siempre lo mismo. */}
+      <Grupo etiqueta="Cargo" obligatorio>
+        <select name="tecnico_cargo" required defaultValue="" className="entrada">
+          <option value="" disabled>
+            Selecciona el cargo
+          </option>
+          {CARGOS_TECNICO.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
       </Grupo>
 
       <Grupo etiqueta="Tipo de intervención" obligatorio>

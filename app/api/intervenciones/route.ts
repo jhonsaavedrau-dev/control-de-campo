@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { crearIntervencion } from "@/lib/db";
 import type { EntradaIntervencion } from "@/lib/db";
 import { archivarActa } from "@/lib/archivar";
+import { MAX_FOTOS_ACTA } from "@/lib/fotos";
 import type { FotoEntrante } from "@/lib/fotos";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +15,7 @@ const OBLIGATORIOS = [
   "actividades_realizadas",
 ] as const;
 
-const MAX_FOTOS = 6;
+const MAX_FOTOS = MAX_FOTOS_ACTA;
 const MAX_BYTES_FOTO = 12 * 1024 * 1024;
 
 /**

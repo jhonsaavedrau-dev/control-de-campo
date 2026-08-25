@@ -1,4 +1,6 @@
-import { asegurarCarpeta, subirArchivo, reemplazarArchivo } from "./drive";
+import {
+  asegurarCarpeta, subirArchivo, reemplazarArchivo, descargarArchivo,
+} from "./drive";
 import { asegurarEstructuraEquipo } from "./estructura-drive";
 import type { Equipo, Sede } from "./tipos";
 
@@ -9,6 +11,15 @@ import type { Equipo, Sede } from "./tipos";
  * la hoja "Estructura Drive" del Excel), agrupadas en una subcarpeta por
  * intervención para que el historial quede legible con los años.
  */
+
+/**
+ * Cuantas fotos caben en el acta.
+ *
+ * Karol subio cuatro y el PDF solo mostraba dos: el formulario aceptaba
+ * seis y el acta recortaba a dos sin avisar. Ahora el limite es uno solo
+ * y vive aqui; el endpoint lo importa en vez de repetirlo.
+ */
+export const MAX_FOTOS_ACTA = 6;
 
 export type FotoEntrante = {
   nombre: string;
@@ -83,9 +94,42 @@ export async function subirFotosIntervencion({
 
 /** Convierte las fotos a lo que react-pdf puede incrustar. */
 export function fotosParaPdf(fotos: FotoEntrante[]) {
-  return fotos.slice(0, 2).map((f) => ({
+  return fotos.slice(0, MAX_FOTOS_ACTA).map((f) => ({
     ruta: `data:${f.tipo || "image/jpeg"};base64,${f.contenido.toString("base64")}`,
   }));
+}
+
+/**
+ * Recupera de Drive las fotos ya archivadas de un acta.
+ *
+ * Hace falta cada vez que el PDF se vuelve a generar: al descargarlo, al
+ * rearchivarlo o al reintentar un archivado que fallo. En esos tres
+ * caminos las fotos ya no estan en memoria —se subieron hace dias— y el
+ * acta se rehacia sin ellas, con los dos huecos vacios. Un acta sin su
+ * evidencia no es la misma acta.
+ *
+ * Si Drive no responde por una foto se sigue con las demas: mejor un
+ * acta con tres fotos que ninguna.
+ */
+export async function fotosArchivadas(
+  fotos: { drive_file_id: string; orden?: number }[],
+): Promise<{ ruta: string }[]> {
+  const enOrden = [...fotos]
+    .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
+    .slice(0, MAX_FOTOS_ACTA)
+    .filter((f) => f.drive_file_id);
+
+  const bajadas = await Promise.all(
+    enOrden.map(async (f) => {
+      try {
+        const b = await descargarArchivo(f.drive_file_id);
+        return { ruta: `data:image/jpeg;base64,${b.toString("base64")}` };
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return bajadas.filter((x): x is { ruta: string } => x !== null);
 }
 
 /**

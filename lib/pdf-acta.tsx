@@ -64,6 +64,7 @@ const s = StyleSheet.create({
     flex: 1, padding: 6, borderRightWidth: 1, borderColor: NEGRO,
   },
   firmaColUlt: { flex: 1, padding: 6 },
+  firmaColUnica: { flex: 1, padding: 6 },
   firmaTitulo: {
     fontSize: 8, fontFamily: "Helvetica-Bold",
     textAlign: "center", marginBottom: 8,
@@ -93,6 +94,15 @@ const s = StyleSheet.create({
     flexDirection: "row", justifyContent: "space-between",
   },
 });
+
+/** Agrupa las fotos de dos en dos para pintarlas en filas. */
+function parejas<T>(lista: T[]): (T | undefined)[][] {
+  const filas: (T | undefined)[][] = [];
+  for (let i = 0; i < Math.max(lista.length, 2); i += 2) {
+    filas.push([lista[i], lista[i + 1]]);
+  }
+  return filas;
+}
 
 const fecha = (iso: string) => {
   if (!iso) return "";
@@ -304,28 +314,37 @@ function Acta({
           7. EVIDENCIA FOTOGRÁFICA
         </Text>
         <View style={s.tabla}>
-          <View style={s.evidencia}>
-            <View style={s.evidenciaCelda}>
-              {fotos[0] ? (
-                <Image src={fotos[0].ruta} style={s.foto} />
-              ) : (
-                <Text style={s.evidenciaTexto}>FOTO / EVIDENCIA</Text>
-              )}
+          {/* Filas de dos. Antes se pintaban dos huecos fijos y el resto
+              de fotos se perdia sin decirlo: se subian cuatro y el acta
+              mostraba dos. Con una foto sola se deja el hueco al lado
+              para que la fila conserve el ancho del formato. */}
+          {parejas(fotos).map((par, f) => (
+            <View style={s.evidencia} key={f}>
+              <View style={s.evidenciaCelda}>
+                {par[0] ? (
+                  <Image src={par[0].ruta} style={s.foto} />
+                ) : (
+                  <Text style={s.evidenciaTexto}>FOTO / EVIDENCIA</Text>
+                )}
+              </View>
+              <View style={s.evidenciaUlt}>
+                {par[1] ? (
+                  <Image src={par[1].ruta} style={s.foto} />
+                ) : (
+                  <Text style={s.evidenciaTexto}>FOTO / EVIDENCIA</Text>
+                )}
+              </View>
             </View>
-            <View style={s.evidenciaUlt}>
-              {fotos[1] ? (
-                <Image src={fotos[1].ruta} style={s.foto} />
-              ) : (
-                <Text style={s.evidenciaTexto}>FOTO / EVIDENCIA</Text>
-              )}
-            </View>
-          </View>
+          ))}
         </View>
 
         <Text style={s.seccion}>8. CIERRE</Text>
         <View style={s.tabla}>
+          {/* Una sola firma. La columna del cliente se quito a peticion
+              de PBI: quien recibe ya queda escrito en la seccion 6, y
+              una casilla vacia en cada acta no era evidencia de nada. */}
           <View style={s.firmaFila}>
-            <View style={s.firmaCol}>
+            <View style={s.firmaColUnica}>
               <Text style={s.firmaTitulo}>TÉCNICO RESPONSABLE</Text>
               {firma ? (
                 <>
@@ -343,18 +362,10 @@ function Acta({
               <Text style={s.firmaLinea}>
                 Nombre: {i.tecnico_nombre || "____________________________"}
               </Text>
+              <Text style={s.firmaLinea}>
+                Cargo: {i.tecnico_cargo || "____________________________"}
+              </Text>
               <Text style={s.firmaLinea}>Fecha: {fecha(i.fecha)}</Text>
-            </View>
-            <View style={s.firmaColUlt}>
-              <Text style={s.firmaTitulo}>RESPONSABLE DEL CLIENTE</Text>
-              <Text style={s.firmaLinea}>Firma: ______________________________</Text>
-              <Text style={s.firmaLinea}>
-                Nombre:{" "}
-                {i.recibido_por || i.responsable_cliente || "____________________________"}
-              </Text>
-              <Text style={s.firmaLinea}>
-                Fecha: {i.recibido_por ? fecha(i.fecha) : "____ / ____ / ______"}
-              </Text>
             </View>
           </View>
         </View>
