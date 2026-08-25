@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   IcoLista, IcoHerramienta, IcoCodigoQR, IcoPersona, IcoDocumento,
-  IcoChip, IcoLlave, IcoBandera,
+  IcoChip, IcoLlave, IcoBandera, IcoTermometro,
 } from "./Iconos";
 import Tema from "./Tema";
 import type { Tema as ValorTema } from "@/lib/tema";
@@ -59,6 +59,12 @@ const GRUPOS: { titulo: string; destinos: Destino[] }[] = [
         texto: "Programa del año",
         nota: "Qué toca cada mes y qué se cumplió",
         icono: <IcoBandera className="w-4 h-4" />,
+      },
+      {
+        href: "/indicadores",
+        texto: "Indicadores",
+        nota: "Disponibilidad y confiabilidad, mes a mes",
+        icono: <IcoTermometro className="w-4 h-4" />,
       },
       {
         href: "/nuevo",

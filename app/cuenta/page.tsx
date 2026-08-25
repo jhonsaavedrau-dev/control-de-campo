@@ -5,7 +5,7 @@ import { Rotulo, Datos, Campo } from "@/components/Piezas";
 import FormularioClave from "@/components/FormularioClave";
 import {
   IcoChip, IcoLista, IcoHerramienta, IcoCodigoQR, IcoDocumento, IcoLlave,
-  IcoBandera,
+  IcoBandera, IcoTermometro,
 } from "@/components/Iconos";
 import {
   usuarioActual, puedeEditar, esAdministrador, loginConfigurado,
@@ -73,6 +73,12 @@ export default async function Cuenta() {
             icono={<IcoBandera className="w-4 h-4" />}
             titulo="Programa del año"
             texto="Qué mantenimiento toca a cada equipo, mes a mes, y cuánto se ha cumplido."
+          />
+          <Acceso
+            href="/indicadores"
+            icono={<IcoTermometro className="w-4 h-4" />}
+            titulo="Indicadores"
+            texto="Disponibilidad y confiabilidad de cada generador, con su gráfica y su calificación."
           />
           <Acceso
             href="/qr"

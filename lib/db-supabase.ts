@@ -7,6 +7,7 @@ import type { EntradaIntervencion } from "./db-json";
 import { depurarChecklist } from "./checklist";
 import type { IntervencionParaContar } from "./mantenimiento";
 import type { TareaPrograma, ActaDelPrograma } from "./programa";
+import type { IndicadorMes } from "./indicadores";
 import {
   siguienteId, sedeNueva, equipoNuevo, controladorNuevo,
 } from "./altas";
@@ -704,4 +705,82 @@ export async function borrarTareaPrograma(
     if (esTablaAusente(error)) throw new FaltaProgramaError();
     throw new Error(error.message);
   }
+}
+
+/* ---------- Indicadores mensuales ---------- */
+
+/** Falta la tabla de indicadores: la migracion 04 no se ha ejecutado. */
+export class FaltaIndicadoresError extends Error {
+  constructor() {
+    super("La tabla de indicadores todavia no existe.");
+    this.name = "FaltaIndicadoresError";
+  }
+}
+
+export async function indicadoresDelAnio(idEquipo: string, anio: number) {
+  const db = cliente();
+
+  const { data: meses, error } = await db
+    .from("indicadores_mensuales")
+    .select("*")
+    .eq("id_equipo", idEquipo)
+    .eq("anio", anio);
+  if (error) {
+    if (
+      error.code === "42P01" ||
+      error.code === "PGRST205" ||
+      /indicadores_mensuales/i.test(error.message ?? "")
+    ) {
+      throw new FaltaIndicadoresError();
+    }
+    throw new Error(error.message);
+  }
+
+  // El numero de fallas no se guarda: se cuenta desde las correctivas.
+  const correctivas = await pedir<
+    { fecha: string; id_intervencion: string }[]
+  >(
+    db
+      .from("intervenciones")
+      .select("fecha, id_intervencion")
+      .eq("id_equipo", idEquipo)
+      .eq("tipo_intervencion", "correctiva")
+      .gte("fecha", `${anio}-01-01`)
+      .lte("fecha", `${anio}-12-31`),
+  );
+
+  return { meses: (meses ?? []) as IndicadorMes[], correctivas };
+}
+
+export async function guardarIndicadorMes(
+  datos: Partial<IndicadorMes> & { id_equipo: string; anio: number; mes: number },
+): Promise<IndicadorMes> {
+  const fila: Record<string, unknown> = {
+    id_equipo: datos.id_equipo,
+    anio: datos.anio,
+    mes: datos.mes,
+  };
+  for (const campo of [
+    "horas_operacion", "horas_requeridas", "fallas",
+    "obs_disponibilidad", "tendencia_disponibilidad",
+    "obs_confiabilidad", "tendencia_confiabilidad", "actualizado_por",
+  ] as const) {
+    if (datos[campo] !== undefined) fila[campo] = datos[campo];
+  }
+
+  const { data, error } = await cliente()
+    .from("indicadores_mensuales")
+    .upsert(fila, { onConflict: "id_equipo,anio,mes" })
+    .select();
+  if (error) {
+    if (
+      error.code === "42P01" ||
+      error.code === "PGRST205" ||
+      /indicadores_mensuales/i.test(error.message ?? "")
+    ) {
+      throw new FaltaIndicadoresError();
+    }
+    throw new Error(error.message);
+  }
+  return (data ?? [])[0] as IndicadorMes;
 }

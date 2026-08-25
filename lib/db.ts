@@ -100,6 +100,18 @@ export const guardarFotosIntervencion = (
     ? supabase.guardarFotosIntervencion(...a)
     : json.guardarFotosIntervencion(...a);
 
+export const indicadoresDelAnio = (
+  ...a: Parameters<typeof json.indicadoresDelAnio>
+) =>
+  usarSupabase() ? supabase.indicadoresDelAnio(...a) : json.indicadoresDelAnio(...a);
+
+export const guardarIndicadorMes = (
+  ...a: Parameters<typeof json.guardarIndicadorMes>
+) =>
+  usarSupabase()
+    ? supabase.guardarIndicadorMes(...a)
+    : json.guardarIndicadorMes(...a);
+
 export const programaDelAnio = (...a: Parameters<typeof json.programaDelAnio>) =>
   usarSupabase() ? supabase.programaDelAnio(...a) : json.programaDelAnio(...a);
 

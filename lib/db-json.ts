@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import { depurarChecklist } from "./checklist";
 import type { IntervencionParaContar } from "./mantenimiento";
 import type { TareaPrograma, ActaDelPrograma } from "./programa";
+import type { IndicadorMes } from "./indicadores";
 import {
   siguienteId as siguienteIdDeFamilia,
   sedeNueva, equipoNuevo, controladorNuevo,
@@ -582,4 +583,68 @@ export async function borrarTareaPrograma(
     (t) => !(t.id_equipo === idEquipo && t.anio === anio && t.mes === mes),
   );
   await escribir(db);
+}
+
+/* ---------- Indicadores mensuales ---------- */
+
+/**
+ * Los indicadores de un equipo en un año, con las correctivas del año.
+ *
+ * Las correctivas van juntas porque el numero de fallas no se guarda: se
+ * cuenta al leer. Si se corrige el tipo de un acta, el indicador se
+ * corrige solo.
+ */
+export async function indicadoresDelAnio(idEquipo: string, anio: number) {
+  const db = await leer();
+  const meses = ((db as unknown as { indicadores?: IndicadorMes[] }).indicadores ?? [])
+    .filter((x) => x.id_equipo === idEquipo && x.anio === anio);
+
+  const correctivas = db.intervenciones
+    .filter(
+      (i) =>
+        i.id_equipo === idEquipo &&
+        i.tipo_intervencion === "correctiva" &&
+        String(i.fecha).startsWith(String(anio)),
+    )
+    .map((i) => ({ fecha: i.fecha, id_intervencion: i.id_intervencion }));
+
+  return { meses, correctivas };
+}
+
+export async function guardarIndicadorMes(
+  datos: Partial<IndicadorMes> & { id_equipo: string; anio: number; mes: number },
+): Promise<IndicadorMes> {
+  const db = await leer();
+  const base = db as unknown as { indicadores?: IndicadorMes[] };
+  base.indicadores ??= [];
+
+  const previo = base.indicadores.find(
+    (x) =>
+      x.id_equipo === datos.id_equipo &&
+      x.anio === datos.anio &&
+      x.mes === datos.mes,
+  );
+
+  const fila: IndicadorMes = {
+    id: previo?.id ?? `IND-${datos.id_equipo}-${datos.anio}-${datos.mes}`,
+    id_equipo: datos.id_equipo,
+    anio: datos.anio,
+    mes: datos.mes,
+    horas_operacion: datos.horas_operacion ?? previo?.horas_operacion ?? null,
+    horas_requeridas: datos.horas_requeridas ?? previo?.horas_requeridas ?? null,
+    fallas: datos.fallas !== undefined ? datos.fallas : previo?.fallas ?? null,
+    obs_disponibilidad: datos.obs_disponibilidad ?? previo?.obs_disponibilidad ?? "",
+    tendencia_disponibilidad:
+      datos.tendencia_disponibilidad ?? previo?.tendencia_disponibilidad ?? "",
+    obs_confiabilidad: datos.obs_confiabilidad ?? previo?.obs_confiabilidad ?? "",
+    tendencia_confiabilidad:
+      datos.tendencia_confiabilidad ?? previo?.tendencia_confiabilidad ?? "",
+    actualizado_por: datos.actualizado_por ?? previo?.actualizado_por ?? "",
+  };
+
+  if (previo) Object.assign(previo, fila);
+  else base.indicadores.push(fila);
+
+  await escribir(db);
+  return fila;
 }

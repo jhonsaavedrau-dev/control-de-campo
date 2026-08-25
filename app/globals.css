@@ -1207,3 +1207,38 @@ a.bitacora-fila:hover { background: var(--color-realce); }
   .prg-nombre { max-width: 104px; }
   .programa .col-mes { width: 46px; }
 }
+
+/* ---- Tabla de indicadores: misma rejilla, otras columnas ---- */
+
+.tabla-indicadores th,
+.tabla-indicadores td { padding: 9px 8px; }
+.tabla-indicadores thead th {
+  text-align: right;
+  white-space: nowrap;
+}
+.tabla-indicadores thead .col-equipo { text-align: left; }
+.tabla-indicadores .num {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tabla-indicadores .col-logro {
+  text-align: left;
+  border-left: 1px solid var(--color-borde);
+  min-width: 168px;
+}
+.tabla-indicadores .banda { font-size: 11.5px; line-height: 1.3; }
+
+/* El punto avisa de que ese numero lo escribio una persona, no el
+   conteo automatico de correctivas. */
+.marca-mano {
+  color: var(--color-pendiente);
+  margin-left: 3px;
+  font-weight: 700;
+}
+
+.fila-editable { cursor: pointer; }
+.fila-editable:hover td,
+.fila-editable:hover th { background: var(--color-campo); }
