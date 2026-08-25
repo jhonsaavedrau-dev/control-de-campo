@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { SimboloPBI } from "@/components/Marca";
 import FormularioEntrar from "@/components/FormularioEntrar";
 import { loginConfigurado, usuarioActual } from "@/lib/sesion";
 
@@ -20,20 +19,39 @@ export default async function Entrar({
   return (
     <main className="flex-1 flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-[360px]">
-        <div className="flex flex-col items-center text-center mb-7">
-          <SimboloPBI className="w-14 h-14" />
-          <h1 className="font-[family-name:var(--font-placa)] font-semibold text-[22px] mt-3">
-            Control de Generación
-          </h1>
-          <p
-            className="font-[family-name:var(--font-mono)] text-[12.5px] mt-1"
-            style={{ color: "var(--color-tenue)" }}
+        {/* La marca va dentro de la tarjeta y sobre blanco. El logotipo
+            lleva las letras en azul marino, y en modo oscuro el lienzo
+            de la pagina es casi negro: suelto ahi no se veia. */}
+        <div className="panel overflow-hidden">
+          <div
+            className="flex flex-col items-center text-center px-5 pt-7 pb-6"
+            style={{ background: "#ffffff" }}
           >
-            Petroleum Blending International SAS ESP
-          </p>
-        </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo-pbi.gif"
+              alt="PBI"
+              width={160}
+              height={80}
+              className="h-14 w-auto"
+            />
+            <h1
+              className="font-[family-name:var(--font-placa)] font-semibold text-[23px] mt-4"
+              style={{ color: "var(--color-marino)" }}
+            >
+              Control de Generación
+            </h1>
+            <p
+              className="font-[family-name:var(--font-mono)] text-[12px] mt-1.5"
+              style={{ color: "#7b7b7b" }}
+            >
+              Petroleum Blending International SAS ESP
+            </p>
+          </div>
 
-        <div className="panel p-5">
+          <div style={{ height: "3px", background: "var(--color-naranja)" }} />
+
+          <div className="p-5">
           {hayLogin ? (
             <FormularioEntrar destino={destino} />
           ) : (
@@ -42,6 +60,7 @@ export default async function Entrar({
               variable <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>.
             </p>
           )}
+          </div>
         </div>
 
         <p

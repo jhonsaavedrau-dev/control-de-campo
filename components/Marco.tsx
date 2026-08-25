@@ -11,9 +11,18 @@ import { COOKIE_TEMA, temaDeCookie, type Tema } from "@/lib/tema";
 /**
  * Barra de marca.
  *
- * Se cierra con una franja del amarillo PBI: da un filo definido entre
- * el azul y el contenido, en vez de que el encabezado flote sobre la
- * página.
+ * Blanca en los dos temas, a proposito. El logotipo de PBI lleva las
+ * letras en azul marino y las orbitas en cian: sobre una barra oscura
+ * hay que meterlo en una placa blanca para que se vea, y encerrado se
+ * queda pequeño. Con la barra clara va suelto y a su tamaño, que es
+ * ademas como lo presentan ellos en su propia web.
+ *
+ * La zona de marca se mantiene igual aunque el resto de la pantalla
+ * cambie de tema: es la unica parte que no es del sistema sino de la
+ * empresa.
+ *
+ * Se cierra con una franja del naranja PBI, que da el filo entre la
+ * cabecera y el contenido.
  */
 export async function Encabezado({
   atras,
@@ -29,8 +38,13 @@ export async function Encabezado({
 
   return (
     <header className="no-imprimir">
-      <div style={{ background: "var(--color-marino)" }}>
-        <div className="max-w-[1100px] mx-auto px-4 sm:px-6 h-[58px] flex items-center justify-between gap-4">
+      <div
+        style={{
+          background: "#ffffff",
+          borderBottom: "1px solid rgba(13, 61, 97, 0.12)",
+        }}
+      >
+        <div className="max-w-[1100px] mx-auto px-4 sm:px-6 h-[70px] flex items-center justify-between gap-4">
           <Link href="/" className="shrink-0">
             <LogotipoPBI />
           </Link>
@@ -42,7 +56,8 @@ export async function Encabezado({
             {atras ? (
               <Link
                 href={atras.href}
-                className="font-[family-name:var(--font-mono)] text-[12.5px] tracking-wide text-white/65 hover:text-white transition-colors truncate"
+                className="font-[family-name:var(--font-mono)] text-[12.5px] tracking-wide transition-colors truncate"
+                style={{ color: "var(--color-marino)" }}
               >
                 ← {atras.texto}
               </Link>
@@ -66,7 +81,7 @@ export async function Encabezado({
         </div>
       </div>
 
-      <div style={{ height: "3px", background: "var(--color-amarillo)" }} />
+      <div style={{ height: "3px", background: "var(--color-naranja)" }} />
     </header>
   );
 }
@@ -81,7 +96,16 @@ export function PieDePagina() {
       }}
     >
       <div className="max-w-[1100px] mx-auto px-4 sm:px-6 py-6 flex items-center justify-between gap-4">
-        <LogotipoPBI compacto />
+        {/* Aqui el logotipo no va: el pie es oscuro y volveria a hacer
+            falta la placa blanca. La marca la lleva el texto. */}
+        <div className="leading-none">
+          <div className="font-[family-name:var(--font-placa)] font-semibold text-[16px] tracking-[0.01em] text-white">
+            Control de Generación
+          </div>
+          <div className="text-[8.5px] font-semibold tracking-[0.18em] mt-1.5 uppercase text-white/45">
+            PBI SAS ESP
+          </div>
+        </div>
         <div className="text-right leading-relaxed">
           <div className="text-[11.5px] tracking-wide text-white/40 font-[family-name:var(--font-mono)]">
             Petroleum Blending International SAS ESP

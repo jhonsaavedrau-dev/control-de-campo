@@ -224,10 +224,10 @@ export default function MenuPrincipal({
         onClick={() => setAbierto(true)}
         aria-label="Abrir el menú"
         aria-expanded={abierto}
-        className="flex items-center gap-2 rounded px-2.5 h-[34px] shrink-0 transition-colors"
+        className="flex items-center gap-2 rounded-md px-3 h-[36px] shrink-0 transition-colors hover:bg-[rgba(13,61,97,0.06)]"
         style={{
-          border: "1px solid rgba(255,255,255,0.22)",
-          color: "rgba(255,255,255,0.92)",
+          border: "1px solid rgba(13, 61, 97, 0.22)",
+          color: "var(--color-marino)",
         }}
       >
         <span className="flex flex-col gap-[3px]" aria-hidden>
