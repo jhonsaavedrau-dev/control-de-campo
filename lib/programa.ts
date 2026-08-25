@@ -79,7 +79,10 @@ export function estadoDeTarea(
 
   return {
     tarea,
-    programada: Boolean((tarea?.programado ?? "").trim()),
+    // Que exista la fila es lo que programa el mes. En el formato de
+    // papel, lo que programa es la marca en la semana; el texto de la
+    // tarea es una descripcion y a veces se deja en blanco.
+    programada: Boolean(tarea),
     ejecutada: Boolean(acta || aMano),
     acta,
     descripcionEjecutada: acta ? acta.actividades_realizadas : aMano,

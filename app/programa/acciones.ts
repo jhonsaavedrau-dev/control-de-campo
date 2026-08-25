@@ -37,6 +37,7 @@ export async function guardarTarea(
   const semana = Number(datos.get("semana")) || 1;
   const programado = String(datos.get("programado") ?? "").trim();
   const ejecutado = String(datos.get("ejecutado") ?? "").trim();
+  const quitar = String(datos.get("quitar") ?? "") === "si";
 
   if (!idEquipo) return { error: "Falta el equipo." };
   if (!Number.isInteger(anio) || anio < 2000 || anio > 2100) {
@@ -48,9 +49,10 @@ export async function guardarTarea(
   if (semana < 1 || semana > 4) return { error: "La semana va de 1 a 4." };
 
   try {
-    // Sin tarea ni ejecución, la fila no tiene razón de existir: se borra
-    // en vez de dejar una fila vacía que cuenta como «mes tocado».
-    if (!programado && !ejecutado) {
+    // Quitar del programa es una decisión, no la consecuencia de borrar
+    // un texto: un mes puede estar programado sin descripción, igual que
+    // en la hoja de papel.
+    if (quitar) {
       await borrarTareaPrograma(idEquipo, anio, mes);
     } else {
       await guardarTareaPrograma({

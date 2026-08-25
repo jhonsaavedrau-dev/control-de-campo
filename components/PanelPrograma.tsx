@@ -257,7 +257,8 @@ function Editor({
               className="entrada"
             />
             <p className="text-[11.5px] mt-1" style={{ color: "var(--color-sin-info)" }}>
-              Déjala vacía para quitar este mes del programa.
+              Puede quedar vacía: lo que programa el mes es la semana, no el
+              texto.
             </p>
           </div>
 
@@ -352,7 +353,7 @@ function Editor({
             </div>
           ) : null}
 
-          <div className="flex gap-2 pb-2">
+          <div className="flex gap-2">
             <button disabled={enviando} className="accion flex-1">
               {enviando ? "Guardando…" : "Guardar"}
             </button>
@@ -365,6 +366,21 @@ function Editor({
               Cancelar
             </button>
           </div>
+
+          {/* Quitar es una decision propia, no el efecto de vaciar un
+              texto: un mes puede estar programado sin descripcion. */}
+          {datos.programada ? (
+            <button
+              type="submit"
+              name="quitar"
+              value="si"
+              disabled={enviando}
+              className="accion-secundaria w-full mb-2"
+              style={{ color: "var(--color-critico)" }}
+            >
+              Quitar este mes del programa
+            </button>
+          ) : null}
         </form>
       </div>
     </div>
