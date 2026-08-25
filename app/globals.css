@@ -34,20 +34,26 @@
   /* --- Instrumentación --- */
   --color-activo: #0f8a7e;
   --color-activo-hondo: #0a6b61;
-  --color-accion: #e8981f;
-  --color-accion-hondo: #c97d0c;
+  --color-accion: #f89521;
+  --color-accion-hondo: #c9761a;
 
   /* --- Testigos de estado --- */
   --color-operativo: #2e9e5b;
   --color-pendiente: #b5720c;
   --color-critico: #d2302f;
 
-  /* --- Identidad PBI --- */
-  --color-marino: #0d1a3a;
-  --color-marino-alto: #142650;
-  --color-marino-hondo: #060e22;
-  --color-amarillo: #ffc629;
-  --color-cian: #29a9e0;
+  /* --- Identidad PBI ---
+     Medidos de su propia web (pbi.com.co), no elegidos a ojo: el azul
+     #0D3D61 es el fondo de casi toda la pagina, el naranja #F89521 el
+     acento, y el cian #19B1E7 el secundario. Antes habia un marino
+     inventado que no era el de ellos. */
+  --color-marino: #0d3d61;
+  --color-marino-alto: #16537f;
+  --color-marino-hondo: #082b45;
+  --color-naranja: #f89521;
+  --color-naranja-hondo: #c9761a;
+  --color-amarillo: #eec00a;
+  --color-cian: #19b1e7;
 
   /* --- Series de las graficas ---
      Validados contra la superficie: el cian de marca (#29a9e0) da 2,7
@@ -71,11 +77,24 @@
   --color-consola-borde: #33415c;
   --color-consola-tinta: #eef3fa;
 
-  /* Las lineas de la reticula del fondo. */
-  --color-reticula: rgba(15, 20, 25, 0.028);
+  /* --- Relieve ---
+     Tres escalones y no mas. El sistema nacio sin sombras a proposito
+     —se usa al sol— pero sin ningun relieve todo queda al mismo nivel y
+     no se distingue lo que es superficie de lo que es contenido. Son
+     sombras cortas y frias, teñidas del azul de marca en vez de negro:
+     un gris neutro sobre un lienzo azulado se ve sucio. */
+  --sombra-1: 0 1px 2px rgba(13, 61, 97, 0.06),
+              0 1px 1px rgba(13, 61, 97, 0.04);
+  --sombra-2: 0 1px 2px rgba(13, 61, 97, 0.06),
+              0 4px 10px -2px rgba(13, 61, 97, 0.08);
+  --sombra-3: 0 2px 4px rgba(13, 61, 97, 0.07),
+              0 12px 24px -6px rgba(13, 61, 97, 0.12);
 
-  --font-placa: var(--fuente-placa), "Barlow Semi Condensed", sans-serif;
-  --font-sans: var(--fuente-cuerpo), "IBM Plex Sans", system-ui, sans-serif;
+  /* Las lineas de la reticula del fondo. */
+  --color-reticula: rgba(13, 61, 97, 0.035);
+
+  --font-placa: var(--fuente-placa), "Roboto Condensed", sans-serif;
+  --font-sans: var(--fuente-cuerpo), "Source Sans 3", system-ui, sans-serif;
   --font-mono: var(--fuente-mono), "IBM Plex Mono", ui-monospace, monospace;
 }
 
@@ -134,15 +153,31 @@ h1, h2, .equipo-id, .adhesivo-id {
 
 .panel {
   background: var(--color-panel);
-  border: 1px solid var(--color-borde);
-  border-bottom-color: var(--color-borde-fuerte);
-  border-radius: 6px;
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 8px;
+  box-shadow: var(--sombra-1);
+}
+
+/* Un panel que se puede tocar se levanta al pasar por encima. Solo los
+   que llevan enlace: si todo reacciona, reaccionar deja de significar
+   nada. */
+a.panel,
+button.panel {
+  transition: box-shadow 160ms ease, border-color 160ms ease,
+              transform 160ms ease;
+}
+a.panel:hover,
+button.panel:hover {
+  border-color: var(--color-borde);
+  box-shadow: var(--sombra-2);
+  transform: translateY(-1px);
 }
 
 .panel-hondo {
   background: var(--color-campo);
   border: 1px solid var(--color-borde-suave);
-  border-radius: 5px;
+  border-radius: 7px;
+  box-shadow: inset 0 1px 2px rgba(13, 61, 97, 0.04);
 }
 
 /* ============================================================
@@ -302,30 +337,37 @@ h1, h2, .equipo-id, .adhesivo-id {
   gap: 8px;
   width: 100%;
   border: 1px solid var(--color-accion-hondo);
-  border-bottom-width: 2px;
-  border-radius: 5px;
+  border-radius: 7px;
   padding: 13px 16px;
-  background: var(--color-accion);
-  color: #1a1204;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-accion) 92%, #fff) 0%,
+    var(--color-accion) 100%
+  );
+  color: #2a1a05;
   font-family: var(--font-sans);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 14.5px;
   letter-spacing: 0.01em;
   cursor: pointer;
-  transition: background 120ms ease, transform 60ms ease;
+  box-shadow: var(--sombra-1);
+  transition: box-shadow 140ms ease, transform 80ms ease, filter 140ms ease;
 }
-.accion:hover { background: color-mix(in srgb, var(--color-accion) 88%, #fff); }
-.accion:active { transform: translateY(1px); border-bottom-width: 1px; }
+.accion:hover { filter: brightness(1.04); box-shadow: var(--sombra-2); }
+.accion:active { transform: translateY(1px); box-shadow: none; }
 .accion:disabled { opacity: 0.5; cursor: default; transform: none; }
 
 .accion-secundaria {
   background: var(--color-panel);
   border-color: var(--color-borde);
-  border-bottom-color: var(--color-borde-fuerte);
   color: var(--color-tinta);
-  font-weight: 500;
+  font-weight: 600;
 }
-.accion-secundaria:hover { background: var(--color-realce); }
+.accion-secundaria:hover {
+  background: var(--color-realce);
+  border-color: var(--color-borde-fuerte);
+  filter: none;
+}
 
 /* ============================================================
    FORMULARIO
@@ -365,16 +407,21 @@ textarea.entrada { min-height: 68px; resize: vertical; line-height: 1.5; }
 .pastilla {
   font-family: var(--font-mono);
   font-size: 11px;
-  padding: 9px 8px;
-  border: 1px solid var(--color-borde);
-  border-radius: 4px;
+  padding: 9px 11px;
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 999px;
   color: var(--color-tenue);
   background: var(--color-panel);
   cursor: pointer;
   text-align: center;
-  transition: all 120ms ease;
+  box-shadow: var(--sombra-1);
+  transition: color 140ms ease, border-color 140ms ease,
+              background 140ms ease, box-shadow 140ms ease;
 }
-.pastilla:hover { border-color: var(--color-borde-fuerte); }
+.pastilla:hover {
+  border-color: var(--color-borde-fuerte);
+  color: var(--color-tinta);
+}
 .pastilla-activa {
   border-color: var(--color-activo);
   color: var(--color-activo);
@@ -494,26 +541,46 @@ a.bitacora-fila:hover { background: var(--color-realce); }
 
 .bloque {
   background: var(--color-panel);
-  border: 1px solid var(--color-borde);
-  border-bottom-color: var(--color-borde-fuerte);
-  border-radius: 7px;
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 9px;
   overflow: hidden;
+  box-shadow: var(--sombra-1);
 }
 
 .bloque-cabeza {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 9px 14px;
-  background: var(--color-marino);
+  padding: 10px 14px;
+  /* El azul de PBI, con una caida hacia el tono hondo: plano se ve
+     impreso, con la caida se ve como una pieza. */
+  background: linear-gradient(
+    180deg,
+    var(--color-marino-alto) 0%,
+    var(--color-marino) 60%,
+    var(--color-marino-hondo) 100%
+  );
   color: #fff;
   font-family: var(--font-placa);
   font-weight: 600;
-  font-size: 13px;
-  letter-spacing: 0.05em;
+  font-size: 13.5px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-.bloque-cabeza svg { color: var(--color-amarillo); }
+/* El filo naranja: es lo que hace que la cabeza se lea como cabecera y
+   no como una barra suelta. Es el acento de la marca, y solo aparece
+   aqui — un acento repetido en todo deja de serlo. */
+.bloque-cabeza::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--color-naranja);
+}
+.bloque-cabeza svg { color: var(--color-naranja); }
 .bloque-cabeza .cuenta {
   margin-left: auto;
   font-family: var(--font-mono);
@@ -523,13 +590,25 @@ a.bitacora-fila:hover { background: var(--color-realce); }
   color: rgba(255, 255, 255, 0.5);
 }
 
-/* Variantes: el color de la cabeza dice de qué habla el bloque */
-.bloque-cabeza-activo { background: var(--color-activo-hondo); }
+/* Variantes: el color de la cabeza dice de qué habla el bloque.
+   Los tonos son fijos y no siguen al tema: en oscuro el verde de
+   instrumentacion se aclara —para que un dato en verde se lea sobre
+   fondo oscuro— y ahi el texto blanco encima se quedaba en 3,0 de
+   contraste. Una cabecera es texto blanco sobre color, asi que el color
+   tiene que ser hondo siempre. */
+.bloque-cabeza-activo {
+  background: linear-gradient(180deg, #0d7d71 0%, #0a6b61 60%, #075048 100%);
+}
+.bloque-cabeza-activo::after { background: #4fd6c6; }
 .bloque-cabeza-activo svg { color: #7fe6da; }
-.bloque-cabeza-critico { background: #8f1f1e; }
+
+.bloque-cabeza-critico {
+  background: linear-gradient(180deg, #a52826 0%, #8f1f1e 60%, #6d1817 100%);
+}
+.bloque-cabeza-critico::after { background: #ff8a88; }
 .bloque-cabeza-critico svg { color: #ffb3b2; }
 
-.bloque-cuerpo { padding: 13px 14px; }
+.bloque-cuerpo { padding: 14px 15px; }
 
 /* ============================================================
    DISPLAY — el valor que se lee de lejos
@@ -840,9 +919,17 @@ a.bitacora-fila:hover { background: var(--color-realce); }
     --color-pendiente: #e5a744;
     --color-critico: #f4626a;
 
-    --color-marino: #101d3f;
-    --color-marino-alto: #1c3163;
-    --color-marino-hondo: #070d1f;
+    --color-marino: #0e3350;
+    --color-marino-alto: #17527f;
+    --color-marino-hondo: #072134;
+    --color-naranja: #f8a742;
+    --color-naranja-hondo: #d98a24;
+
+    /* Sobre fondo oscuro una sombra clara no existe: aqui el relieve lo
+       da la propia sombra negra, mas cerrada y mas profunda. */
+    --sombra-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --sombra-2: 0 2px 4px rgba(0, 0, 0, 0.4), 0 6px 14px -3px rgba(0, 0, 0, 0.45);
+    --sombra-3: 0 4px 8px rgba(0, 0, 0, 0.45), 0 16px 32px -8px rgba(0, 0, 0, 0.55);
 
     --color-reticula: rgba(190, 214, 255, 0.045);
 
@@ -883,9 +970,15 @@ a.bitacora-fila:hover { background: var(--color-realce); }
   --color-pendiente: #e5a744;
   --color-critico: #f4626a;
 
-  --color-marino: #101d3f;
-  --color-marino-alto: #1c3163;
-  --color-marino-hondo: #070d1f;
+  --color-marino: #0e3350;
+  --color-marino-alto: #17527f;
+  --color-marino-hondo: #072134;
+  --color-naranja: #f8a742;
+  --color-naranja-hondo: #d98a24;
+
+  --sombra-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --sombra-2: 0 2px 4px rgba(0, 0, 0, 0.4), 0 6px 14px -3px rgba(0, 0, 0, 0.45);
+  --sombra-3: 0 4px 8px rgba(0, 0, 0, 0.45), 0 16px 32px -8px rgba(0, 0, 0, 0.55);
 
   --color-reticula: rgba(190, 214, 255, 0.045);
 

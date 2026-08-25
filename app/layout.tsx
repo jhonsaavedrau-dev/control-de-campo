@@ -1,29 +1,36 @@
 import type { Metadata, Viewport } from "next";
-import { Barlow_Semi_Condensed, Inter, IBM_Plex_Mono } from "next/font/google";
+import { Roboto_Condensed, Source_Sans_3, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import Sincronizador from "@/components/Sincronizador";
 import { cookies } from "next/headers";
 import { COOKIE_TEMA, temaDeCookie } from "@/lib/tema";
 
-/** Condensada para las placas: un ID de equipo tiene que caber y verse. */
-const placa = Barlow_Semi_Condensed({
+/**
+ * Roboto Condensed para los titulos y las placas.
+ *
+ * No es una eleccion de gusto: es la que PBI usa en su propia web para
+ * los titulares. Un ID de equipo tiene que caber y verse, y ademas asi
+ * el sistema se lee como parte de la casa y no como una herramienta
+ * ajena que alguien les instalo.
+ */
+const placa = Roboto_Condensed({
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   variable: "--fuente-placa",
   display: "swap",
 });
 
 /**
- * Inter para el cuerpo.
+ * Source Sans para el cuerpo — la otra de PBI.
  *
- * Esta hecha para pantalla y no para papel: letras altas, aberturas
- * amplias y numeros que no se confunden. Eso es lo que se nota leyendo
- * un serial de doce caracteres en un celular, a pleno sol y con guantes.
- * Va como fuente variable, asi que los tres pesos no cuestan tres
- * descargas.
+ * Es la que llevan en su web para el texto corrido, y aguanta bien lo
+ * que aqui hace falta: letras abiertas y numeros que no se confunden,
+ * leyendo un serial de doce caracteres en un celular, a pleno sol y con
+ * guantes puestos.
  */
-const cuerpo = Inter({
+const cuerpo = Source_Sans_3({
   subsets: ["latin"],
+  weight: ["400", "600", "700"],
   variable: "--fuente-cuerpo",
   display: "swap",
 });

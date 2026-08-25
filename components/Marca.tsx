@@ -1,33 +1,31 @@
+import Image from "next/image";
+
 /**
  * Marca PBI — Petroleum Blending International SAS ESP.
  *
- * El símbolo es la órbita atómica con la llama al centro (no un rayo).
- * Dibujado en código para que escale sin depender de un archivo.
+ * Es el logotipo de verdad: `PBI_TRAN-1.gif`, el mismo archivo que
+ * llevan en su web. Antes habia un simbolo dibujado a mano en SVG que
+ * se parecia pero no era el suyo — las orbitas no coincidian y la llama
+ * era otra.
+ *
+ * Va sobre una placa blanca porque el logotipo lleva las letras en azul
+ * marino: sobre la barra oscura se perderian. Es como lo presentan
+ * ellos mismos cuando el fondo es oscuro.
  */
 
 export function SimboloPBI({ className = "w-7 h-7" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
-      <g
-        fill="none"
-        stroke="#29a9e0"
-        strokeWidth="2.4"
-        transform="translate(32 32)"
-      >
-        <ellipse rx="27" ry="11" transform="rotate(-20)" />
-        <ellipse rx="27" ry="11" transform="rotate(40)" />
-        <ellipse rx="27" ry="11" transform="rotate(100)" />
-      </g>
-      {/* Llama */}
-      <path
-        d="M32 18c4.6 5.2 8 9.4 8 14.2 0 4.7-3.6 8.3-8 8.3s-8-3.6-8-8.3c0-4.8 3.4-9 8-14.2Z"
-        fill="#f5a623"
+    <span
+      className={`inline-flex items-center justify-center bg-white rounded-full ${className}`}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/logo-pbi.gif"
+        alt=""
+        aria-hidden="true"
+        className="w-[78%] h-auto object-contain"
       />
-      <path
-        d="M32 26.5c2.3 3 3.8 5 3.8 7.2a3.8 3.8 0 1 1-7.6 0c0-2.2 1.5-4.2 3.8-7.2Z"
-        fill="#e8730c"
-      />
-    </svg>
+    </span>
   );
 }
 
@@ -39,26 +37,42 @@ export function LogotipoPBI({
   compacto?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <SimboloPBI className={compacto ? "w-6 h-6" : "w-8 h-8"} />
-      <div className="leading-none">
-        <div
-          className={`font-[family-name:var(--font-placa)] font-semibold tracking-tight ${
-            compacto ? "text-base" : "text-lg"
-          } ${sobreOscuro ? "text-white" : "text-[color:var(--color-marino)]"}`}
-        >
-          PBI
-        </div>
-        {!compacto ? (
+    <div className="flex items-center gap-2.5">
+      <span
+        className={`inline-flex items-center justify-center rounded-md bg-white ${
+          compacto ? "h-7 px-1.5" : "h-9 px-2"
+        }`}
+        style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.18)" }}
+      >
+        <Image
+          src="/logo-pbi.gif"
+          alt="PBI"
+          width={160}
+          height={80}
+          unoptimized
+          priority
+          className={compacto ? "h-4 w-auto" : "h-5 w-auto"}
+        />
+      </span>
+
+      {!compacto ? (
+        <div className="leading-none">
           <div
-            className={`text-[7px] font-medium tracking-[0.12em] mt-0.5 ${
-              sobreOscuro ? "text-white/60" : "text-[color:var(--color-tenue)]"
+            className={`font-[family-name:var(--font-placa)] font-semibold tracking-[0.02em] text-[15px] ${
+              sobreOscuro ? "text-white" : "text-[color:var(--color-marino)]"
             }`}
           >
-            GENERACIÓN DE ENERGÍA
+            Control de Generación
           </div>
-        ) : null}
-      </div>
+          <div
+            className={`text-[8.5px] font-medium tracking-[0.16em] mt-1 uppercase ${
+              sobreOscuro ? "text-white/55" : "text-[color:var(--color-tenue)]"
+            }`}
+          >
+            PBI SAS ESP
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

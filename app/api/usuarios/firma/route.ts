@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { exigirAdministrador } from "@/lib/sesion";
 import { listarCuentas } from "@/lib/usuarios";
-import { subirFirma, borrarFirma, MAX_BYTES_FIRMA } from "@/lib/firmas";
+import {
+  subirFirma, borrarFirma, olvidarFirmas, MAX_BYTES_FIRMA,
+} from "@/lib/firmas";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -57,6 +59,8 @@ export async function POST(peticion: Request) {
 
   try {
     const r = await subirFirma(correo, Buffer.from(await archivo.arrayBuffer()));
+    // La nueva tiene que verse ya, no en diez minutos.
+    olvidarFirmas();
     return NextResponse.json({ ok: true, bytes: r.bytes }, { status: 201 });
   } catch (e) {
     return NextResponse.json(
@@ -86,6 +90,7 @@ export async function DELETE(peticion: Request) {
 
   try {
     const quitada = await borrarFirma(correo);
+    olvidarFirmas();
     return NextResponse.json({ ok: true, quitada });
   } catch (e) {
     return NextResponse.json(

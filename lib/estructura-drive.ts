@@ -1,4 +1,6 @@
-import { asegurarCarpeta, listarHijos, carpetaRaizId } from "./drive";
+import {
+  asegurarCarpeta, buscarHijo, listarHijos, carpetaRaizId,
+} from "./drive";
 import type { Equipo, Sede } from "./tipos";
 
 /**
@@ -188,4 +190,40 @@ export async function carpetaIntervenciones(
 ): Promise<string> {
   const r = await asegurarEstructuraEquipo(equipo, sede);
   return r.carpeta_intervenciones_id;
+}
+
+/**
+ * Localiza la carpeta de un equipo sin crear nada.
+ *
+ * `asegurarEstructuraEquipo` sirve para escribir: recorre y crea lo que
+ * falte, y eso son unas diez llamadas a Drive una detras de otra —1,2 s
+ * medidos—. Para leer es demasiado, y ademas es incorrecto: mirar si
+ * hay manuales no deberia crear carpetas.
+ *
+ * Esto recorre igual pero solo buscando, y en tres llamadas. Devuelve
+ * null si el equipo todavia no tiene carpeta, que es una respuesta
+ * valida: no hay nada que leer.
+ */
+export async function ubicarCarpetasEquipo(
+  equipo: Equipo,
+  sede: Sede,
+): Promise<{ carpeta_equipo_id: string; carpeta_intervenciones_id: string } | null> {
+  const raiz = carpetaRaizId();
+  if (!raiz) return null;
+
+  const carpetaSede = await buscarPorId(raiz, sede.id_sede);
+  if (!carpetaSede) return null;
+
+  const equipos = await buscarHijo(carpetaSede.id, "01_EQUIPOS");
+  if (!equipos) return null;
+
+  const carpetaEquipo = await buscarPorId(equipos.id, equipo.id_equipo);
+  if (!carpetaEquipo) return null;
+
+  const intervenciones = await buscarHijo(carpetaEquipo.id, "06_INTERVENCIONES");
+
+  return {
+    carpeta_equipo_id: carpetaEquipo.id,
+    carpeta_intervenciones_id: intervenciones?.id ?? "",
+  };
 }

@@ -82,10 +82,21 @@ export function PieDePagina() {
     >
       <div className="max-w-[1100px] mx-auto px-4 sm:px-6 py-6 flex items-center justify-between gap-4">
         <LogotipoPBI compacto />
-        <div className="text-right text-[11.5px] tracking-wide text-white/40 leading-relaxed font-[family-name:var(--font-mono)]">
-          Petroleum Blending International SAS ESP
-          <br />
-          Sistema de Control de Campo
+        <div className="text-right leading-relaxed">
+          <div className="text-[11.5px] tracking-wide text-white/40 font-[family-name:var(--font-mono)]">
+            Petroleum Blending International SAS ESP
+            <br />
+            Sistema de Control de Campo
+          </div>
+          {/* La firma de quien lo hizo. Discreta a proposito: se lee si
+              se busca y no estorba si no. No va en las actas ni en los
+              formatos — esos son documentos de PBI. */}
+          <div
+            className="text-[9px] tracking-[0.18em] uppercase mt-2 text-white/35 font-[family-name:var(--font-mono)] transition-colors hover:text-white/70"
+            title="Desarrollo del sistema"
+          >
+            Realizado por Jhon Saavedra
+          </div>
         </div>
       </div>
     </footer>

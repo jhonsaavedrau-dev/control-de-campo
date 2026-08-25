@@ -180,9 +180,32 @@ export async function borrarFirma(correo: string): Promise<boolean> {
  * acta sale con la línea en blanco — como salía antes. Que una firma no
  * aparezca nunca puede impedir que el acta se genere.
  */
+/**
+ * Lo ya resuelto, por un rato.
+ *
+ * Resolver una firma cuesta: listar las cuentas, buscar el PNG en
+ * Drive, bajarlo y pasarlo por sharp —aplanar, recortar, pasar a gris y
+ * rehacer el alfa—. Y eso pasaba en cada vista de cada acta, aunque
+ * fuera la misma firma de la misma persona.
+ *
+ * Una firma cambia como mucho cuando alguien sube una nueva, asi que
+ * diez minutos de memoria no dejan ver nada viejo en la practica y
+ * quitan todo ese trabajo de la carga de la pagina.
+ */
+const CACHE_FIRMAS = new Map<string, { valor: string | null; hasta: number }>();
+const VIDA_CACHE = 10 * 60 * 1000;
+
 export async function firmaDeTecnico(nombre: string): Promise<string | null> {
   const buscado = normalizar(nombre);
   if (!buscado) return null;
+
+  const guardada = CACHE_FIRMAS.get(buscado);
+  if (guardada && guardada.hasta > Date.now()) return guardada.valor;
+
+  const recordar = (valor: string | null) => {
+    CACHE_FIRMAS.set(buscado, { valor, hasta: Date.now() + VIDA_CACHE });
+    return valor;
+  };
 
   try {
     const { listarCuentas, servicioConfigurado } = await import("./usuarios");
@@ -196,21 +219,28 @@ export async function firmaDeTecnico(nombre: string): Promise<string | null> {
     const candidatas = cuentas.filter(
       (c) => normalizar(c.nombre_completo) === buscado && c.correo,
     );
-    if (!candidatas.length) return null;
+    if (!candidatas.length) return recordar(null);
 
     let png: Buffer | null = null;
     for (const c of candidatas) {
       png = await firmaDe(c.correo);
       if (png) break;
     }
-    if (!png) return null;
+    if (!png) return recordar(null);
 
     // Como data URL: es lo que react-pdf incrusta sin tener que
     // escribir el archivo en disco.
-    return `data:image/png;base64,${png.toString("base64")}`;
+    return recordar(`data:image/png;base64,${png.toString("base64")}`);
   } catch {
+    // Un fallo no se recuerda: puede ser Drive caido un momento, y no
+    // hay que dejar el acta sin firma diez minutos por eso.
     return null;
   }
+}
+
+/** Olvida lo guardado. Se llama al subir una firma nueva. */
+export function olvidarFirmas(): void {
+  CACHE_FIRMAS.clear();
 }
 
 /** Para comparar nombres: sin tildes, sin dobles espacios, en minúscula. */

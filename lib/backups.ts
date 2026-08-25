@@ -1,5 +1,9 @@
-import { asegurarCarpeta, subirArchivo, descargarArchivo, listarHijos } from "./drive";
-import { asegurarEstructuraEquipo } from "./estructura-drive";
+import {
+  asegurarCarpeta, buscarHijo, subirArchivo, descargarArchivo, listarHijos,
+} from "./drive";
+import {
+  asegurarEstructuraEquipo, ubicarCarpetasEquipo,
+} from "./estructura-drive";
 import type { Equipo, Sede } from "./tipos";
 
 /**
@@ -37,7 +41,33 @@ export function nombreBackup(
   return `${idControlador}_${fecha}_${base || "backup"}${extension}`;
 }
 
-async function carpetaBackups(equipo: Equipo, sede: Sede): Promise<string> {
+/**
+ * La carpeta 04_BACKUPS del equipo.
+ *
+ * `crear` separa leer de escribir. Asegurar la estructura entera son
+ * unas diez llamadas a Drive seguidas, y esta pantalla ya hacia otro
+ * tanto para los manuales: la ficha de un equipo se abria haciendo dos
+ * recorridos completos del arbol para no escribir nada.
+ *
+ * Al leer se va derecho por el id que el equipo ya tiene guardado, y si
+ * no lo tiene se busca sin crear. Crear es cosa de subir un backup.
+ */
+async function carpetaBackups(
+  equipo: Equipo,
+  sede: Sede,
+  crear: boolean,
+): Promise<string | null> {
+  if (!crear) {
+    let carpetaEquipo = equipo.carpeta_drive_id;
+    if (!carpetaEquipo) {
+      const ubicada = await ubicarCarpetasEquipo(equipo, sede);
+      if (!ubicada) return null;
+      carpetaEquipo = ubicada.carpeta_equipo_id;
+    }
+    const ya = await buscarHijo(carpetaEquipo, "04_BACKUPS");
+    return ya?.id ?? null;
+  }
+
   const estructura = await asegurarEstructuraEquipo(equipo, sede);
   const carpeta = await asegurarCarpeta(
     estructura.carpeta_equipo_id,
@@ -51,7 +81,9 @@ export async function listarBackups(
   equipo: Equipo,
   sede: Sede,
 ): Promise<BackupEnDrive[]> {
-  const carpeta = await carpetaBackups(equipo, sede);
+  const carpeta = await carpetaBackups(equipo, sede, false);
+  // Todavia no hay carpeta: no hay backups, y mirar no la crea.
+  if (!carpeta) return [];
   const archivos = await listarHijos(carpeta);
   return archivos
     .filter((a) => a.mimeType !== "application/vnd.google-apps.folder")
@@ -82,7 +114,10 @@ export async function subirBackup({
   contenido: Buffer;
   fecha: string;
 }): Promise<BackupEnDrive> {
-  const carpeta = await carpetaBackups(equipo, sede);
+  // Al subir si se asegura la estructura: es el momento en que de
+  // verdad puede hacer falta crearla.
+  const carpeta = await carpetaBackups(equipo, sede, true);
+  if (!carpeta) throw new Error("No se pudo ubicar la carpeta 04_BACKUPS");
   const nombre = nombreBackup(idControlador, nombreOriginal, fecha);
 
   const subido = await subirArchivo({

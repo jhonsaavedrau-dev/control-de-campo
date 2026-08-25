@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
-import { equipoConSede } from "@/lib/db";
-import { asegurarEstructuraEquipo } from "@/lib/estructura-drive";
-import { asegurarCarpeta, listarHijos, subirArchivo, papelera } from "@/lib/drive";
+import { equipoConSede, guardarCarpetasEquipo } from "@/lib/db";
+import {
+  asegurarEstructuraEquipo, ubicarCarpetasEquipo,
+} from "@/lib/estructura-drive";
+import {
+  asegurarCarpeta, buscarHijo, listarHijos, subirArchivo, papelera,
+} from "@/lib/drive";
 import { usuarioActual, puedeEditar, loginConfigurado } from "@/lib/sesion";
 
 export const dynamic = "force-dynamic";
@@ -36,9 +40,49 @@ const TIPOS_ACEPTADOS = [
 const aceptado = (tipo: string) =>
   TIPOS_ACEPTADOS.some((t) => tipo.startsWith(t));
 
-async function carpetaManuales(idEquipo: string) {
+/**
+ * La carpeta 01_MANUALES del equipo.
+ *
+ * `crear` separa los dos usos, y no es un detalle: recorrer la
+ * estructura entera cuesta unas diez llamadas a Drive, una detras de
+ * otra —la raiz, la sede, 01_EQUIPOS, el equipo y sus cinco
+ * subcarpetas—, y eso son 1,2 s. Al leer no hace falta ninguna: el
+ * equipo ya tiene guardado el id de su carpeta desde la primera vez
+ * que se archivo algo, asi que se va derecho.
+ *
+ * Solo al subir se asegura la estructura, que es cuando de verdad
+ * puede hacer falta crearla.
+ */
+async function carpetaManuales(idEquipo: string, crear: boolean) {
   const par = await equipoConSede(idEquipo);
   if (!par) return null;
+
+  if (!crear) {
+    // El equipo suele tener guardado el id de su carpeta desde la
+    // primera vez que se archivo algo: ahi son dos llamadas a Drive.
+    let carpetaEquipo = par.equipo.carpeta_drive_id;
+
+    if (!carpetaEquipo) {
+      // Y si no, se busca sin crear nada —tres llamadas— y se guarda,
+      // para que la proxima vez ya sea directo.
+      const ubicada = await ubicarCarpetasEquipo(par.equipo, par.sede);
+      if (!ubicada) return null;
+      carpetaEquipo = ubicada.carpeta_equipo_id;
+      try {
+        await guardarCarpetasEquipo(
+          par.equipo.id_equipo,
+          ubicada.carpeta_equipo_id,
+          ubicada.carpeta_intervenciones_id,
+        );
+      } catch {
+        // Que no se pueda guardar el atajo no impide leer.
+      }
+    }
+
+    const ya = await buscarHijo(carpetaEquipo, "01_MANUALES");
+    return ya ? { id: ya.id, creada: false } : null;
+  }
+
   const estructura = await asegurarEstructuraEquipo(par.equipo, par.sede);
   return asegurarCarpeta(estructura.carpeta_equipo_id, "01_MANUALES");
 }
@@ -50,10 +94,16 @@ export async function GET(
 ) {
   const { id } = await params;
   try {
-    const carpeta = await carpetaManuales(decodeURIComponent(id).toUpperCase());
-    if (!carpeta) {
+    const idEquipo = decodeURIComponent(id).toUpperCase();
+    const par = await equipoConSede(idEquipo);
+    if (!par) {
       return NextResponse.json({ error: "El equipo no existe" }, { status: 404 });
     }
+
+    const carpeta = await carpetaManuales(idEquipo, false);
+    // Todavia no hay carpeta: no hay manuales, y no se crea por mirar.
+    if (!carpeta) return NextResponse.json({ manuales: [] });
+
     const hijos = await listarHijos(carpeta.id);
     return NextResponse.json({
       manuales: hijos
@@ -141,7 +191,7 @@ export async function POST(
   }
 
   try {
-    const carpeta = await carpetaManuales(idEquipo);
+    const carpeta = await carpetaManuales(idEquipo, true);
     if (!carpeta) {
       return NextResponse.json({ error: "El equipo no existe" }, { status: 404 });
     }
@@ -207,9 +257,9 @@ export async function DELETE(
   }
 
   try {
-    const carpeta = await carpetaManuales(idEquipo);
+    const carpeta = await carpetaManuales(idEquipo, false);
     if (!carpeta) {
-      return NextResponse.json({ error: "El equipo no existe" }, { status: 404 });
+      return NextResponse.json({ error: "Ese equipo no tiene manuales" }, { status: 404 });
     }
     // Solo si de verdad cuelga de este equipo: un id suelto en la
     // peticion no puede mandar a la papelera un archivo cualquiera.
