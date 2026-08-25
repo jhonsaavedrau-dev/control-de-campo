@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { crearSede, crearEquipo, crearControlador } from "@/lib/db";
 import { usuarioActual, puedeEditar, loginConfigurado } from "@/lib/sesion";
-import type { EstadoEquipo, TipoCombustible } from "@/lib/tipos";
+import type { EstadoEquipo, TipoCombustible, TipoActivo } from "@/lib/tipos";
 
 /**
  * Dar de alta lo que llega nuevo.
@@ -86,12 +86,16 @@ export async function nuevoEquipo(
   const nombre = String(datos.get("nombre") ?? "").trim();
   const estado = String(datos.get("estado") ?? "pendiente") as EstadoEquipo;
   const combustible = String(datos.get("combustible") ?? "diesel") as TipoCombustible;
+  const tipoActivo = String(datos.get("tipo_activo") ?? "generador") as TipoActivo;
 
   if (!idSede) return { error: "Elige la sede donde queda el equipo." };
   if (nombre.length < 3) return { error: "Escribe el nombre del equipo." };
   if (!ESTADOS.includes(estado)) return { error: "Estado desconocido." };
   if (!COMBUSTIBLES.includes(combustible)) {
     return { error: "Combustible desconocido." };
+  }
+  if (tipoActivo !== "generador" && tipoActivo !== "apoyo") {
+    return { error: "Tipo de activo desconocido." };
   }
 
   let id: string;
@@ -101,6 +105,7 @@ export async function nuevoEquipo(
       nombre,
       estado,
       combustible,
+      tipo_activo: tipoActivo,
       fabricante: String(datos.get("fabricante") ?? "").trim(),
       modelo: String(datos.get("modelo") ?? "").trim(),
       serial: String(datos.get("serial") ?? "").trim(),

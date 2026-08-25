@@ -100,6 +100,23 @@ export const guardarFotosIntervencion = (
     ? supabase.guardarFotosIntervencion(...a)
     : json.guardarFotosIntervencion(...a);
 
+export const programaDelAnio = (...a: Parameters<typeof json.programaDelAnio>) =>
+  usarSupabase() ? supabase.programaDelAnio(...a) : json.programaDelAnio(...a);
+
+export const guardarTareaPrograma = (
+  ...a: Parameters<typeof json.guardarTareaPrograma>
+) =>
+  usarSupabase()
+    ? supabase.guardarTareaPrograma(...a)
+    : json.guardarTareaPrograma(...a);
+
+export const borrarTareaPrograma = (
+  ...a: Parameters<typeof json.borrarTareaPrograma>
+) =>
+  usarSupabase()
+    ? supabase.borrarTareaPrograma(...a)
+    : json.borrarTareaPrograma(...a);
+
 export const crearSede = (...a: Parameters<typeof json.crearSede>) =>
   usarSupabase() ? supabase.crearSede(...a) : json.crearSede(...a);
 

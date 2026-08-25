@@ -1040,3 +1040,170 @@ a.bitacora-fila:hover { background: var(--color-realce); }
   a.accion-secundaria,
   button:not(.pastilla) { min-height: 44px; }
 }
+
+/* ============================================================
+   PROGRAMA DE MANTENIMIENTO — la rejilla del FOR-MTO-17
+   ============================================================ */
+
+.marco-programa {
+  overflow-x: auto;
+  border: 1px solid var(--color-borde);
+  border-bottom-color: var(--color-borde-fuerte);
+  border-radius: 6px;
+  background: var(--color-panel);
+}
+
+.programa {
+  border-collapse: collapse;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+
+.programa th,
+.programa td {
+  border-bottom: 1px solid var(--color-borde-suave);
+  padding: 0;
+}
+.programa tbody tr:last-child th,
+.programa tbody tr:last-child td { border-bottom: none; }
+
+.programa thead th {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--color-sin-info);
+  background: var(--color-hundido);
+  padding: 8px 4px;
+  font-weight: 500;
+}
+
+/* La columna del equipo se queda fija al desplazar los doce meses:
+   sin esto, en el celular se pierde de vista de que fila se trata. */
+.programa .col-equipo {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--color-panel);
+  text-align: left;
+  padding: 7px 12px;
+  min-width: 148px;
+  border-right: 1px solid var(--color-borde);
+}
+.programa thead .col-equipo { background: var(--color-hundido); }
+
+.prg-id {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.prg-nombre {
+  display: block;
+  font-size: 11.5px;
+  color: var(--color-tenue);
+  margin-top: 1px;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.programa .col-mes { width: 52px; text-align: center; }
+.programa .col-cumple {
+  width: 66px;
+  text-align: center;
+  padding: 7px 8px;
+  border-left: 1px solid var(--color-borde);
+}
+
+/* ---- La celda de cada mes ---- */
+
+.celda {
+  width: 100%;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+.celda:disabled { cursor: default; }
+.celda:not(:disabled):hover { background: var(--color-campo); }
+.celda:focus-visible {
+  outline: 2px solid var(--color-activo);
+  outline-offset: -2px;
+}
+
+.celda .marca {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+}
+/* Hueco = programado y esperando; relleno = cumplido. La diferencia se
+   ve de lejos sin tener que leer nada. */
+.celda-pendiente .marca {
+  border: 2px solid var(--color-pendiente);
+}
+.celda-cumplido .marca {
+  background: var(--color-operativo);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-operativo) 20%, transparent);
+}
+.celda .raya {
+  width: 9px;
+  height: 1px;
+  background: var(--color-borde-fuerte);
+}
+
+/* La semana, discreta: sirve al planear, estorba al leer el año. */
+.celda .sem {
+  position: absolute;
+  right: 6px;
+  bottom: 4px;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  color: var(--color-sin-info);
+}
+
+.prg-pct {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.programa tfoot th,
+.programa tfoot td {
+  border-top: 1px solid var(--color-borde-fuerte);
+  background: var(--color-hundido);
+  padding: 9px 4px;
+}
+.programa tfoot .col-equipo {
+  background: var(--color-hundido);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--color-tenue);
+  font-weight: 500;
+}
+.prg-pct-mes {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.leyenda { width: 13px; height: 13px; border-radius: 50%; display: inline-block; }
+.leyenda-pendiente { border: 2px solid var(--color-pendiente); }
+.leyenda-cumplido { background: var(--color-operativo); }
+.leyenda-vacio {
+  width: 9px; height: 1px; border-radius: 0;
+  background: var(--color-borde-fuerte);
+}
+
+@media (max-width: 640px) {
+  .programa .col-equipo { min-width: 116px; padding: 7px 9px; }
+  .prg-nombre { max-width: 104px; }
+  .programa .col-mes { width: 46px; }
+}

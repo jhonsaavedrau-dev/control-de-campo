@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import { depurarChecklist } from "./checklist";
 import type { IntervencionParaContar } from "./mantenimiento";
+import type { TareaPrograma, ActaDelPrograma } from "./programa";
 import {
   siguienteId as siguienteIdDeFamilia,
   sedeNueva, equipoNuevo, controladorNuevo,
@@ -164,19 +165,22 @@ export async function listarSedesConEquipos() {
 
 export async function resumen() {
   const db = await leer();
+  // Solo generadores: el programa cubre tambien tanques y oficinas, pero
+  // un tanque contado como "operativo" vacia de sentido el tablero.
+  const generadores = db.equipos.filter((e) => (e.tipo_activo ?? "generador") === "generador");
   return {
     sedes: db.sedes.length,
-    equipos: db.equipos.length,
+    equipos: generadores.length,
     controladores: db.controladores.length,
-    operativos: db.equipos.filter((e) => e.estado === "operativo").length,
-    con_observaciones: db.equipos.filter(
+    operativos: generadores.filter((e) => e.estado === "operativo").length,
+    con_observaciones: generadores.filter(
       (e) => e.estado === "operativo_con_observaciones" || e.estado === "pendiente",
     ).length,
-    fuera_de_servicio: db.equipos.filter((e) => e.estado === "fuera_de_servicio")
+    fuera_de_servicio: generadores.filter((e) => e.estado === "fuera_de_servicio")
       .length,
     // Sin este, los equipos que aun no tienen estado no salen en ningun
     // contador: la pantalla decia "15 equipos" y los numeros sumaban 5.
-    sin_informacion: db.equipos.filter((e) => e.estado === "sin_informacion").length,
+    sin_informacion: generadores.filter((e) => e.estado === "sin_informacion").length,
     intervenciones: db.intervenciones.length,
   };
 }
@@ -377,7 +381,7 @@ export const CAMPOS_EDITABLES_EQUIPO = [
   "potencia_nominal_kw", "potencia_eficiente_kw",
   "voltaje_v", "frecuencia_hz", "rpm", "horometro_actual",
   "estado", "puesta_en_servicio", "observaciones",
-  "foto_equipo_url", "foto_planta_url", "frecuencia_mto",
+  "foto_equipo_url", "foto_planta_url", "frecuencia_mto", "tipo_activo",
 ] as const;
 
 export const CAMPOS_EDITABLES_CONTROLADOR = [
@@ -495,4 +499,87 @@ export async function crearControlador(
   db.controladores.push(controlador);
   await escribir(db);
   return controlador;
+}
+
+/* ---------- Programa de mantenimiento ---------- */
+
+/**
+ * El programa de un año, con las actas que lo cumplen.
+ *
+ * Se devuelven juntos a proposito: el cumplimiento no se guarda, se
+ * deduce cruzando lo programado con las actas del mes. Asi, si un acta
+ * se corrige o se borra, el cumplimiento se corrige solo.
+ */
+export async function programaDelAnio(anio: number) {
+  const db = await leer();
+  const tareas = ((db as unknown as { programa?: TareaPrograma[] }).programa ?? [])
+    .filter((t) => t.anio === anio);
+
+  const actas: ActaDelPrograma[] = db.intervenciones
+    .filter((i) => String(i.fecha).startsWith(String(anio)))
+    .map((i) => ({
+      id_intervencion: i.id_intervencion,
+      id_equipo: i.id_equipo,
+      fecha: i.fecha,
+      tipo_intervencion: i.tipo_intervencion,
+      actividades_realizadas: i.actividades_realizadas,
+      tecnico_nombre: i.tecnico_nombre,
+    }));
+
+  return { tareas, actas };
+}
+
+/** Programa (o corrige) la tarea de un equipo en un mes. */
+export async function guardarTareaPrograma(datos: {
+  id_equipo: string;
+  anio: number;
+  mes: number;
+  semana?: number;
+  programado?: string;
+  ejecutado?: string;
+  semana_ejecucion?: number | null;
+  actualizado_por?: string;
+}): Promise<TareaPrograma> {
+  const db = await leer();
+  const base = db as unknown as { programa?: TareaPrograma[] };
+  base.programa ??= [];
+
+  const previa = base.programa.find(
+    (t) =>
+      t.id_equipo === datos.id_equipo &&
+      t.anio === datos.anio &&
+      t.mes === datos.mes,
+  );
+
+  const fila: TareaPrograma = {
+    id: previa?.id ?? `PRG-${datos.id_equipo}-${datos.anio}-${datos.mes}`,
+    id_equipo: datos.id_equipo,
+    anio: datos.anio,
+    mes: datos.mes,
+    semana: datos.semana ?? previa?.semana ?? 1,
+    programado: datos.programado ?? previa?.programado ?? "",
+    ejecutado: datos.ejecutado ?? previa?.ejecutado ?? "",
+    semana_ejecucion: datos.semana_ejecucion ?? previa?.semana_ejecucion ?? null,
+    actualizado_por: datos.actualizado_por ?? previa?.actualizado_por ?? "",
+  };
+
+  if (previa) Object.assign(previa, fila);
+  else base.programa.push(fila);
+
+  await escribir(db);
+  return fila;
+}
+
+/** Quita la tarea de un equipo en un mes. */
+export async function borrarTareaPrograma(
+  idEquipo: string,
+  anio: number,
+  mes: number,
+): Promise<void> {
+  const db = await leer();
+  const base = db as unknown as { programa?: TareaPrograma[] };
+  base.programa = (base.programa ?? []).filter(
+    (t) => !(t.id_equipo === idEquipo && t.anio === anio && t.mes === mes),
+  );
+  await escribir(db);
 }

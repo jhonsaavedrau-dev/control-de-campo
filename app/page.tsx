@@ -26,17 +26,24 @@ export default async function Inicio({
     preventivosPorEquipo(),
   ]);
 
+  // Los activos de apoyo — tanque, power center, oficina — entran al
+  // programa de mantenimiento pero no a esta pantalla: aqui se mira el
+  // estado de la generacion, y un tanque no tiene estado que mirar.
+  const generadores = todos.filter(
+    (e) => (e.tipo_activo ?? "generador") === "generador",
+  );
+
   // Lo que pide atención por horas, no por avería: sale antes que la
   // lista de sedes porque es lo que hay que planear esta semana.
   const pendientes = soloPendientes(
-    todos.map((e) => ({
+    generadores.map((e) => ({
       equipo: e,
       mantenimiento: mantenimientoDe(e, preventivos[e.id_equipo] ?? []),
     })),
   );
 
   const equipos = busqueda
-    ? todos.filter((e) =>
+    ? generadores.filter((e) =>
         [
           e.id_equipo, e.nombre, e.tag, e.fabricante, e.modelo, e.serial,
           e.motor, e.sede?.nombre, e.sede?.id_sede,
@@ -48,7 +55,7 @@ export default async function Inicio({
           .toLowerCase()
           .includes(busqueda),
       )
-    : todos;
+    : generadores;
 
   // Agrupados por sede: así es como se piensa en los equipos en planta.
   const porSede = new Map<string, typeof equipos>();

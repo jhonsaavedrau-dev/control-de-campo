@@ -5,6 +5,7 @@ import { Rotulo, Datos, Campo } from "@/components/Piezas";
 import FormularioClave from "@/components/FormularioClave";
 import {
   IcoChip, IcoLista, IcoHerramienta, IcoCodigoQR, IcoDocumento, IcoLlave,
+  IcoBandera,
 } from "@/components/Iconos";
 import {
   usuarioActual, puedeEditar, esAdministrador, loginConfigurado,
@@ -66,6 +67,12 @@ export default async function Cuenta() {
             icono={<IcoLista className="w-4 h-4" />}
             titulo="Intervenciones"
             texto="El historial, con búsqueda y filtros por equipo, tipo, fecha y técnico."
+          />
+          <Acceso
+            href="/programa"
+            icono={<IcoBandera className="w-4 h-4" />}
+            titulo="Programa del año"
+            texto="Qué mantenimiento toca a cada equipo, mes a mes, y cuánto se ha cumplido."
           />
           <Acceso
             href="/qr"

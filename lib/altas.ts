@@ -103,6 +103,7 @@ export function equipoNuevo(id: string, d: Partial<Equipo>): Equipo {
     placa_motor: "",
     placa_generador: "",
     tag: d.tag?.trim() ?? "",
+    tipo_activo: d.tipo_activo ?? "generador",
     descripcion: d.descripcion?.trim() ?? "",
     producto: "",
     ubicacion: d.ubicacion?.trim() ?? "",

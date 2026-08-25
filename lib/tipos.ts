@@ -29,6 +29,13 @@ export type TipoCombustible = "diesel" | "glp" | "gas" | "otro";
 
 export type RolUsuario = "administrador" | "supervisor" | "tecnico";
 
+export type TipoActivo = "generador" | "apoyo";
+
+export const ETIQUETA_ACTIVO: Record<TipoActivo, string> = {
+  generador: "Generador",
+  apoyo: "Activo de apoyo",
+};
+
 /* ---------- Etiquetas para pantalla ---------- */
 
 export const ETIQUETA_TIPO: Record<TipoIntervencion, string> = {
@@ -156,6 +163,14 @@ export type Equipo = {
   placa_generador: string;
   /** TAG del inventario FOR-MTO-04. */
   tag: string;
+  /**
+   * `generador` o `apoyo`.
+   *
+   * El programa de mantenimiento cubre tambien tanque, power center,
+   * scrubber y oficina: activos con mantenimiento programado que no
+   * generan energia y no tienen potencia ni horometro.
+   */
+  tipo_activo: TipoActivo;
   descripcion: string;
   producto: string;
   ubicacion: string;

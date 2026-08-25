@@ -151,6 +151,16 @@ export function AltaEquipo({
         <input name="nombre" required minLength={3} className="entrada" />
       </Campo>
 
+      <Campo
+        etiqueta="Qué es"
+        nota="Los de apoyo entran al programa de mantenimiento pero no aparecen en la pantalla de equipos: no generan energía ni tienen horómetro."
+      >
+        <select name="tipo_activo" defaultValue="generador" className="entrada">
+          <option value="generador">Generador</option>
+          <option value="apoyo">Activo de apoyo (tanque, power center, oficina…)</option>
+        </select>
+      </Campo>
+
       <div className="grid gap-3 sm:grid-cols-2">
         <Campo etiqueta="Fabricante">
           <input name="fabricante" placeholder="Caterpillar" className="entrada" />

@@ -6,6 +6,7 @@ import type {
 import type { EntradaIntervencion } from "./db-json";
 import { depurarChecklist } from "./checklist";
 import type { IntervencionParaContar } from "./mantenimiento";
+import type { TareaPrograma, ActaDelPrograma } from "./programa";
 import {
   siguienteId, sedeNueva, equipoNuevo, controladorNuevo,
 } from "./altas";
@@ -237,24 +238,29 @@ export async function resumen() {
   const db = cliente();
   const [sedes, equipos, controladores, intervenciones] = await Promise.all([
     pedir<Sede[]>(db.from("sedes").select("id_sede")),
-    pedir<Equipo[]>(db.from("equipos").select("id_equipo, estado")),
+    pedir<Equipo[]>(db.from("equipos").select("id_equipo, estado, tipo_activo")),
     pedir<Controlador[]>(db.from("controladores").select("id_controlador")),
     pedir<Intervencion[]>(db.from("intervenciones").select("id_intervencion")),
   ]);
+  // Solo generadores: el programa cubre tambien tanques y oficinas, pero
+  // un tanque contado como "operativo" vacia de sentido el tablero.
+  const generadores = equipos.filter(
+    (e) => (e.tipo_activo ?? "generador") === "generador",
+  );
   return {
     sedes: sedes.length,
-    equipos: equipos.length,
+    equipos: generadores.length,
     controladores: controladores.length,
-    operativos: equipos.filter((e) => e.estado === "operativo").length,
-    con_observaciones: equipos.filter(
+    operativos: generadores.filter((e) => e.estado === "operativo").length,
+    con_observaciones: generadores.filter(
       (e) =>
         e.estado === "operativo_con_observaciones" || e.estado === "pendiente",
     ).length,
-    fuera_de_servicio: equipos.filter((e) => e.estado === "fuera_de_servicio")
+    fuera_de_servicio: generadores.filter((e) => e.estado === "fuera_de_servicio")
       .length,
     // Sin este, los equipos que aun no tienen estado no salen en ningun
     // contador: la pantalla decia "15 equipos" y los numeros sumaban 5.
-    sin_informacion: equipos.filter((e) => e.estado === "sin_informacion").length,
+    sin_informacion: generadores.filter((e) => e.estado === "sin_informacion").length,
     intervenciones: intervenciones.length,
   };
 }
@@ -595,4 +601,107 @@ export async function crearControlador(
     "id_controlador",
     (id) => controladorNuevo(id, { ...datos, id_sede: equipo.id_sede }),
   );
+}
+
+/* ---------- Programa de mantenimiento ---------- */
+
+/**
+ * Falta la tabla del programa: la migracion 03 no se ha ejecutado.
+ *
+ * Se distingue a proposito de un error de verdad, para poder decirselo
+ * al usuario con instrucciones en vez de con una pantalla rota.
+ */
+export class FaltaProgramaError extends Error {
+  constructor() {
+    super("La tabla del programa de mantenimiento todavia no existe.");
+    this.name = "FaltaProgramaError";
+  }
+}
+
+function esTablaAusente(e: { code?: string; message?: string }) {
+  // 42P01 es "relation does not exist"; PGRST205 es la version que
+  // devuelve PostgREST cuando no la encuentra en su cache de esquema.
+  return (
+    e?.code === "42P01" ||
+    e?.code === "PGRST205" ||
+    /programa_mantenimiento/i.test(e?.message ?? "")
+  );
+}
+
+export async function programaDelAnio(anio: number) {
+  const db = cliente();
+
+  const { data: tareas, error } = await db
+    .from("programa_mantenimiento")
+    .select("*")
+    .eq("anio", anio);
+  if (error) {
+    if (esTablaAusente(error)) throw new FaltaProgramaError();
+    throw new Error(error.message);
+  }
+
+  // Solo lo que hace falta para cruzar con el programa: un acta entera
+  // por cada equipo y mes seria traerse el año completo para nada.
+  const actas = await pedir<ActaDelPrograma[]>(
+    db
+      .from("intervenciones")
+      .select(
+        "id_intervencion, id_equipo, fecha, tipo_intervencion, actividades_realizadas, tecnico_nombre",
+      )
+      .gte("fecha", `${anio}-01-01`)
+      .lte("fecha", `${anio}-12-31`),
+  );
+
+  return { tareas: (tareas ?? []) as TareaPrograma[], actas };
+}
+
+export async function guardarTareaPrograma(datos: {
+  id_equipo: string;
+  anio: number;
+  mes: number;
+  semana?: number;
+  programado?: string;
+  ejecutado?: string;
+  semana_ejecucion?: number | null;
+  actualizado_por?: string;
+}): Promise<TareaPrograma> {
+  const fila: Record<string, unknown> = {
+    id_equipo: datos.id_equipo,
+    anio: datos.anio,
+    mes: datos.mes,
+  };
+  if (datos.semana !== undefined) fila.semana = datos.semana;
+  if (datos.programado !== undefined) fila.programado = datos.programado;
+  if (datos.ejecutado !== undefined) fila.ejecutado = datos.ejecutado;
+  if (datos.semana_ejecucion !== undefined)
+    fila.semana_ejecucion = datos.semana_ejecucion;
+  if (datos.actualizado_por !== undefined)
+    fila.actualizado_por = datos.actualizado_por;
+
+  const { data, error } = await cliente()
+    .from("programa_mantenimiento")
+    .upsert(fila, { onConflict: "id_equipo,anio,mes" })
+    .select();
+  if (error) {
+    if (esTablaAusente(error)) throw new FaltaProgramaError();
+    throw new Error(error.message);
+  }
+  return (data ?? [])[0] as TareaPrograma;
+}
+
+export async function borrarTareaPrograma(
+  idEquipo: string,
+  anio: number,
+  mes: number,
+): Promise<void> {
+  const { error } = await cliente()
+    .from("programa_mantenimiento")
+    .delete()
+    .eq("id_equipo", idEquipo)
+    .eq("anio", anio)
+    .eq("mes", mes);
+  if (error) {
+    if (esTablaAusente(error)) throw new FaltaProgramaError();
+    throw new Error(error.message);
+  }
 }
