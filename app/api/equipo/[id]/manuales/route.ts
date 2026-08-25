@@ -20,7 +20,7 @@ export const maxDuration = 300;
  */
 
 const MAX_BYTES = 60 * 1024 * 1024;
-const MAX_POR_TANDA = 10;
+const MAX_POR_TANDA = 20;
 
 /** Lo que tiene sentido colgar de un equipo. */
 const TIPOS_ACEPTADOS = [
@@ -100,14 +100,26 @@ export async function POST(
     const form = await peticion.formData();
     archivos = form
       .getAll("manuales")
-      .filter((x): x is File => x instanceof File)
-      .slice(0, MAX_POR_TANDA);
+      .filter((x): x is File => x instanceof File);
   } catch {
     return NextResponse.json({ error: "La petición no se pudo leer" }, { status: 400 });
   }
 
   if (!archivos.length) {
     return NextResponse.json({ error: "No llegó ningún archivo" }, { status: 400 });
+  }
+
+  // Se avisa en vez de recortar. Antes sobraban en silencio: el techo se
+  // aplicaba con un slice y los de mas se perdian sin decirlo. La
+  // pantalla parte la seleccion en tandas, asi que esto no deberia
+  // llegar a pasar; si pasa, hay que enterarse.
+  if (archivos.length > MAX_POR_TANDA) {
+    return NextResponse.json(
+      {
+        error: `Llegaron ${archivos.length} archivos y el máximo por envío es ${MAX_POR_TANDA}.`,
+      },
+      { status: 413 },
+    );
   }
 
   // Se rechaza antes de subir nada: es peor dejar la mitad arriba.

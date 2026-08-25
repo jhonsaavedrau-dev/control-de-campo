@@ -16,6 +16,9 @@ import type {
   Intervencion, IntervencionFoto,
 } from "@/lib/tipos";
 
+/** Lo que cabe en el acta. El mismo numero que aplica el servidor. */
+const MAX_FOTOS = 6;
+
 const TIPOS = Object.keys(ETIQUETA_TIPO) as TipoIntervencion[];
 const ESTADOS = Object.keys(ETIQUETA_ESTADO) as EstadoEquipo[];
 const RESULTADOS = Object.keys(ETIQUETA_RESULTADO) as ResultadoIntervencion[];
@@ -59,15 +62,36 @@ export default function FormularioIntervencion({
   const yaArchivadas = (edicion?.fotos ?? []).filter(
     (f) => !quitar.includes(f.drive_file_id),
   );
-  const hueco = Math.max(0, 6 - yaArchivadas.length);
+  const hueco = Math.max(0, MAX_FOTOS - yaArchivadas.length);
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [avisoFotos, setAvisoFotos] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Se pueden elegir varias de una vez, y las que no caben se dicen.
+   *
+   * Antes se recortaba en silencio: quien elegia nueve veia entrar seis
+   * y las otras tres desaparecian sin explicacion, lo que parece que el
+   * boton no admite varias.
+   */
   function agregarFotos(ev: React.ChangeEvent<HTMLInputElement>) {
     const nuevas = Array.from(ev.target.files ?? []);
-    setFotos((prev) => [...prev, ...nuevas].slice(0, hueco));
     ev.target.value = "";
+    if (!nuevas.length) return;
+
+    setAvisoFotos(null);
+    setFotos((prev) => {
+      const juntas = [...prev, ...nuevas];
+      const caben = juntas.slice(0, hueco);
+      const sobran = juntas.length - caben.length;
+      if (sobran > 0) {
+        setAvisoFotos(
+          `El acta admite ${MAX_FOTOS} fotos. ${sobran === 1 ? "Una quedó" : `${sobran} quedaron`} fuera: quita alguna si querías otra.`,
+        );
+      }
+      return caben;
+    });
   }
 
   async function enviar(evento: React.FormEvent<HTMLFormElement>) {
@@ -643,6 +667,15 @@ export default function FormularioIntervencion({
             Ninguna foto todavía
           </p>
         )}
+
+        {avisoFotos ? (
+          <p
+            className="text-[12.5px] mt-2"
+            style={{ color: "var(--color-pendiente)" }}
+          >
+            {avisoFotos}
+          </p>
+        ) : null}
 
         {hueco === 0 ? (
           <p

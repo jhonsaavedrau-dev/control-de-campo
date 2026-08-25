@@ -16,6 +16,9 @@ import { IcoSubida, IcoDocumento } from "@/components/Iconos";
 
 type Manual = { id: string; nombre: string; tipo: string; tamano: number; url: string };
 
+/** Cuantos acepta el servidor por peticion. */
+const POR_TANDA = 20;
+
 const peso = (bytes: number) => {
   if (!bytes) return "";
   const mb = bytes / (1024 * 1024);
@@ -32,6 +35,7 @@ export default function PanelManuales({
   const [manuales, setManuales] = useState<Manual[] | null>(null);
   const [cargando, setCargando] = useState(true);
   const [subiendo, setSubiendo] = useState(false);
+  const [progreso, setProgreso] = useState<string | null>(null);
   const [aviso, setAviso] = useState<{ tono: "ok" | "error"; texto: string } | null>(null);
 
   async function releer() {
@@ -54,6 +58,17 @@ export default function PanelManuales({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idEquipo]);
 
+  /**
+   * Adjunta todos los que se elijan, en tandas.
+   *
+   * Se pueden marcar veinte manuales de golpe: el servidor acepta
+   * POR_TANDA por peticion, asi que se parten aqui en vez de recortar la
+   * seleccion. Subir treinta PDF a Drive tarda, de ahi el contador —un
+   * boton que solo dice "subiendo" durante dos minutos parece colgado.
+   *
+   * Van de una en una tanda, no todas a la vez: son ficheros grandes y
+   * Drive responde peor con muchas subidas en paralelo.
+   */
   async function adjuntar(ev: React.ChangeEvent<HTMLInputElement>) {
     const archivos = Array.from(ev.target.files ?? []);
     ev.target.value = "";
@@ -61,29 +76,58 @@ export default function PanelManuales({
 
     setSubiendo(true);
     setAviso(null);
-    try {
-      const paquete = new FormData();
-      for (const a of archivos) paquete.append("manuales", a);
-      const r = await fetch(`/api/equipo/${idEquipo}/manuales`, {
-        method: "POST",
-        body: paquete,
-      });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || "No se pudo adjuntar");
-      const n = j.subidos?.length ?? 0;
-      setAviso({
-        tono: "ok",
-        texto: n === 1 ? `Adjuntado ${j.subidos[0].nombre}` : `Adjuntados ${n} archivos`,
-      });
-      await releer();
-    } catch (e) {
+
+    const tandas: File[][] = [];
+    for (let i = 0; i < archivos.length; i += POR_TANDA) {
+      tandas.push(archivos.slice(i, i + POR_TANDA));
+    }
+
+    let hechos = 0;
+    let fallo: string | null = null;
+
+    for (const tanda of tandas) {
+      setProgreso(
+        archivos.length > POR_TANDA
+          ? `Subiendo ${hechos + 1}–${Math.min(hechos + tanda.length, archivos.length)} de ${archivos.length}…`
+          : null,
+      );
+      try {
+        const paquete = new FormData();
+        for (const a of tanda) paquete.append("manuales", a);
+        const r = await fetch(`/api/equipo/${idEquipo}/manuales`, {
+          method: "POST",
+          body: paquete,
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || "No se pudo adjuntar");
+        hechos += j.subidos?.length ?? 0;
+      } catch (e) {
+        // Lo que ya subio se queda: no se deshace media tanda.
+        fallo = e instanceof Error ? e.message : "No se pudo adjuntar";
+        break;
+      }
+    }
+
+    setProgreso(null);
+    setSubiendo(false);
+
+    if (fallo) {
       setAviso({
         tono: "error",
-        texto: e instanceof Error ? e.message : "No se pudo adjuntar",
+        texto: hechos
+          ? `Se adjuntaron ${hechos} de ${archivos.length}. El resto falló: ${fallo}`
+          : fallo,
       });
-    } finally {
-      setSubiendo(false);
+    } else {
+      setAviso({
+        tono: "ok",
+        texto:
+          hechos === 1
+            ? `Adjuntado ${archivos[0].name}`
+            : `Adjuntados ${hechos} archivos`,
+      });
     }
+    await releer();
   }
 
   async function quitar(m: Manual) {
@@ -167,7 +211,7 @@ export default function PanelManuales({
             disabled={subiendo}
           />
           <IcoSubida className="w-4 h-4" />
-          {subiendo ? "Subiendo a Drive…" : "Adjuntar manual"}
+          {subiendo ? (progreso ?? "Subiendo a Drive…") : "Adjuntar manuales"}
         </label>
       ) : null}
 
