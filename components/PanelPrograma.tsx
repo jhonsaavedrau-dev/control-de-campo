@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
 import { MESES, SEMANAS, colorCumplimiento, porcentaje } from "@/lib/programa";
 import { IcoLapiz } from "./Iconos";
-import type { Cumplimiento } from "@/lib/programa";
+import type { Cumplimiento, SituacionMes } from "@/lib/programa";
 import { guardarTarea, type Respuesta } from "@/app/programa/acciones";
 
 /**
@@ -20,6 +20,7 @@ import { guardarTarea, type Respuesta } from "@/app/programa/acciones";
  */
 
 type Mes = {
+  situacion: SituacionMes;
   programada: boolean;
   ejecutada: boolean;
   semana: number | null;
@@ -40,18 +41,30 @@ type Fila = {
 
 export default function PanelPrograma({
   anio,
+  general,
+  vencidas,
+  mesActual,
   filas,
   mesesCortos,
   porMes,
   puedeEditar,
 }: {
   anio: number;
+  general: Cumplimiento;
+  vencidas: number;
+  /** El mes en curso, si el año que se mira es el de hoy. */
+  mesActual: number | null;
   filas: Fila[];
   mesesCortos: string[];
   porMes: Cumplimiento[];
   puedeEditar: boolean;
 }) {
   const [abierta, setAbierta] = useState<{ fila: Fila; mes: number } | null>(null);
+
+  // Los de apoyo van aparte: un tanque y un generador no se leen en la
+  // misma lista, aunque compartan programa.
+  const generadores = filas.filter((f) => f.tipo !== "apoyo");
+  const apoyo = filas.filter((f) => f.tipo === "apoyo");
 
   if (!filas.length) {
     return (
@@ -63,13 +76,171 @@ export default function PanelPrograma({
 
   return (
     <>
-      <div className="marco-programa mt-6">
+      {/* El resumen antes de la rejilla: lo primero es saber como va el
+          año, no leer doce columnas para deducirlo. */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-6">
+        <Tarjeta
+          valor={porcentaje(general.porcentaje)}
+          etiqueta="Cumplimiento"
+          nota={`${general.ejecutadas} de ${general.programadas}`}
+          color={colorCumplimiento(general.porcentaje)}
+        />
+        <Tarjeta
+          valor={String(vencidas)}
+          etiqueta="Vencidas"
+          nota={vencidas ? "ya debían estar hechas" : "nada atrasado"}
+          color={vencidas ? "var(--color-critico)" : "var(--color-operativo)"}
+        />
+        <Tarjeta
+          valor={String(general.programadas - general.ejecutadas - vencidas)}
+          etiqueta="Por venir"
+          nota="programadas, aún no toca"
+          color="var(--color-tenue)"
+        />
+        <Tarjeta
+          valor={String(filas.length)}
+          etiqueta="Activos"
+          nota={`${generadores.length} generadores · ${apoyo.length} de apoyo`}
+          color="var(--color-tinta)"
+        />
+      </div>
+
+      <Rejilla
+        titulo="Generadores"
+        filas={generadores}
+        mesesCortos={mesesCortos}
+        porMes={porMes}
+        mesActual={mesActual}
+        puedeEditar={puedeEditar}
+        alAbrir={(f, m) => setAbierta({ fila: f, mes: m })}
+      />
+
+      {apoyo.length ? (
+        <Rejilla
+          titulo="Activos de apoyo"
+          filas={apoyo}
+          mesesCortos={mesesCortos}
+          mesActual={mesActual}
+          puedeEditar={puedeEditar}
+          alAbrir={(f, m) => setAbierta({ fila: f, mes: m })}
+        />
+      ) : null}
+
+      <div className="flex flex-wrap gap-x-5 gap-y-2 mt-3 text-[12.5px]" style={{ color: "var(--color-tenue)" }}>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="leyenda leyenda-cumplido" aria-hidden /> Cumplido
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="leyenda leyenda-vencida" aria-hidden /> Vencido
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="leyenda leyenda-pendiente" aria-hidden /> Por venir
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="leyenda leyenda-vacio" aria-hidden /> Sin programar
+        </span>
+        <span style={{ color: "var(--color-sin-info)" }}>
+          El número pequeño es la semana.
+        </span>
+      </div>
+
+      {puedeEditar ? (
+        <div className="pista">
+          <IcoLapiz className="w-3.5 h-3.5 pista-icono" />
+          Toca una casilla para programar ese mes o ver con qué acta se cumplió.
+        </div>
+      ) : null}
+
+      {abierta ? (
+        <Editor
+          anio={anio}
+          fila={abierta.fila}
+          mes={abierta.mes}
+          alCerrar={() => setAbierta(null)}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function Tarjeta({
+  valor,
+  etiqueta,
+  nota,
+  color,
+}: {
+  valor: string;
+  etiqueta: string;
+  nota: string;
+  color: string;
+}) {
+  return (
+    <div className="panel px-3 py-2.5">
+      <div
+        className="font-[family-name:var(--font-mono)] text-[24px] leading-none tabular-nums"
+        style={{ color }}
+      >
+        {valor}
+      </div>
+      <div
+        className="text-[11.5px] mt-1.5 uppercase tracking-[0.04em]"
+        style={{ color: "var(--color-tenue)" }}
+      >
+        {etiqueta}
+      </div>
+      <div
+        className="font-[family-name:var(--font-mono)] text-[10.5px] mt-0.5"
+        style={{ color: "var(--color-sin-info)" }}
+      >
+        {nota}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * La rejilla de un grupo de activos.
+ *
+ * El mes en curso lleva una banda de fondo: sin ella hay que contar
+ * columnas para saber dónde está uno parado, y en doce columnas nadie
+ * cuenta bien.
+ */
+function Rejilla({
+  titulo,
+  filas,
+  mesesCortos,
+  porMes,
+  mesActual,
+  puedeEditar,
+  alAbrir,
+}: {
+  titulo: string;
+  filas: Fila[];
+  mesesCortos: string[];
+  porMes?: Cumplimiento[];
+  mesActual: number | null;
+  puedeEditar: boolean;
+  alAbrir: (fila: Fila, mes: number) => void;
+}) {
+  if (!filas.length) return null;
+
+  return (
+    <>
+      <div className="rejilla-titulo">{titulo}</div>
+      <div className="marco-programa">
         <table className="programa">
           <thead>
             <tr>
               <th className="col-equipo">Equipo</th>
-              {mesesCortos.map((m) => (
-                <th key={m} className="col-mes">{m}</th>
+              {mesesCortos.map((m, i) => (
+                <th
+                  key={m}
+                  className={
+                    mesActual === i + 1 ? "col-mes col-mes-hoy" : "col-mes"
+                  }
+                >
+                  {m}
+                </th>
               ))}
               <th className="col-cumple">Cumple</th>
             </tr>
@@ -83,26 +254,26 @@ export default function PanelPrograma({
                 </th>
 
                 {f.meses.map((m, i) => {
-                  const estado = !m.programada
-                    ? "vacio"
-                    : m.ejecutada
-                      ? "cumplido"
-                      : "pendiente";
                   const titulo = !m.programada
                     ? `${MESES[i]}: sin programar`
-                    : m.ejecutada
+                    : m.situacion === "cumplida"
                       ? `${MESES[i]}: cumplido — ${m.ejecutado.slice(0, 90)}`
-                      : `${MESES[i]}: programado, sin ejecutar — ${m.programado.slice(0, 90)}`;
+                      : m.situacion === "vencida"
+                        ? `${MESES[i]}: vencido sin ejecutar — ${m.programado.slice(0, 90)}`
+                        : `${MESES[i]}: programado, aún no toca — ${m.programado.slice(0, 90)}`;
                   return (
-                    <td key={i} className="col-mes">
+                    <td
+                      key={i}
+                      className={
+                        mesActual === i + 1 ? "col-mes col-mes-hoy" : "col-mes"
+                      }
+                    >
                       <button
                         type="button"
-                        className={`celda celda-${estado}`}
+                        className={`celda celda-${m.situacion}`}
                         title={titulo}
                         aria-label={titulo}
-                        onClick={() =>
-                          puedeEditar ? setAbierta({ fila: f, mes: i + 1 }) : undefined
-                        }
+                        onClick={() => (puedeEditar ? alAbrir(f, i + 1) : undefined)}
                         disabled={!puedeEditar}
                       >
                         {m.programada ? (
@@ -129,55 +300,31 @@ export default function PanelPrograma({
               </tr>
             ))}
           </tbody>
-          <tfoot>
-            <tr>
-              <th className="col-equipo" scope="row">Cumplimiento del mes</th>
-              {porMes.map((c, i) => (
-                <td key={i} className="col-mes">
-                  <span
-                    className="prg-pct-mes"
-                    style={{ color: colorCumplimiento(c.porcentaje) }}
+          {porMes ? (
+            <tfoot>
+              <tr>
+                <th className="col-equipo" scope="row">Cumplimiento del mes</th>
+                {porMes.map((c, i) => (
+                  <td
+                    key={i}
+                    className={
+                      mesActual === i + 1 ? "col-mes col-mes-hoy" : "col-mes"
+                    }
                   >
-                    {c.porcentaje === null ? "—" : Math.round(c.porcentaje * 100)}
-                  </span>
-                </td>
-              ))}
-              <td className="col-cumple" />
-            </tr>
-          </tfoot>
+                    <span
+                      className="prg-pct-mes"
+                      style={{ color: colorCumplimiento(c.porcentaje) }}
+                    >
+                      {c.porcentaje === null ? "—" : Math.round(c.porcentaje * 100)}
+                    </span>
+                  </td>
+                ))}
+                <td className="col-cumple" />
+              </tr>
+            </tfoot>
+          ) : null}
         </table>
       </div>
-
-      <div className="flex flex-wrap gap-x-5 gap-y-2 mt-3 text-[12.5px]" style={{ color: "var(--color-tenue)" }}>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="leyenda leyenda-pendiente" aria-hidden /> Programado
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="leyenda leyenda-cumplido" aria-hidden /> Cumplido
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="leyenda leyenda-vacio" aria-hidden /> Sin programar
-        </span>
-        <span style={{ color: "var(--color-sin-info)" }}>
-          El número es la semana del mes.
-        </span>
-      </div>
-
-      {puedeEditar ? (
-        <div className="pista">
-          <IcoLapiz className="w-3.5 h-3.5 pista-icono" />
-          Toca una casilla para programar ese mes o ver con qué acta se cumplió.
-        </div>
-      ) : null}
-
-      {abierta ? (
-        <Editor
-          anio={anio}
-          fila={abierta.fila}
-          mes={abierta.mes}
-          alCerrar={() => setAbierta(null)}
-        />
-      ) : null}
     </>
   );
 }

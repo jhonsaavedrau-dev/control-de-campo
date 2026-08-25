@@ -1152,12 +1152,17 @@ a.bitacora-fila:hover { background: var(--color-realce); }
   height: 15px;
   border-radius: 50%;
 }
-/* Hueco = programado y esperando; relleno = cumplido. La diferencia se
-   ve de lejos sin tener que leer nada. */
+/* Tres estados distintos, no dos. Lo vencido —programado, ya pasado y
+   sin hacer— es lo unico que hay que perseguir, y en la hoja de papel
+   se ve igual que un mes de diciembre que ni ha llegado. */
 .celda-pendiente .marca {
-  border: 2px solid var(--color-pendiente);
+  border: 2px dashed var(--color-borde-fuerte);
 }
-.celda-cumplido .marca {
+.celda-vencida .marca {
+  border: 2px solid var(--color-critico);
+  background: color-mix(in srgb, var(--color-critico) 16%, transparent);
+}
+.celda-cumplida .marca {
   background: var(--color-operativo);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-operativo) 20%, transparent);
 }
@@ -1205,7 +1210,11 @@ a.bitacora-fila:hover { background: var(--color-realce); }
 }
 
 .leyenda { width: 13px; height: 13px; border-radius: 50%; display: inline-block; }
-.leyenda-pendiente { border: 2px solid var(--color-pendiente); }
+.leyenda-pendiente { border: 2px dashed var(--color-borde-fuerte); }
+.leyenda-vencida {
+  border: 2px solid var(--color-critico);
+  background: color-mix(in srgb, var(--color-critico) 16%, transparent);
+}
 .leyenda-cumplido { background: var(--color-operativo); }
 .leyenda-vacio {
   width: 9px; height: 1px; border-radius: 0;
@@ -1359,4 +1368,22 @@ a.bitacora-fila:hover { background: var(--color-realce); }
   color: var(--color-activo);
   margin-left: 4px;
   font-size: 10px;
+}
+
+/* El mes en curso: una banda de fondo. Sin ella hay que contar
+   columnas para saber donde esta uno parado, y en doce nadie cuenta
+   bien. */
+.col-mes-hoy { background: color-mix(in srgb, var(--color-accion) 9%, transparent); }
+.programa thead .col-mes-hoy {
+  color: var(--color-accion-hondo);
+  font-weight: 600;
+}
+
+.rejilla-titulo {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-sin-info);
+  margin: 22px 0 7px;
 }

@@ -106,6 +106,32 @@ export function actasPorEquipoYMes(
   return mapa;
 }
 
+/**
+ * En qué punto está una casilla del año.
+ *
+ * `vencida` es la que importa y hoy no existe en el Excel: un mes
+ * programado, ya pasado y sin ejecutar. En la hoja se ve igual que uno
+ * de diciembre que ni ha llegado, así que lo que hay que perseguir se
+ * confunde con lo que todavía no toca.
+ */
+export type SituacionMes = "vacia" | "cumplida" | "vencida" | "pendiente";
+
+export function situacionDeMes(
+  estado: EstadoTarea,
+  anio: number,
+  mes: number,
+  hoy = new Date(),
+): SituacionMes {
+  if (!estado.programada) return "vacia";
+  if (estado.ejecutada) return "cumplida";
+
+  const anioHoy = hoy.getFullYear();
+  const mesHoy = hoy.getMonth() + 1;
+  // El mes en curso todavía no está vencido: queda tiempo de hacerlo.
+  const yaPaso = anio < anioHoy || (anio === anioHoy && mes < mesHoy);
+  return yaPaso ? "vencida" : "pendiente";
+}
+
 export type Cumplimiento = {
   programadas: number;
   ejecutadas: number;

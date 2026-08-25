@@ -6,7 +6,7 @@ import PanelPrograma from "@/components/PanelPrograma";
 import { usuarioActual, puedeEditar, loginConfigurado } from "@/lib/sesion";
 import {
   MESES_CORTOS, actasPorEquipoYMes, estadoDeTarea, cumplimiento,
-  colorCumplimiento, porcentaje,
+  situacionDeMes,
 } from "@/lib/programa";
 import type { TareaPrograma, ActaDelPrograma } from "@/lib/programa";
 
@@ -79,6 +79,19 @@ export default async function Programa({
     cumplimiento(filas.map((f) => f.meses[i])),
   );
 
+  // Lo que ya debía estar hecho y no lo está. Es el número accionable, y
+  // en la hoja de papel no existe: allí un mes vencido se ve igual que
+  // uno de diciembre que ni ha llegado.
+  const vencidas = filas.reduce(
+    (n, f) =>
+      n +
+      f.meses.filter(
+        (m, i) => situacionDeMes(m, anio, i + 1, hoy) === "vencida",
+      ).length,
+    0,
+  );
+  const mesActual = anio === hoy.getFullYear() ? hoy.getMonth() + 1 : null;
+
   return (
     <>
       <Encabezado atras={{ href: "/", texto: "Inicio" }} />
@@ -91,27 +104,9 @@ export default async function Programa({
           >
             FOR-MTO-17 · {sedes.find(([id]) => id === sede)?.[1]?.nombre ?? ""}
           </div>
-          <div className="flex flex-wrap items-end justify-between gap-4 mt-1.5">
-            <h1 className="font-[family-name:var(--font-placa)] font-semibold text-[34px] sm:text-[40px] leading-none">
-              Programa {anio}
-            </h1>
-            {!falta ? (
-              <div className="text-right">
-                <div
-                  className="font-[family-name:var(--font-mono)] text-[27px] leading-none tabular-nums"
-                  style={{ color: colorCumplimiento(general.porcentaje) }}
-                >
-                  {porcentaje(general.porcentaje)}
-                </div>
-                <div
-                  className="font-[family-name:var(--font-mono)] text-[10.5px] uppercase tracking-wide mt-1"
-                  style={{ color: "var(--color-tenue)" }}
-                >
-                  Cumplimiento · {general.ejecutadas} de {general.programadas}
-                </div>
-              </div>
-            ) : null}
-          </div>
+          <h1 className="font-[family-name:var(--font-placa)] font-semibold text-[34px] sm:text-[40px] leading-none mt-1.5">
+            Programa {anio}
+          </h1>
 
           {/* Sedes y años */}
           <div className="flex flex-wrap gap-1.5 mt-5">
@@ -160,13 +155,17 @@ export default async function Programa({
           ) : (
             <PanelPrograma
               anio={anio}
+              general={general}
+              vencidas={vencidas}
+              mesActual={mesActual}
               filas={filas.map((f) => ({
                 id_equipo: f.equipo.id_equipo,
                 nombre: f.equipo.nombre || f.equipo.id_equipo,
                 tag: f.equipo.tag || "",
                 tipo: f.equipo.tipo_activo ?? "generador",
                 cumple: f.cumple,
-                meses: f.meses.map((m) => ({
+                meses: f.meses.map((m, i) => ({
+                  situacion: situacionDeMes(m, anio, i + 1, hoy),
                   programada: m.programada,
                   ejecutada: m.ejecutada,
                   semana: m.tarea?.semana ?? null,
