@@ -761,7 +761,7 @@ export async function guardarIndicadorMes(
     mes: datos.mes,
   };
   for (const campo of [
-    "horas_operacion", "horas_requeridas", "fallas",
+    "horometro", "horas_operacion", "horas_requeridas", "fallas",
     "obs_disponibilidad", "tendencia_disponibilidad",
     "obs_confiabilidad", "tendencia_confiabilidad", "actualizado_por",
   ] as const) {

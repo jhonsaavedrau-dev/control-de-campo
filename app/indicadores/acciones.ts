@@ -42,6 +42,7 @@ export async function guardarMes(
     return { error: "Mes fuera de rango." };
   }
 
+  const horometro = aNumero(datos.get("horometro"));
   const horasOperacion = aNumero(datos.get("horas_operacion"));
   const horasRequeridas = aNumero(datos.get("horas_requeridas"));
 
@@ -71,6 +72,7 @@ export async function guardarMes(
       id_equipo: idEquipo,
       anio,
       mes,
+      horometro,
       horas_operacion: horasOperacion,
       horas_requeridas: horasRequeridas,
       fallas,

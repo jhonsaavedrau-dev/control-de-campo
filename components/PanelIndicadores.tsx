@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { MESES } from "@/lib/programa";
+import { IcoLapiz } from "./Iconos";
 import {
   ETIQUETA_BANDA, ACCION_BANDA, colorBanda, porcentaje, FRASES, META,
 } from "@/lib/indicadores";
@@ -22,6 +23,10 @@ import { guardarMes, type Respuesta } from "@/app/indicadores/acciones";
 
 type Fila = {
   mes: number;
+  horometro: number | null;
+  horometroPrevio: number | null;
+  origenHoras: "escrito" | "horometro" | null;
+  horasEscritas: number | null;
   horasOperacion: number | null;
   horasRequeridas: number | null;
   horasDelMes: number;
@@ -88,7 +93,7 @@ export default function PanelIndicadores({
         />
       </div>
 
-      <Grafica filas={filas} />
+      <Graficas filas={filas} />
 
       <div className="marco-programa mt-5">
         <table className="programa tabla-indicadores">
@@ -102,6 +107,7 @@ export default function PanelIndicadores({
               <th>MTBF</th>
               <th>Confiab.</th>
               <th className="col-logro">Calificación</th>
+              <th className="col-editar" />
             </tr>
           </thead>
           <tbody>
@@ -114,7 +120,17 @@ export default function PanelIndicadores({
                 <th className="col-equipo" scope="row">
                   <span className="prg-id">{MESES[f.mes - 1]}</span>
                 </th>
-                <td className="num">{f.horasOperacion ?? "—"}</td>
+                <td className="num">
+                  {f.horasOperacion ?? "—"}
+                  {f.origenHoras === "horometro" ? (
+                    <span
+                      className="marca-auto"
+                      title="Calculadas restando el horómetro del mes anterior."
+                    >
+                      ↺
+                    </span>
+                  ) : null}
+                </td>
                 <td className="num">{f.horasRequeridas ?? "—"}</td>
                 <td className="num">
                   <span
@@ -179,17 +195,29 @@ export default function PanelIndicadores({
                     <span style={{ color: "var(--color-sin-info)" }}>—</span>
                   )}
                 </td>
+                <td className="col-editar">
+                  {puedeEditar ? (
+                    <IcoLapiz className="w-3.5 h-3.5 icono-editar inline-block" />
+                  ) : null}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <p className="text-[12.5px] mt-3" style={{ color: "var(--color-sin-info)" }}>
-        Las fallas se cuentan solas desde las intervenciones correctivas del
-        mes. Un punto al lado avisa de que ese número se escribió a mano y no
-        coincide con lo contado.
-        {puedeEditar ? " Toca un mes para cargarlo." : ""}
+      {puedeEditar ? (
+        <div className="pista">
+          <IcoLapiz className="w-3.5 h-3.5 pista-icono" />
+          Toca cualquier mes para cargar su horómetro y sus observaciones.
+        </div>
+      ) : null}
+
+      <p className="text-[12.5px] mt-2.5" style={{ color: "var(--color-sin-info)" }}>
+        Las horas de operación se calculan restando el horómetro del mes
+        anterior. Las fallas se cuentan solas desde las correctivas del mes; un
+        punto rojo avisa de que ese número se escribió a mano y no coincide con
+        lo contado.
       </p>
 
       {abierto !== null ? (
@@ -251,109 +279,205 @@ function Medidor({
 }
 
 /**
- * La gráfica del año.
+ * Las dos gráficas del año.
  *
- * Se dibuja con SVG y no con una librería: son doce puntos y dos líneas
- * de meta. Traerse un paquete entero para esto le costaría al técnico
- * en campo más datos de los que vale la gráfica.
+ * Separadas y no superpuestas. Antes iban las dos líneas en un mismo
+ * plano, en verde y verde azulado: medidas con el validador, esos dos
+ * colores dan una separación de 9 sobre 100, cuando el mínimo para
+ * distinguirlos con vista normal es 15. No se diferenciaban, y encima
+ * disponibilidad y confiabilidad no se comparan punto a punto — cada
+ * una tiene su propia meta.
+ *
+ * Con una serie por gráfica no hace falta leyenda: el título dice cuál
+ * es, y el color queda libre para significar solamente «este dato».
  */
-function Grafica({ filas }: { filas: Fila[] }) {
-  const ancho = 720;
-  const alto = 170;
-  const margen = { i: 34, d: 10, s: 12, b: 22 };
-  const util = { w: ancho - margen.i - margen.d, h: alto - margen.s - margen.b };
+function Graficas({ filas }: { filas: Fila[] }) {
+  return (
+    <div className="grid gap-3 lg:grid-cols-2 mt-5">
+      <Grafica
+        titulo="Disponibilidad"
+        color="var(--serie-disponibilidad)"
+        meta={META.disponibilidad}
+        valores={filas.map((f) => f.disponibilidad.resultado)}
+        avisos={filas.map((f) => Boolean(f.disponibilidad.advertencia))}
+      />
+      <Grafica
+        titulo="Confiabilidad"
+        color="var(--serie-confiabilidad)"
+        meta={META.confiabilidad}
+        valores={filas.map((f) => f.confiabilidad.resultado)}
+        avisos={filas.map(() => false)}
+      />
+    </div>
+  );
+}
 
-  const x = (i: number) => margen.i + (util.w * i) / 11;
-  const y = (v: number) => margen.s + util.h * (1 - Math.min(1.05, v) / 1.05);
+function Grafica({
+  titulo,
+  color,
+  meta,
+  valores,
+  avisos,
+}: {
+  titulo: string;
+  color: string;
+  meta: number;
+  valores: (number | null)[];
+  avisos: boolean[];
+}) {
+  const [encima, setEncima] = useState<number | null>(null);
 
-  const linea = (sel: (f: Fila) => number | null) => {
-    const puntos = filas
-      .map((f, i) => ({ i, v: sel(f) }))
-      .filter((p): p is { i: number; v: number } => p.v != null);
-    if (!puntos.length) return null;
-    return puntos.map((p, k) => `${k ? "L" : "M"}${x(p.i)},${y(p.v)}`).join(" ");
-  };
+  const ancho = 560;
+  const alto = 200;
+  const m = { i: 38, d: 16, s: 16, b: 30 };
+  const w = ancho - m.i - m.d;
+  const h = alto - m.s - m.b;
 
-  const disp = linea((f) => f.disponibilidad.resultado);
-  const conf = linea((f) => f.confiabilidad.resultado);
-  if (!disp && !conf) return null;
+  // Hasta 110 %: por encima del 100 caben los meses que se pasan, que
+  // son justamente los que hay que ver.
+  const tope = 1.1;
+  const x = (i: number) => m.i + (w * i) / 11;
+  const y = (v: number) => m.s + h * (1 - Math.min(tope, v) / tope);
+
+  const puntos = valores
+    .map((v, i) => ({ i, v }))
+    .filter((p): p is { i: number; v: number } => p.v != null);
+
+  if (!puntos.length) {
+    return (
+      <div className="marco-programa p-4">
+        <div className="grafica-titulo">{titulo}</div>
+        <p className="text-[13.5px] mt-2" style={{ color: "var(--color-sin-info)" }}>
+          Sin meses cargados todavía.
+        </p>
+      </div>
+    );
+  }
+
+  const linea = puntos.map((p, k) => `${k ? "L" : "M"}${x(p.i)},${y(p.v)}`).join(" ");
+  // El área se cierra contra la base para dar peso al dato; el trazo
+  // solo no basta cuando la línea vive pegada al techo.
+  const area =
+    `M${x(puntos[0].i)},${m.s + h} ` +
+    puntos.map((p) => `L${x(p.i)},${y(p.v)}`).join(" ") +
+    ` L${x(puntos[puntos.length - 1].i)},${m.s + h} Z`;
+
+  const ultimo = puntos[puntos.length - 1];
+  const activo = encima != null ? valores[encima] : null;
 
   return (
-    <div className="marco-programa mt-5 p-3">
+    <div className="marco-programa p-3 sm:p-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <div className="grafica-titulo">{titulo}</div>
+        <div className="grafica-meta">meta {(meta * 100).toFixed(meta < 0.9 ? 1 : 0)} %</div>
+      </div>
+
       <svg
         viewBox={`0 0 ${ancho} ${alto}`}
-        className="w-full h-auto"
+        className="w-full h-auto mt-1.5 grafica-lienzo"
         role="img"
-        aria-label="Disponibilidad y confiabilidad mes a mes"
+        aria-label={`${titulo} mes a mes`}
+        onMouseLeave={() => setEncima(null)}
       >
-        {[0, 0.25, 0.5, 0.75, 1].map((v) => (
+        <defs>
+          <linearGradient id={`g-${titulo}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.22" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+
+        {/* Rejilla discreta: sitúa sin competir con el dato */}
+        {[0, 0.5, 1].map((v) => (
           <g key={v}>
             <line
-              x1={margen.i} x2={ancho - margen.d} y1={y(v)} y2={y(v)}
+              x1={m.i} x2={ancho - m.d} y1={y(v)} y2={y(v)}
               stroke="var(--color-borde)" strokeWidth="1"
             />
             <text
-              x={margen.i - 6} y={y(v) + 3} textAnchor="end"
-              fontSize="9" fill="var(--color-sin-info)"
-              fontFamily="var(--font-mono)"
+              x={m.i - 7} y={y(v) + 3.5} textAnchor="end"
+              className="grafica-eje"
             >
               {v * 100}
             </text>
           </g>
         ))}
 
-        {/* Las metas, punteadas: son el listón, no un dato medido */}
+        {/* La meta: es el listón, va punteada y rotulada */}
         <line
-          x1={margen.i} x2={ancho - margen.d}
-          y1={y(META.disponibilidad)} y2={y(META.disponibilidad)}
-          stroke="var(--color-operativo)" strokeWidth="1" strokeDasharray="4 3"
-        />
-        <line
-          x1={margen.i} x2={ancho - margen.d}
-          y1={y(META.confiabilidad)} y2={y(META.confiabilidad)}
-          stroke="var(--color-activo)" strokeWidth="1" strokeDasharray="4 3"
+          x1={m.i} x2={ancho - m.d} y1={y(meta)} y2={y(meta)}
+          stroke="var(--color-tenue)" strokeWidth="1" strokeDasharray="5 4"
         />
 
-        {conf ? (
-          <path d={conf} fill="none" stroke="var(--color-activo)" strokeWidth="2" />
-        ) : null}
-        {disp ? (
-          <path d={disp} fill="none" stroke="var(--color-operativo)" strokeWidth="2" />
+        <path d={area} fill={`url(#g-${titulo})`} />
+        <path
+          d={linea}
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+
+        {puntos.map((p) => (
+          <circle
+            key={p.i}
+            cx={x(p.i)}
+            cy={y(p.v)}
+            r={p.i === ultimo.i || encima === p.i ? 4.5 : 3}
+            fill={avisos[p.i] ? "var(--color-critico)" : color}
+            stroke="var(--color-panel)"
+            strokeWidth="2"
+          />
+        ))}
+
+        {/* El último punto, rotulado: es el que se busca al abrir */}
+        <text
+          x={Math.min(x(ultimo.i) + 8, ancho - m.d)}
+          y={y(ultimo.v) - 9}
+          textAnchor={ultimo.i > 8 ? "end" : "start"}
+          className="grafica-ultimo"
+        >
+          {(ultimo.v * 100).toFixed(0)} %
+        </text>
+
+        {/* Zonas de toque: más anchas que el punto, que en el celular
+            un círculo de 3 px no lo acierta nadie. */}
+        {valores.map((v, i) => (
+          <rect
+            key={i}
+            x={x(i) - w / 22} y={m.s} width={w / 11} height={h}
+            fill="transparent"
+            onMouseEnter={() => v != null && setEncima(i)}
+            onFocus={() => v != null && setEncima(i)}
+          />
+        ))}
+
+        {encima != null && activo != null ? (
+          <line
+            x1={x(encima)} x2={x(encima)} y1={m.s} y2={m.s + h}
+            stroke="var(--color-borde-fuerte)" strokeWidth="1"
+          />
         ) : null}
 
-        {filas.map((f, i) => (
-          <g key={i}>
-            {f.disponibilidad.resultado != null ? (
-              <circle cx={x(i)} cy={y(f.disponibilidad.resultado)} r="3"
-                fill="var(--color-operativo)" />
-            ) : null}
-            {f.confiabilidad.resultado != null ? (
-              <circle cx={x(i)} cy={y(f.confiabilidad.resultado)} r="3"
-                fill="var(--color-activo)" />
-            ) : null}
-            <text
-              x={x(i)} y={alto - 6} textAnchor="middle"
-              fontSize="9" fill="var(--color-sin-info)"
-              fontFamily="var(--font-mono)"
-            >
-              {MESES[i].slice(0, 3).toUpperCase()}
-            </text>
-          </g>
+        {MESES.map((mes, i) => (
+          <text
+            key={i} x={x(i)} y={alto - 9} textAnchor="middle"
+            className={encima === i ? "grafica-mes grafica-mes-activo" : "grafica-mes"}
+          >
+            {mes.slice(0, 3).toUpperCase()}
+          </text>
         ))}
       </svg>
 
-      <div className="flex flex-wrap gap-4 mt-1 text-[12.5px]" style={{ color: "var(--color-tenue)" }}>
-        <span className="inline-flex items-center gap-1.5">
-          <span style={{ width: 14, height: 2, background: "var(--color-operativo)" }} />
-          Disponibilidad
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span style={{ width: 14, height: 2, background: "var(--color-activo)" }} />
-          Confiabilidad
-        </span>
-        <span style={{ color: "var(--color-sin-info)" }}>
-          Punteado: la meta.
-        </span>
+      <div className="grafica-pie">
+        {encima != null && activo != null ? (
+          <>
+            <strong>{MESES[encima]}</strong> · {(activo * 100).toFixed(1)} %
+            {avisos[encima] ? " · revisar el dato" : ""}
+          </>
+        ) : (
+          <>Línea punteada: la meta. Pasa por encima de un mes para ver su valor.</>
+        )}
       </div>
     </div>
   );
@@ -433,6 +557,34 @@ function Editor({
           <input type="hidden" name="anio" value={anio} />
           <input type="hidden" name="mes" value={fila.mes} />
 
+          <div>
+            <label className="entrada-rotulo" htmlFor="hm">
+              Horómetro al cerrar el mes
+            </label>
+            <input
+              id="hm"
+              name="horometro"
+              inputMode="decimal"
+              defaultValue={fila.horometro ?? ""}
+              placeholder="La lectura del contador"
+              className="entrada font-[family-name:var(--font-mono)]"
+            />
+            <p className="text-[11.5px] mt-1" style={{ color: "var(--color-sin-info)" }}>
+              {fila.horometroPrevio != null ? (
+                <>
+                  El mes anterior cerró en{" "}
+                  <strong>{fila.horometroPrevio}</strong> h. Las horas de
+                  operación salen de la resta, no hay que calcularlas.
+                </>
+              ) : (
+                <>
+                  Sin lectura del mes anterior no se puede restar. Carga los
+                  meses en orden, o escribe las horas abajo.
+                </>
+              )}
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="entrada-rotulo" htmlFor="ho">
@@ -442,7 +594,12 @@ function Editor({
                 id="ho"
                 name="horas_operacion"
                 inputMode="decimal"
-                defaultValue={fila.horasOperacion ?? ""}
+                defaultValue={fila.horasEscritas ?? ""}
+                placeholder={
+                  fila.origenHoras === "horometro" && fila.horasOperacion != null
+                    ? `${fila.horasOperacion} (de la resta)`
+                    : "Solo si no hay horómetro"
+                }
                 className="entrada font-[family-name:var(--font-mono)]"
               />
             </div>
@@ -462,7 +619,7 @@ function Editor({
           <p className="text-[11.5px] -mt-2" style={{ color: "var(--color-sin-info)" }}>
             El mes tiene {fila.horasDelMes} horas. Si el equipo es de respaldo,
             en «requeridas» va el tiempo que se le pidió, no el mes entero.
-            Estas horas alimentan los dos indicadores.
+            Déjalo en blanco arriba y el sistema usa la resta de horómetros.
           </p>
 
           <div>

@@ -36,6 +36,9 @@ export type IndicadorMes = {
   id_equipo: string;
   anio: number;
   mes: number;
+  /** Lectura del horómetro al cerrar el mes. */
+  horometro: number | null;
+  /** Escrito a mano. Si está, manda sobre la resta de horómetros. */
   horas_operacion: number | null;
   horas_requeridas: number | null;
   /** null = lo cuenta el sistema desde las correctivas del mes. */
@@ -46,6 +49,34 @@ export type IndicadorMes = {
   tendencia_confiabilidad: string;
   actualizado_por: string;
 };
+
+/**
+ * Las horas de operación de un mes.
+ *
+ * Salen de restar dos lecturas del horómetro. Eso quita el último dato
+ * que quedaba escribiéndose a mano — antes había que calcularlo aparte
+ * y digitarlo en dos hojas.
+ *
+ * Un número escrito manda sobre la resta: hay meses que no se pueden
+ * deducir, como el primero de la serie o el siguiente a cambiar un
+ * horómetro averiado.
+ */
+export function horasOperadas(
+  escritas: number | null,
+  horometro: number | null,
+  horometroPrevio: number | null,
+): { horas: number | null; origen: "escrito" | "horometro" | null } {
+  if (escritas != null) return { horas: escritas, origen: "escrito" };
+  if (horometro == null || horometroPrevio == null) {
+    return { horas: null, origen: null };
+  }
+  const diferencia = horometro - horometroPrevio;
+  // Un horómetro no camina hacia atrás. Si lo hace, es que lo cambiaron
+  // o que alguien tecleó mal: se prefiere no decir nada a decir algo
+  // falso.
+  if (diferencia < 0) return { horas: null, origen: null };
+  return { horas: diferencia, origen: "horometro" };
+}
 
 /** Las horas que tiene el mes. Cuenta bisiestos. */
 export function horasDelMes(anio: number, mes: number): number {

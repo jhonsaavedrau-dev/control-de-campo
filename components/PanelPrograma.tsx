@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
 import { MESES, SEMANAS, colorCumplimiento, porcentaje } from "@/lib/programa";
+import { IcoLapiz } from "./Iconos";
 import type { Cumplimiento } from "@/lib/programa";
 import { guardarTarea, type Respuesta } from "@/app/programa/acciones";
 
@@ -161,6 +162,13 @@ export default function PanelPrograma({
           El número es la semana del mes.
         </span>
       </div>
+
+      {puedeEditar ? (
+        <div className="pista">
+          <IcoLapiz className="w-3.5 h-3.5 pista-icono" />
+          Toca una casilla para programar ese mes o ver con qué acta se cumplió.
+        </div>
+      ) : null}
 
       {abierta ? (
         <Editor

@@ -630,6 +630,7 @@ export async function guardarIndicadorMes(
     id_equipo: datos.id_equipo,
     anio: datos.anio,
     mes: datos.mes,
+    horometro: datos.horometro ?? previo?.horometro ?? null,
     horas_operacion: datos.horas_operacion ?? previo?.horas_operacion ?? null,
     horas_requeridas: datos.horas_requeridas ?? previo?.horas_requeridas ?? null,
     fallas: datos.fallas !== undefined ? datos.fallas : previo?.fallas ?? null,

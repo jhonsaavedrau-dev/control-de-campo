@@ -5,7 +5,7 @@ import { Encabezado, PieDePagina } from "@/components/Marco";
 import PanelIndicadores from "@/components/PanelIndicadores";
 import { usuarioActual, puedeEditar, loginConfigurado } from "@/lib/sesion";
 import {
-  horasDelMes, disponibilidad, confiabilidad, mtbf, META,
+  horasDelMes, horasOperadas, disponibilidad, confiabilidad, mtbf, META,
 } from "@/lib/indicadores";
 import type { IndicadorMes } from "@/lib/indicadores";
 
@@ -81,18 +81,35 @@ export default async function Indicadores({
     const d = porMes.get(mes) ?? null;
     const automaticas = fallasAutomaticas[i];
     const fallas = d?.fallas ?? automaticas;
-    const disp = disponibilidad(d?.horas_operacion ?? null, d?.horas_requeridas ?? null);
-    const conf = confiabilidad(d?.horas_operacion ?? null, fallas);
+
+    // Las horas salen de restar la lectura del mes anterior. Diciembre
+    // del año pasado no está en esta consulta, así que enero solo se
+    // deduce si alguien escribió sus horas.
+    const previo = porMes.get(mes - 1) ?? null;
+    const { horas, origen } = horasOperadas(
+      d?.horas_operacion ?? null,
+      d?.horometro ?? null,
+      previo?.horometro ?? null,
+    );
+
+    const disp = disponibilidad(horas, d?.horas_requeridas ?? null);
+    const conf = confiabilidad(horas, fallas);
 
     return {
       mes,
-      horasOperacion: d?.horas_operacion ?? null,
+      horometro: d?.horometro ?? null,
+      horometroPrevio: previo?.horometro ?? null,
+      origenHoras: origen,
+      horasOperacion: horas,
+      horasEscritas: d?.horas_operacion ?? null,
       horasRequeridas: d?.horas_requeridas ?? null,
       horasDelMes: horasDelMes(anio, mes),
       fallas,
       fallasAutomaticas: automaticas,
       fallasManual: d?.fallas != null,
-      mtbf: mtbf(d?.horas_operacion ?? null, fallas),
+      // Las horas ya deducidas, no el valor crudo: si no, el MTBF sale
+      // vacio justo en los meses que el sistema calcula solo.
+      mtbf: mtbf(horas, fallas),
       disponibilidad: disp,
       confiabilidad: conf,
       obsDisponibilidad: d?.obs_disponibilidad ?? "",
