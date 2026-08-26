@@ -35,6 +35,7 @@ const COMPROBACIONES = [
   { n: "06", que: "Cargo del tecnico", tabla: "intervenciones", columna: "tecnico_cargo" },
   { n: "07", que: "Correccion de actas", tabla: "intervenciones", columna: "editada_en" },
   { n: "08", que: "Reportes de falla", tabla: "reportes_falla", columna: "fecha_evento" },
+  { n: "09", que: "Diagnostico y repuestos", tabla: "intervenciones", columna: "causa_falla" },
 ];
 
 const cabeceras = {
