@@ -1,10 +1,17 @@
 /**
- * Tareas de mantenimiento para marcar en el formulario.
+ * Tareas de mantenimiento preventivo para marcar en el formulario.
  *
- * No están inventadas: salen de leer el historial real de la hoja de vida
- * del CAT C18, donde estas son las que se repiten año tras año. Si en
- * campo aparece otra, se escribe en «Actividades realizadas», que sigue
- * siendo texto libre.
+ * Dos fuentes, y las dos reales. La base salió de leer el historial de
+ * la hoja de vida del CAT C18 —las que se repiten año tras año—, y
+ * sobre eso se añadió la rutina que dictó PBI: lo que de verdad se hace
+ * en un preventivo, en sus palabras.
+ *
+ * Los nombres de las que ya existían no se tocaron. Un acta guarda las
+ * tareas por su texto, así que renombrarlas dejaría el historial
+ * hablando de tareas que ya no figuran en ningún sitio.
+ *
+ * Si en campo aparece otra, se escribe en «Actividades realizadas», que
+ * sigue siendo texto libre.
  */
 
 export type GrupoChecklist = {
@@ -28,23 +35,37 @@ export const CHECKLIST: GrupoChecklist[] = [
     tareas: [
       "Revisión de niveles",
       "Calibración de válvulas",
+      "Calibración o cambio de bujías",
       "Revisión de inyectores",
       "Revisión de fugas",
+      "Engrase de chumaceras y rodamientos",
     ],
   },
   {
-    grupo: "Refrigeración",
+    grupo: "Refrigeración y correas",
     tareas: [
       "Lavado de radiador",
+      "Lavado de cooler",
       "Adición de refrigerante",
       "Revisión de correas",
+      "Tensión de correas",
+    ],
+  },
+  {
+    grupo: "Sistemas auxiliares",
+    tareas: [
+      "Revisión de bomba de agua",
+      "Revisión de motores auxiliares",
     ],
   },
   {
     grupo: "Eléctrico y control",
     tareas: [
+      "Revisión de baterías",
       "Limpieza de bornes de batería",
+      "Revisión y perfilamiento de cables",
       "Revisión del sistema de control",
+      "Limpieza del sistema de control",
       "Revisión de alarmas",
       "Backup del controlador",
     ],

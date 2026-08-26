@@ -268,6 +268,15 @@ function Acta({
         <View style={s.tabla}>
           <Fila campo="Motivo" dato={i.motivo} />
           <Fila campo="Estado inicial" dato={i.estado_inicial} />
+          {i.diagnostico ? (
+            <Fila campo="Diagnóstico" dato={i.diagnostico} />
+          ) : null}
+          {i.causa_falla ? (
+            <Fila campo="Causa de la falla" dato={i.causa_falla} />
+          ) : null}
+          {i.repuestos ? (
+            <Fila campo="Repuestos" dato={i.repuestos} />
+          ) : null}
           {i.checklist?.length ? (
             <Fila campo="Tareas ejecutadas" dato={i.checklist.join(" · ")} />
           ) : null}

@@ -236,6 +236,14 @@ export type Intervencion = {
   motivo: string;
   estado_inicial: string;
   actividades_realizadas: string;
+  /* --- Solo correctivas. Vacios en las preventivas y en las actas
+     anteriores a 2026-08. --- */
+  /** Que se reviso y que se encontro. */
+  diagnostico: string;
+  /** Por que fallo. Es lo que se mira para que no vuelva a pasar. */
+  causa_falla: string;
+  /** Los repuestos que se usaron, uno por linea. */
+  repuestos: string;
   /** Tareas marcadas en el formulario; complementa al texto libre. */
   checklist: string[];
   estado_final: EstadoEquipo | null;

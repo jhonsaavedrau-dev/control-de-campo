@@ -134,6 +134,15 @@ export default async function ActaIntervencion({
             <tbody>
               <Fila campo="Motivo" dato={i.motivo} alto />
               <Fila campo="Estado inicial" dato={i.estado_inicial} alto />
+              {i.diagnostico ? (
+                <Fila campo="Diagnóstico" dato={i.diagnostico} alto />
+              ) : null}
+              {i.causa_falla ? (
+                <Fila campo="Causa de la falla" dato={i.causa_falla} alto />
+              ) : null}
+              {i.repuestos ? (
+                <Fila campo="Repuestos utilizados" dato={i.repuestos} alto />
+              ) : null}
               {i.checklist?.length ? (
                 <Fila
                   campo="Tareas ejecutadas"

@@ -257,6 +257,9 @@ export async function crearIntervencion(
     motivo: datos.motivo ?? "",
     estado_inicial: datos.estado_inicial ?? "",
     actividades_realizadas: datos.actividades_realizadas,
+    diagnostico: datos.diagnostico ?? "",
+    causa_falla: datos.causa_falla ?? "",
+    repuestos: datos.repuestos ?? "",
     checklist: depurarChecklist(datos.checklist),
     estado_final: datos.estado_final ?? null,
 

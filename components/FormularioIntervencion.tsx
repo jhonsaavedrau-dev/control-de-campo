@@ -19,6 +19,23 @@ import type {
 /** Lo que cabe en el acta. El mismo numero que aplica el servidor. */
 const MAX_FOTOS = 6;
 
+/**
+ * Lo que no puede faltar, en el orden en que aparece en la hoja.
+ *
+ * El orden importa: si faltan tres cosas se lleva al tecnico a la
+ * primera, no a la ultima. Y cada una dice que dato falta, no
+ * "complete el campo": delante de la maquina, con guantes, "falta decir
+ * que se le hizo al equipo" se entiende y "actividades_realizadas es
+ * obligatorio" no.
+ */
+const OBLIGATORIOS = [
+  { campo: "tecnico_nombre", falta: "Falta el nombre del técnico que intervino." },
+  { campo: "tecnico_cargo", falta: "Falta el cargo con el que firma el técnico." },
+  { campo: "tipo_intervencion", falta: "Falta decir si fue preventiva, correctiva, diagnóstico, inspección u otra." },
+  { campo: "actividades_realizadas", falta: "Falta escribir qué se le hizo al equipo." },
+  { campo: "resultado", falta: "Falta el resultado: cómo quedó la intervención." },
+] as const;
+
 const TIPOS = Object.keys(ETIQUETA_TIPO) as TipoIntervencion[];
 const ESTADOS = Object.keys(ETIQUETA_ESTADO) as EstadoEquipo[];
 const RESULTADOS = Object.keys(ETIQUETA_RESULTADO) as ResultadoIntervencion[];
@@ -63,10 +80,17 @@ export default function FormularioIntervencion({
     (f) => !quitar.includes(f.drive_file_id),
   );
   const hueco = Math.max(0, MAX_FOTOS - yaArchivadas.length);
+  // De aqui cuelga toda la hoja: un correctivo pide diagnostico, causa
+  // y repuestos, y un preventivo pide la rutina marcada.
+  const esCorrectiva = tipo === "correctiva";
+  const esRutina = tipo === "preventiva" || tipo === "inspeccion";
+
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   const [avisoFotos, setAvisoFotos] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** Cual es el campo que falta, para pintarlo y llevar hasta el. */
+  const [faltante, setFaltante] = useState<string | null>(null);
 
   /**
    * Se pueden elegir varias de una vez, y las que no caben se dicen.
@@ -94,17 +118,57 @@ export default function FormularioIntervencion({
     });
   }
 
+  /**
+   * Lleva hasta el campo que falta y lo deja enfocado.
+   *
+   * Se hace a mano y no con la validacion del navegador porque en un
+   * formulario de cinco secciones el globo nativo aparece pegado al
+   * campo —que puede estar tres pantallas mas abajo, o dentro de una
+   * seccion plegada— y no se ve. Aqui se abre lo que haga falta, se
+   * baja hasta el, se pinta en rojo y se dice que dato es.
+   */
+  function llevarA(formulario: HTMLFormElement, campo: string) {
+    setFaltante(campo);
+    const destino =
+      formulario.querySelector<HTMLElement>(`[data-campo="${campo}"]`) ??
+      formulario.elements.namedItem(campo);
+    if (!(destino instanceof HTMLElement)) return;
+
+    // Si esta dentro de un plegable cerrado, se abre: llevar a un campo
+    // invisible es lo mismo que no llevar a ninguno.
+    destino.closest("details")?.setAttribute("open", "");
+
+    destino.scrollIntoView({ behavior: "smooth", block: "center" });
+    const foco =
+      destino.matches("input, select, textarea, button")
+        ? destino
+        : destino.querySelector<HTMLElement>("input, select, textarea, button");
+    // El foco va despues del desplazamiento: si se enfoca antes, el
+    // navegador salta de golpe y se pierde el hilo de donde estaba.
+    window.setTimeout(() => foco?.focus({ preventScroll: true }), 320);
+  }
+
   async function enviar(evento: React.FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     setError(null);
+    setFaltante(null);
 
-    if (!tipo) {
-      setError("Selecciona el tipo de intervención.");
-      return;
+    const formulario = evento.currentTarget;
+    const f = new FormData(formulario);
+
+    for (const o of OBLIGATORIOS) {
+      const valor =
+        o.campo === "tipo_intervencion"
+          ? tipo
+          : String(f.get(o.campo) ?? "").trim();
+      if (!valor) {
+        setError(o.falta);
+        llevarA(formulario, o.campo);
+        return;
+      }
     }
-    setEnviando(true);
 
-    const f = new FormData(evento.currentTarget);
+    setEnviando(true);
     const texto = (k: string) => String(f.get(k) ?? "").trim();
     const num = (k: string) => {
       const v = texto(k).replace(/\s/g, "").replace(",", ".");
@@ -125,6 +189,9 @@ export default function FormularioIntervencion({
       motivo: texto("motivo"),
       estado_inicial: texto("estado_inicial"),
       actividades_realizadas: texto("actividades_realizadas"),
+      diagnostico: texto("diagnostico"),
+      causa_falla: texto("causa_falla"),
+      repuestos: texto("repuestos"),
       checklist: f.getAll("checklist").map(String),
       estado_final: texto("estado_final") || null,
 
@@ -244,7 +311,15 @@ export default function FormularioIntervencion({
   }
 
   return (
-    <form onSubmit={enviar} className="px-5 pt-4 pb-6">
+    <form
+      onSubmit={enviar}
+      noValidate
+      // Al corregir lo que faltaba se apaga el rojo solo, sin esperar a
+      // que vuelva a intentar guardar.
+      onInput={() => (faltante ? setFaltante(null) : undefined)}
+      onChange={() => (faltante ? setFaltante(null) : undefined)}
+      className="px-5 pt-4 pb-6"
+    >
       {aviso ? (
         <Nota tono="pendiente">{aviso}</Nota>
       ) : null}
@@ -296,8 +371,42 @@ export default function FormularioIntervencion({
         </>
       ) : null}
 
-      <Seccion titulo="Datos de la intervención" icono={<IcoPersona />} numero="1 de 5" />
-      <Grupo etiqueta="Técnico responsable" obligatorio>
+      {/* Lo primero, porque decide todo lo demas: un preventivo y un
+          correctivo no piden los mismos datos, y hasta ahora la hoja
+          era la misma para los dos. */}
+      <Seccion titulo="¿Qué se va a registrar?" icono={<IcoBandera />} numero="1 de 5" />
+      <Grupo
+        etiqueta="Tipo de intervención"
+        obligatorio
+        campo="tipo_intervencion"
+        mal={faltante === "tipo_intervencion"}
+        ayuda="Según lo que elijas, la hoja pide unas cosas u otras."
+      >
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+          {TIPOS.map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => {
+                setTipo(t);
+                setFaltante(null);
+              }}
+              className={tipo === t ? "pastilla pastilla-activa" : "pastilla"}
+              style={{ padding: "13px 8px", fontSize: "12.5px" }}
+            >
+              {ETIQUETA_TIPO[t]}
+            </button>
+          ))}
+        </div>
+      </Grupo>
+
+      <Seccion titulo="Datos de la intervención" icono={<IcoPersona />} numero="2 de 5" />
+      <Grupo
+        etiqueta="Técnico responsable"
+        obligatorio
+        campo="tecnico_nombre"
+        mal={faltante === "tecnico_nombre"}
+      >
         <input
           name="tecnico_nombre"
           required
@@ -309,7 +418,12 @@ export default function FormularioIntervencion({
 
       {/* El cargo se elige, no se escribe: va impreso junto a la firma
           del acta y tiene que decir siempre lo mismo. */}
-      <Grupo etiqueta="Cargo" obligatorio>
+      <Grupo
+        etiqueta="Cargo"
+        obligatorio
+        campo="tecnico_cargo"
+        mal={faltante === "tecnico_cargo"}
+      >
         <select
           name="tecnico_cargo"
           required
@@ -325,21 +439,6 @@ export default function FormularioIntervencion({
             </option>
           ))}
         </select>
-      </Grupo>
-
-      <Grupo etiqueta="Tipo de intervención" obligatorio>
-        <div className="grid grid-cols-3 gap-1.5">
-          {TIPOS.map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setTipo(t)}
-              className={tipo === t ? "pastilla pastilla-activa" : "pastilla"}
-            >
-              {ETIQUETA_TIPO[t]}
-            </button>
-          ))}
-        </div>
       </Grupo>
 
       <div className="grid grid-cols-2 gap-3">
@@ -360,53 +459,137 @@ export default function FormularioIntervencion({
         />
       </Grupo>
 
-      <Seccion titulo="Intervención" icono={<IcoHerramienta />} numero="2 de 5" />
-      <Grupo etiqueta="Motivo">
-        <textarea name="motivo" defaultValue={previa?.motivo ?? ""} rows={2} className="entrada" placeholder="Por qué se interviene el equipo." />
+      <Seccion
+        titulo={
+          esCorrectiva ? "La falla y su solución" : "El trabajo realizado"
+        }
+        icono={<IcoHerramienta />}
+        numero="3 de 5"
+      />
+      <Grupo
+        etiqueta={esCorrectiva ? "Síntoma reportado" : "Motivo"}
+        ayuda={
+          esCorrectiva
+            ? "Qué se reportó o qué se vio que estaba mal."
+            : undefined
+        }
+      >
+        <textarea
+          name="motivo"
+          defaultValue={previa?.motivo ?? ""}
+          rows={2}
+          className="entrada"
+          placeholder={
+            esCorrectiva
+              ? "El equipo se apagó solo, marcaba alarma de baja presión…"
+              : "Por qué se interviene el equipo."
+          }
+        />
       </Grupo>
       <Grupo etiqueta="Estado inicial">
         <textarea name="estado_inicial" defaultValue={previa?.estado_inicial ?? ""} rows={2} className="entrada" placeholder="Cómo se encontró el equipo." />
       </Grupo>
-      <Grupo
-        etiqueta="Qué se le hizo"
-        ayuda="Marca lo que aplique. Lo que no esté en la lista va abajo."
-      >
-        <div className="space-y-3">
-          {CHECKLIST.map((g) => (
-            <div key={g.grupo}>
-              <div
-                className="flex items-center gap-2 font-[family-name:var(--font-mono)] text-[11.5px] uppercase tracking-[0.1em] mb-2"
-                style={{ color: "var(--color-tenue)" }}
-              >
-                <IcoLista className="w-3 h-3" />
-                {g.grupo}
-                <span className="flex-1 h-px" style={{ background: "var(--color-borde-suave)" }} />
-              </div>
-              <div className="grid sm:grid-cols-2 gap-1.5">
-                {g.tareas.map((t) => (
-                  <label
-                    key={t}
-                    className="flex items-center gap-2.5 text-[14.5px] cursor-pointer py-2 px-2.5 rounded transition-colors has-checked:bg-[color-mix(in_srgb,var(--color-activo)_9%,transparent)] hover:bg-[var(--color-realce)]"
-                    style={{ border: "1px solid var(--color-borde-suave)" }}
-                  >
-                    <input
-                      type="checkbox"
-                      name="checklist"
-                      value={t}
-                      defaultChecked={previa?.checklist?.includes(t) ?? false}
-                      className="w-[19px] h-[19px] shrink-0"
-                      style={{ accentColor: "var(--color-activo)" }}
-                    />
-                    {t}
-                  </label>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </Grupo>
 
-      <Grupo etiqueta="Actividades realizadas" obligatorio>
+      {/* Solo en correctiva. Son las tres preguntas que un preventivo no
+          tiene por que responder, y que hasta ahora se acababan
+          escribiendo todas revueltas en "actividades realizadas". */}
+      {esCorrectiva ? (
+        <>
+          <Grupo
+            etiqueta="Diagnóstico"
+            ayuda="Qué se revisó y qué se encontró."
+          >
+            <textarea
+              name="diagnostico"
+              defaultValue={previa?.diagnostico ?? ""}
+              rows={3}
+              className="entrada"
+              placeholder="Se midió presión de gas, se revisó el historial del controlador…"
+            />
+          </Grupo>
+          <Grupo
+            etiqueta="Causa de la falla"
+            ayuda="Por qué falló. Es lo que se mira después para que no vuelva a pasar."
+          >
+            <textarea
+              name="causa_falla"
+              defaultValue={previa?.causa_falla ?? ""}
+              rows={2}
+              className="entrada"
+              placeholder="Baja presión de gas combustible en la línea de suministro."
+            />
+          </Grupo>
+          <Grupo
+            etiqueta="Repuestos utilizados"
+            ayuda="Uno por línea, con cantidad."
+          >
+            <textarea
+              name="repuestos"
+              defaultValue={previa?.repuestos ?? ""}
+              rows={3}
+              className="entrada"
+              placeholder={"2 x filtro de aceite" + String.fromCharCode(10) + "1 x correa de alternador"}
+            />
+          </Grupo>
+        </>
+      ) : null}
+      {/* La rutina solo en preventiva e inspeccion. En un correctivo
+          no aplica —no se va a "marcar cambio de aceite" cuando el
+          equipo se apago solo— y ocupaba media hoja. */}
+      {esRutina ? (
+      <Grupo
+          etiqueta="Qué se le hizo"
+          ayuda="Marca lo que aplique. Lo que no esté en la lista va abajo."
+        >
+          <div className="space-y-3">
+            {CHECKLIST.map((g) => (
+              <div key={g.grupo}>
+                <div
+                  className="flex items-center gap-2 font-[family-name:var(--font-mono)] text-[11.5px] uppercase tracking-[0.1em] mb-2"
+                  style={{ color: "var(--color-tenue)" }}
+                >
+                  <IcoLista className="w-3 h-3" />
+                  {g.grupo}
+                  <span className="flex-1 h-px" style={{ background: "var(--color-borde-suave)" }} />
+                </div>
+                <div className="grid sm:grid-cols-2 gap-1.5">
+                  {g.tareas.map((t) => (
+                    <label
+                      key={t}
+                      className="flex items-center gap-2.5 text-[14.5px] cursor-pointer py-2 px-2.5 rounded transition-colors has-checked:bg-[color-mix(in_srgb,var(--color-activo)_9%,transparent)] hover:bg-[var(--color-realce)]"
+                      style={{ border: "1px solid var(--color-borde-suave)" }}
+                    >
+                      <input
+                        type="checkbox"
+                        name="checklist"
+                        value={t}
+                        defaultChecked={previa?.checklist?.includes(t) ?? false}
+                        className="w-[19px] h-[19px] shrink-0"
+                        style={{ accentColor: "var(--color-activo)" }}
+                      />
+                      {t}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Grupo>
+      ) : null}
+
+      <Grupo
+        etiqueta={esCorrectiva ? "Ejecución" : "Actividades realizadas"}
+        obligatorio
+        campo="actividades_realizadas"
+        mal={faltante === "actividades_realizadas"}
+        ayuda={
+          esRutina
+            ? "Lo que no esté en la rutina de arriba."
+            : esCorrectiva
+              ? "Qué se hizo para dejarlo operando."
+              : undefined
+        }
+      >
         <textarea
           name="actividades_realizadas" defaultValue={previa?.actividades_realizadas ?? ""}
           required
@@ -484,7 +667,12 @@ export default function FormularioIntervencion({
       </Plegable>
 
       <Seccion titulo="Cierre" icono={<IcoBandera />} numero="5 de 5" />
-      <Grupo etiqueta="Resultado" obligatorio>
+      <Grupo
+        etiqueta="Resultado"
+        obligatorio
+        campo="resultado"
+        mal={faltante === "resultado"}
+      >
         <select
           name="resultado"
           required
@@ -738,14 +926,21 @@ function Seccion({
 }
 
 function Grupo({
-  etiqueta, children, obligatorio, ayuda,
+  etiqueta, children, obligatorio, ayuda, campo, mal,
 }: {
   etiqueta: string; children: React.ReactNode;
   obligatorio?: boolean; ayuda?: string;
+  /** El nombre del campo: es por donde lo encuentra `llevarA`. */
+  campo?: string;
+  /** Este es el que falta: se pinta y se salta hasta el. */
+  mal?: boolean;
 }) {
   return (
-    <div className="mb-4">
-      <label className="entrada-rotulo">
+    <div className="mb-4" data-campo={campo} data-falta={mal ? "si" : undefined}>
+      <label
+        className="entrada-rotulo"
+        style={mal ? { color: "var(--color-critico)" } : undefined}
+      >
         {etiqueta}
         {obligatorio ? <span className="req"> *</span> : null}
       </label>

@@ -46,15 +46,20 @@ export function LogotipoPBI({
       />
 
       {!compacto ? (
+        /* El nombre sale tambien en el telefono. Estaba oculto por
+           debajo de 640px y ahi la cabecera se quedaba en un logotipo
+           suelto, sin decir en que sistema esta uno. La bajada
+           —PBI SAS ESP— si se guarda para pantalla ancha: en movil el
+           logotipo ya lleva la marca al lado. */
         <div
-          className="leading-none border-l pl-3 hidden sm:block"
+          className="leading-none border-l pl-2.5 sm:pl-3 min-w-0"
           style={{ borderColor: "var(--color-borde)" }}
         >
-          <div className="font-[family-name:var(--font-placa)] font-semibold tracking-[0.01em] text-[16px] sm:text-[17px] text-[color:var(--color-marino)]">
+          <div className="font-[family-name:var(--font-placa)] font-semibold tracking-[0.01em] text-[15px] sm:text-[17px] leading-tight text-[color:var(--color-marino)]">
             Control de Generación
           </div>
           <div
-            className="text-[8.5px] font-semibold tracking-[0.18em] mt-1 uppercase"
+            className="text-[8.5px] font-semibold tracking-[0.18em] mt-1 uppercase hidden sm:block"
             style={{ color: "var(--color-sin-info)" }}
           >
             PBI SAS ESP

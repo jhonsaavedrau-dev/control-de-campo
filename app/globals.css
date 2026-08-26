@@ -385,6 +385,19 @@ button.panel:hover {
   transition: border-color 120ms ease, background 120ms ease;
 }
 .entrada:hover { border-color: var(--color-borde-fuerte); }
+
+/* El campo que falta. Se pinta el grupo entero —rotulo, control y
+   ayuda— porque en una hoja larga un borde rojo solo se confunde con
+   el foco. */
+[data-falta="si"] .entrada,
+[data-falta="si"] .pastilla {
+  border-color: var(--color-critico);
+  background: color-mix(in srgb, var(--color-critico) 5%, var(--color-panel));
+}
+[data-falta="si"] .entrada:focus {
+  border-color: var(--color-critico);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-critico) 20%, transparent);
+}
 .entrada:focus {
   outline: none;
   background: var(--color-panel);
