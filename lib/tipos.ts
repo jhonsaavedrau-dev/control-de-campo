@@ -325,6 +325,9 @@ export type Documento = {
 };
 
 import type { LecturaHorometro } from "./horometro";
+import type {
+  Consumible, MovimientoConsumible, InstalacionConsumible,
+} from "./consumibles";
 
 export type BaseDatos = {
   usuarios: Usuario[];
@@ -337,6 +340,9 @@ export type BaseDatos = {
   documentos: Documento[];
   reportes_falla?: ReporteFalla[];
   lecturas_horometro?: LecturaHorometro[];
+  consumibles?: Consumible[];
+  movimientos_consumible?: MovimientoConsumible[];
+  instalaciones_consumible?: InstalacionConsumible[];
 };
 
 /**

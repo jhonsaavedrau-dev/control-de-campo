@@ -204,3 +204,40 @@ export const registrarLectura = (
 
 export const lecturasDe = (...a: Parameters<typeof json.lecturasDe>) =>
   usarSupabase() ? supabase.lecturasDe(...a) : json.lecturasDe(...a);
+
+/* ---------- Consumibles ---------- */
+
+export const listarConsumibles = (
+  ...a: Parameters<typeof json.listarConsumibles>
+) =>
+  usarSupabase() ? supabase.listarConsumibles(...a) : json.listarConsumibles(...a);
+
+export const crearConsumible = (...a: Parameters<typeof json.crearConsumible>) =>
+  usarSupabase() ? supabase.crearConsumible(...a) : json.crearConsumible(...a);
+
+export const registrarMovimiento = (
+  ...a: Parameters<typeof json.registrarMovimiento>
+) =>
+  usarSupabase()
+    ? supabase.registrarMovimiento(...a)
+    : json.registrarMovimiento(...a);
+
+export const movimientosDe = (...a: Parameters<typeof json.movimientosDe>) =>
+  usarSupabase() ? supabase.movimientosDe(...a) : json.movimientosDe(...a);
+
+export const instalacionesDe = (...a: Parameters<typeof json.instalacionesDe>) =>
+  usarSupabase() ? supabase.instalacionesDe(...a) : json.instalacionesDe(...a);
+
+export const instalarConsumible = (
+  ...a: Parameters<typeof json.instalarConsumible>
+) =>
+  usarSupabase()
+    ? supabase.instalarConsumible(...a)
+    : json.instalarConsumible(...a);
+
+export const retirarInstalacion = (
+  ...a: Parameters<typeof json.retirarInstalacion>
+) =>
+  usarSupabase()
+    ? supabase.retirarInstalacion(...a)
+    : json.retirarInstalacion(...a);

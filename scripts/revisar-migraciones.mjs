@@ -38,6 +38,7 @@ const COMPROBACIONES = [
   { n: "09", que: "Diagnostico y repuestos", tabla: "intervenciones", columna: "causa_falla" },
   { n: "10", que: "Sincronismo", tabla: "equipos", columna: "grupo_sincronismo" },
   { n: "11", que: "Lecturas de horometro", tabla: "lecturas_horometro", columna: "horometro" },
+  { n: "12", que: "Consumibles", tabla: "consumibles", columna: "vida_util_horas" },
 ];
 
 const cabeceras = {

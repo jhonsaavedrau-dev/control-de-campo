@@ -7,6 +7,9 @@ import type {
 } from "./tipos";
 import type { EntradaIntervencion, EntradaReporteFalla } from "./db-json";
 import type { LecturaHorometro } from "./horometro";
+import type {
+  Consumible, MovimientoConsumible, InstalacionConsumible,
+} from "./consumibles";
 import { depurarChecklist } from "./checklist";
 import type { IntervencionParaContar } from "./mantenimiento";
 import type { TareaPrograma, ActaDelPrograma } from "./programa";
@@ -1076,4 +1079,157 @@ export async function lecturasDe(
     throw errorConCodigo(error);
   }
   return ((data ?? []) as LecturaHorometro[]).reverse();
+}
+
+/* ---------- Consumibles ---------- */
+
+/** Faltan las tablas de consumibles: la migracion 12 no se ha ejecutado. */
+export class FaltaConsumiblesError extends Error {
+  constructor() {
+    super("Las tablas de consumibles todavia no existen.");
+    this.name = "FaltaConsumiblesError";
+  }
+}
+
+function faltaTablaConsumibles(e: { code?: string; message?: string }) {
+  return (
+    e?.code === "42P01" ||
+    e?.code === "PGRST205" ||
+    /consumible/i.test(e?.message ?? "")
+  );
+}
+
+export async function listarConsumibles(): Promise<
+  (Consumible & { existencia: number })[]
+> {
+  const db = cliente();
+  const [cat, saldos] = await Promise.all([
+    db.from("consumibles").select("*").order("nombre"),
+    db.from("existencias_consumible").select("*"),
+  ]);
+  if (cat.error) {
+    if (faltaTablaConsumibles(cat.error)) throw new FaltaConsumiblesError();
+    throw errorConCodigo(cat.error);
+  }
+  const porId = new Map(
+    ((saldos.data ?? []) as { id_consumible: string; existencia: number }[]).map(
+      (x) => [x.id_consumible, Number(x.existencia) || 0],
+    ),
+  );
+  return ((cat.data ?? []) as Consumible[]).map((c) => ({
+    ...c,
+    existencia: porId.get(c.id_consumible) ?? 0,
+  }));
+}
+
+export async function crearConsumible(
+  datos: Partial<Consumible> & { nombre: string },
+): Promise<Consumible> {
+  const db = cliente();
+
+  // El consecutivo se calcula y se reintenta si dos caen a la vez,
+  // igual que el de las actas.
+  for (let intento = 0; intento < 6; intento++) {
+    const { data: previos, error: e1 } = await db
+      .from("consumibles")
+      .select("id_consumible");
+    if (e1) {
+      if (faltaTablaConsumibles(e1)) throw new FaltaConsumiblesError();
+      throw errorConCodigo(e1);
+    }
+    const ultimo = (previos ?? [])
+      .map((p) => parseInt(String(p.id_consumible).slice(3), 10))
+      .filter((n) => !Number.isNaN(n))
+      .reduce((max, n) => Math.max(max, n), 0);
+    const id = `CN-${String(ultimo + 1 + intento).padStart(4, "0")}`;
+
+    const { data, error } = await db
+      .from("consumibles")
+      .insert({
+        id_consumible: id,
+        nombre: datos.nombre,
+        tipo: datos.tipo ?? "otro",
+        referencia: datos.referencia ?? "",
+        marca: datos.marca ?? "",
+        unidad: datos.unidad || "unidad",
+        vida_util_horas: datos.vida_util_horas ?? null,
+        stock_minimo: datos.stock_minimo ?? 0,
+        observaciones: datos.observaciones ?? "",
+      })
+      .select();
+
+    if (!error) return (data as Consumible[])[0];
+    if (faltaTablaConsumibles(error)) throw new FaltaConsumiblesError();
+    if (error.code !== "23505") throw errorConCodigo(error);
+  }
+  throw new Error("No se pudo asignar un consecutivo al consumible.");
+}
+
+export async function registrarMovimiento(
+  m: Omit<MovimientoConsumible, "id">,
+): Promise<MovimientoConsumible> {
+  const { data, error } = await cliente()
+    .from("movimientos_consumible")
+    .insert(m)
+    .select();
+  if (error) {
+    if (faltaTablaConsumibles(error)) throw new FaltaConsumiblesError();
+    throw errorConCodigo(error);
+  }
+  return (data as MovimientoConsumible[])[0];
+}
+
+export async function movimientosDe(
+  idConsumible?: string,
+): Promise<MovimientoConsumible[]> {
+  let q = cliente().from("movimientos_consumible").select("*");
+  if (idConsumible) q = q.eq("id_consumible", idConsumible);
+  const { data, error } = await q.order("fecha", { ascending: false }).limit(500);
+  if (error) {
+    if (faltaTablaConsumibles(error)) throw new FaltaConsumiblesError();
+    throw errorConCodigo(error);
+  }
+  return (data ?? []) as MovimientoConsumible[];
+}
+
+export async function instalacionesDe(
+  idEquipo: string,
+  soloPuestas = true,
+): Promise<InstalacionConsumible[]> {
+  let q = cliente()
+    .from("instalaciones_consumible")
+    .select("*")
+    .eq("id_equipo", idEquipo);
+  if (soloPuestas) q = q.is("retirado_en", null);
+  const { data, error } = await q.order("instalado_en", { ascending: false });
+  if (error) {
+    if (faltaTablaConsumibles(error)) throw new FaltaConsumiblesError();
+    throw errorConCodigo(error);
+  }
+  return (data ?? []) as InstalacionConsumible[];
+}
+
+export async function instalarConsumible(
+  i: Omit<InstalacionConsumible, "id">,
+): Promise<InstalacionConsumible> {
+  const { data, error } = await cliente()
+    .from("instalaciones_consumible")
+    .insert(i)
+    .select();
+  if (error) {
+    if (faltaTablaConsumibles(error)) throw new FaltaConsumiblesError();
+    throw errorConCodigo(error);
+  }
+  return (data as InstalacionConsumible[])[0];
+}
+
+export async function retirarInstalacion(
+  id: string,
+  datos: { retirado_en: string; horometro_retiro: number | null; motivo_retiro: string },
+): Promise<void> {
+  const { error } = await cliente()
+    .from("instalaciones_consumible")
+    .update(datos)
+    .eq("id", id);
+  if (error) throw errorConCodigo(error);
 }

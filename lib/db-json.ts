@@ -6,6 +6,9 @@ import type { IntervencionParaContar } from "./mantenimiento";
 import type { TareaPrograma, ActaDelPrograma } from "./programa";
 import type { IndicadorMes } from "./indicadores";
 import type { LecturaHorometro } from "./horometro";
+import type {
+  Consumible, MovimientoConsumible, InstalacionConsumible,
+} from "./consumibles";
 import {
   siguienteId as siguienteIdDeFamilia,
   sedeNueva, equipoNuevo, controladorNuevo,
@@ -889,4 +892,119 @@ export async function lecturasDe(
     .filter((l) => l.id_equipo === idEquipo)
     .sort((a, b) => a.momento.localeCompare(b.momento))
     .slice(-limite);
+}
+
+/* ---------- Consumibles ---------- */
+
+function siguienteIdConsumible(existentes: string[]) {
+  const ultimo = existentes
+    .filter((id) => id.startsWith("CN-"))
+    .map((id) => parseInt(id.slice(3), 10))
+    .filter((n) => !Number.isNaN(n))
+    .reduce((max, n) => Math.max(max, n), 0);
+  return `CN-${String(ultimo + 1).padStart(4, "0")}`;
+}
+
+export async function listarConsumibles(): Promise<
+  (Consumible & { existencia: number })[]
+> {
+  const db = await leer();
+  const movs = db.movimientos_consumible ?? [];
+  return (db.consumibles ?? [])
+    .map((c) => ({
+      ...c,
+      existencia: movs
+        .filter((m) => m.id_consumible === c.id_consumible)
+        .reduce(
+          (n, m) =>
+            n +
+            (m.tipo === "entrada"
+              ? m.cantidad
+              : m.tipo === "salida"
+                ? -m.cantidad
+                : m.cantidad * (m.signo ?? 1)),
+          0,
+        ),
+    }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+}
+
+export async function crearConsumible(
+  datos: Partial<Consumible> & { nombre: string },
+): Promise<Consumible> {
+  const db = await leer();
+  db.consumibles ??= [];
+  const nuevo: Consumible = {
+    id_consumible: siguienteIdConsumible(
+      db.consumibles.map((c) => c.id_consumible),
+    ),
+    nombre: datos.nombre,
+    tipo: datos.tipo ?? "otro",
+    referencia: datos.referencia ?? "",
+    marca: datos.marca ?? "",
+    unidad: datos.unidad || "unidad",
+    vida_util_horas: datos.vida_util_horas ?? null,
+    stock_minimo: datos.stock_minimo ?? 0,
+    observaciones: datos.observaciones ?? "",
+  };
+  db.consumibles.push(nuevo);
+  await escribir(db);
+  return nuevo;
+}
+
+export async function registrarMovimiento(
+  m: Omit<MovimientoConsumible, "id">,
+): Promise<MovimientoConsumible> {
+  const db = await leer();
+  db.movimientos_consumible ??= [];
+  if (!(db.consumibles ?? []).some((c) => c.id_consumible === m.id_consumible)) {
+    throw new Error(`El consumible ${m.id_consumible} no existe`);
+  }
+  const nuevo = { ...m, id: `MV-${db.movimientos_consumible.length + 1}` };
+  db.movimientos_consumible.push(nuevo);
+  await escribir(db);
+  return nuevo;
+}
+
+export async function movimientosDe(
+  idConsumible?: string,
+): Promise<MovimientoConsumible[]> {
+  const db = await leer();
+  return (db.movimientos_consumible ?? [])
+    .filter((m) => !idConsumible || m.id_consumible === idConsumible)
+    .sort((a, b) => b.fecha.localeCompare(a.fecha));
+}
+
+export async function instalacionesDe(
+  idEquipo: string,
+  soloPuestas = true,
+): Promise<InstalacionConsumible[]> {
+  const db = await leer();
+  return (db.instalaciones_consumible ?? [])
+    .filter(
+      (i) => i.id_equipo === idEquipo && (!soloPuestas || i.retirado_en == null),
+    )
+    .sort((a, b) => b.instalado_en.localeCompare(a.instalado_en));
+}
+
+export async function instalarConsumible(
+  i: Omit<InstalacionConsumible, "id">,
+): Promise<InstalacionConsumible> {
+  const db = await leer();
+  db.instalaciones_consumible ??= [];
+  const nueva = { ...i, id: `IN-${db.instalaciones_consumible.length + 1}` };
+  db.instalaciones_consumible.push(nueva);
+  await escribir(db);
+  return nueva;
+}
+
+export async function retirarInstalacion(
+  id: string,
+  datos: { retirado_en: string; horometro_retiro: number | null; motivo_retiro: string },
+): Promise<void> {
+  const db = await leer();
+  const i = (db.instalaciones_consumible ?? []).find((x) => x.id === id);
+  if (!i) return;
+  Object.assign(i, datos);
+  await escribir(db);
 }

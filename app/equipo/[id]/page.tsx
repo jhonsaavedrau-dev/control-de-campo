@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { obtenerFichaEquipo, equiposConSede, lecturasDe } from "@/lib/db";
+import {
+  obtenerFichaEquipo, equiposConSede, lecturasDe, instalacionesDe,
+  listarConsumibles,
+} from "@/lib/db";
 import { ritmoDiario } from "@/lib/horometro";
 import { Encabezado, PieDePagina } from "@/components/Marco";
 import { InsigniaResultado, fechaCorta } from "@/components/Piezas";
@@ -15,6 +18,7 @@ import {
 import PanelBackups from "@/components/PanelBackups";
 import AccionesHojaVida from "@/components/AccionesHojaVida";
 import PanelManuales from "@/components/PanelManuales";
+import ConsumiblesDelEquipo from "@/components/ConsumiblesDelEquipo";
 import {
   ETIQUETA_TIPO, ETIQUETA_ESTADO, ETIQUETA_SINCRONISMO, semaforo,
 } from "@/lib/tipos";
@@ -40,6 +44,21 @@ export default async function FichaEquipo({
     ritmo = ritmoDiario(await lecturasDe(decodeURIComponent(id).toUpperCase()));
   } catch {
     ritmo = null;
+  }
+
+  // Lo que hay puesto en este equipo, con su catálogo para saber cada
+  // cuánto se cambia. Si falta la migración 12 el resto de la ficha
+  // sigue igual.
+  let instalaciones: Awaited<ReturnType<typeof instalacionesDe>> = [];
+  let catalogo: Awaited<ReturnType<typeof listarConsumibles>> = [];
+  try {
+    [instalaciones, catalogo] = await Promise.all([
+      instalacionesDe(decodeURIComponent(id).toUpperCase()),
+      listarConsumibles(),
+    ]);
+  } catch {
+    instalaciones = [];
+    catalogo = [];
   }
   if (!ficha) notFound();
   const puedeEditarFicha = puedeEditar(usuario);
@@ -165,6 +184,16 @@ export default async function FichaEquipo({
               />
 
               <BloqueEquipo equipo={e} />
+
+              {catalogo.length || instalaciones.length ? (
+                <ConsumiblesDelEquipo
+                  idEquipo={e.id_equipo}
+                  horometroActual={e.horometro_actual}
+                  instalaciones={instalaciones}
+                  catalogo={catalogo}
+                  puedeEditar={puedeEditarFicha}
+                />
+              ) : null}
 
               {/* Sincronismo: como opera y con cuales va en paralelo.
                   Dos equipos que sincronizan se comportan igual, y sin
