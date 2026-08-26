@@ -13,7 +13,7 @@ import {
 } from "@/components/FichaEquipo";
 import {
   IcoHerramienta, IcoCodigoQR, IcoLapiz, IcoFlecha, IcoChip, IcoDocumento,
-  IcoRed,
+  IcoRed, IcoLupa,
 } from "@/components/Iconos";
 import PanelBackups from "@/components/PanelBackups";
 import AccionesHojaVida from "@/components/AccionesHojaVida";
@@ -291,6 +291,14 @@ export default async function FichaEquipo({
                   ) : null}
                 </div>
               </div>
+
+              <Link
+                href={`/equipo/${e.id_equipo}/trazabilidad`}
+                className="accion accion-secundaria"
+              >
+                <IcoLupa className="w-4 h-4" />
+                Ver la trazabilidad del equipo
+              </Link>
 
               <Bloque
                 titulo="Intervenciones"
