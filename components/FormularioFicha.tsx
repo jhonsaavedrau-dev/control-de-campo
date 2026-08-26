@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ETIQUETA_ESTADO, ETIQUETA_COMBUSTIBLE,
+  ETIQUETA_ESTADO, ETIQUETA_COMBUSTIBLE, ETIQUETA_SINCRONISMO,
 } from "@/lib/tipos";
 import type { Equipo, Controlador, EstadoEquipo, TipoCombustible } from "@/lib/tipos";
 
@@ -182,6 +182,34 @@ export default function FormularioFicha({
       <p className="text-[12.5px] -mt-1 mb-1" style={{ color: "var(--color-sin-info)" }}>
         Con esos dos datos el sistema avisa solo cuándo toca el preventivo.
       </p>
+
+      {/* Como opera respecto a los demas del campo. Dos equipos que
+          sincronizan se comportan igual, y sin esto no habia forma de
+          saber cuales van juntos. */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Campo etiqueta="Sincronismo">
+          <select name="e.sincronismo" defaultValue={equipo.sincronismo ?? "individual"} className="entrada">
+            {Object.entries(ETIQUETA_SINCRONISMO).map(([v, e]) => (
+              <option key={v} value={v}>
+                {e}
+              </option>
+            ))}
+          </select>
+        </Campo>
+        <Campo etiqueta="Grupo de sincronismo">
+          <input
+            name="e.grupo_sincronismo"
+            defaultValue={equipo.grupo_sincronismo ?? ""}
+            placeholder="Barra 1"
+            className="entrada"
+          />
+        </Campo>
+      </div>
+      <p className="text-[12.5px] -mt-1 mb-1" style={{ color: "var(--color-sin-info)" }}>
+        Los equipos de la misma sede con el mismo grupo quedan asociados entre
+        sí.
+      </p>
+
       <Campo etiqueta="Observaciones del equipo">
         <textarea name="e.observaciones" rows={2} defaultValue={equipo.observaciones} className="entrada" />
       </Campo>

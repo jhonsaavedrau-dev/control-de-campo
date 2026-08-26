@@ -94,6 +94,8 @@ export function equipoNuevo(id: string, d: Partial<Equipo>): Equipo {
     rpm: null,
     horometro_actual: d.horometro_actual ?? null,
     frecuencia_mto: d.frecuencia_mto?.trim() ?? "",
+    sincronismo: (d.sincronismo?.trim() || "individual") as Equipo["sincronismo"],
+    grupo_sincronismo: d.grupo_sincronismo?.trim() ?? "",
     estado: d.estado ?? "pendiente",
     foto_equipo_url: "",
     foto_planta_url: "",

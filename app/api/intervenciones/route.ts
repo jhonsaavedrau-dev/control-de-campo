@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { crearIntervencion } from "@/lib/db";
+import { crearIntervencion, registrarLectura } from "@/lib/db";
 import type { EntradaIntervencion } from "@/lib/db";
 import { archivarActa } from "@/lib/archivar";
 import { MAX_FOTOS_ACTA } from "@/lib/fotos";
@@ -74,6 +74,26 @@ export async function POST(peticion: Request) {
       { error: e instanceof Error ? e.message : "No se pudo registrar" },
       { status: 400 },
     );
+  }
+
+  // El horómetro del acta entra también como lectura operacional. Es la
+  // misma cifra que el técnico ya escribió: no se le pide dos veces, y
+  // así la serie del equipo se alimenta sola de las intervenciones.
+  if (intervencion.horometro != null) {
+    try {
+      await registrarLectura({
+        id_equipo: intervencion.id_equipo,
+        momento: new Date(
+          `${intervencion.fecha}T${intervencion.hora || "12:00"}:00`,
+        ).toISOString(),
+        horometro: intervencion.horometro,
+        origen: "acta",
+        id_intervencion: intervencion.id_intervencion,
+        registrado_por: intervencion.tecnico_nombre,
+      });
+    } catch {
+      // Que falte la migración 11 no puede tumbar el registro del acta.
+    }
   }
 
   // Fotos y acta se archivan en el mismo paso. Si Drive falla, la

@@ -151,6 +151,16 @@ export type Equipo = {
   horometro_actual: number | null;
   /** Cada cuántas horas toca preventivo, según el fabricante. */
   frecuencia_mto: string;
+  /** Cómo opera: solo, en paralelo con otros, o de respaldo. */
+  sincronismo: Sincronismo;
+  /**
+   * La barra o grupo con el que sincroniza.
+   *
+   * Los equipos de una misma sede que comparten este texto son los
+   * asociados entre si. Es una lista sin jerarquia: escribir el mismo
+   * nombre en tres equipos ya los relaciona.
+   */
+  grupo_sincronismo: string;
   estado: EstadoEquipo;
   foto_equipo_url: string;
   foto_planta_url: string;
@@ -314,6 +324,8 @@ export type Documento = {
   drive_url: string;
 };
 
+import type { LecturaHorometro } from "./horometro";
+
 export type BaseDatos = {
   usuarios: Usuario[];
   sedes: Sede[];
@@ -324,6 +336,7 @@ export type BaseDatos = {
   backups: Backup[];
   documentos: Documento[];
   reportes_falla?: ReporteFalla[];
+  lecturas_horometro?: LecturaHorometro[];
 };
 
 /**
@@ -379,3 +392,12 @@ export type ReporteFalla = {
   creado_por: string;
   created_at?: string;
 };
+
+/** Cómo opera un equipo respecto a los demás del campo. */
+export const ETIQUETA_SINCRONISMO = {
+  individual: "Individual",
+  paralelo: "En paralelo",
+  respaldo: "De respaldo",
+} as const;
+
+export type Sincronismo = keyof typeof ETIQUETA_SINCRONISMO;

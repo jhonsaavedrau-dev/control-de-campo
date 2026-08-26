@@ -6,6 +6,7 @@ import type {
   Backup, Documento,
 } from "./tipos";
 import type { EntradaIntervencion, EntradaReporteFalla } from "./db-json";
+import type { LecturaHorometro } from "./horometro";
 import { depurarChecklist } from "./checklist";
 import type { IntervencionParaContar } from "./mantenimiento";
 import type { TareaPrograma, ActaDelPrograma } from "./programa";
@@ -1011,4 +1012,68 @@ export async function guardarPdfReporteFalla(
     .from("reportes_falla")
     .update({ pdf_drive_id: driveId, pdf_drive_url: driveUrl })
     .eq("id_reporte", id);
+}
+
+/* ---------- Lecturas de horómetro ---------- */
+
+/** Falta la tabla de lecturas: la migracion 11 no se ha ejecutado. */
+export class FaltaLecturasError extends Error {
+  constructor() {
+    super("La tabla de lecturas de horometro todavia no existe.");
+    this.name = "FaltaLecturasError";
+  }
+}
+
+function faltaTablaLecturas(e: { code?: string; message?: string }) {
+  return (
+    e?.code === "42P01" ||
+    e?.code === "PGRST205" ||
+    /lecturas_horometro/i.test(e?.message ?? "")
+  );
+}
+
+export async function registrarLectura(
+  lectura: Omit<LecturaHorometro, "id">,
+): Promise<LecturaHorometro> {
+  const { data, error } = await cliente()
+    .from("lecturas_horometro")
+    .insert(lectura)
+    .select();
+
+  if (error) {
+    if (faltaTablaLecturas(error)) throw new FaltaLecturasError();
+    // 23505: ya habia una lectura de ese equipo en ese instante. Es la
+    // misma lectura digitada dos veces, no un error.
+    if (error.code === "23505") {
+      const { data: ya } = await cliente()
+        .from("lecturas_horometro")
+        .select("*")
+        .eq("id_equipo", lectura.id_equipo)
+        .eq("momento", lectura.momento)
+        .limit(1);
+      if (ya?.[0]) return ya[0] as LecturaHorometro;
+    }
+    throw errorConCodigo(error);
+  }
+  // El horometro de la ficha lo pone al dia el disparador de la
+  // migracion 11, no este codigo: asi da igual quien escriba.
+  return (data as LecturaHorometro[])[0];
+}
+
+export async function lecturasDe(
+  idEquipo: string,
+  limite = 400,
+): Promise<LecturaHorometro[]> {
+  const { data, error } = await cliente()
+    .from("lecturas_horometro")
+    .select("*")
+    .eq("id_equipo", idEquipo)
+    .order("momento", { ascending: false })
+    .limit(limite);
+
+  if (error) {
+    if (faltaTablaLecturas(error)) throw new FaltaLecturasError();
+    throw errorConCodigo(error);
+  }
+  return ((data ?? []) as LecturaHorometro[]).reverse();
 }

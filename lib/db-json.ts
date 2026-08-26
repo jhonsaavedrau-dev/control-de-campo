@@ -5,6 +5,7 @@ import type { CambiosIntervencion } from "./edicion-intervencion";
 import type { IntervencionParaContar } from "./mantenimiento";
 import type { TareaPrograma, ActaDelPrograma } from "./programa";
 import type { IndicadorMes } from "./indicadores";
+import type { LecturaHorometro } from "./horometro";
 import {
   siguienteId as siguienteIdDeFamilia,
   sedeNueva, equipoNuevo, controladorNuevo,
@@ -840,4 +841,52 @@ export async function guardarPdfReporteFalla(
   r.pdf_drive_id = driveId;
   r.pdf_drive_url = driveUrl;
   await escribir(db);
+}
+
+/* ---------- Lecturas de horómetro ---------- */
+
+export async function registrarLectura(
+  lectura: Omit<LecturaHorometro, "id">,
+): Promise<LecturaHorometro> {
+  const db = await leer();
+  db.lecturas_horometro ??= [];
+
+  const equipo = db.equipos.find((e) => e.id_equipo === lectura.id_equipo);
+  if (!equipo) throw new Error(`El equipo ${lectura.id_equipo} no existe`);
+
+  // Misma lectura digitada dos veces: se queda la que ya estaba.
+  const repetida = db.lecturas_horometro.find(
+    (l) => l.id_equipo === lectura.id_equipo && l.momento === lectura.momento,
+  );
+  if (repetida) return repetida;
+
+  const nueva: LecturaHorometro = {
+    ...lectura,
+    id: `${lectura.id_equipo}-${lectura.momento}`,
+  };
+  db.lecturas_horometro.push(nueva);
+
+  // Solo hacia adelante: una lectura vieja digitada tarde no hace
+  // retroceder el horometro de la ficha. En Supabase esto lo hace un
+  // disparador; aqui hay que escribirlo.
+  if (
+    equipo.horometro_actual == null ||
+    lectura.horometro >= equipo.horometro_actual
+  ) {
+    equipo.horometro_actual = lectura.horometro;
+  }
+
+  await escribir(db);
+  return nueva;
+}
+
+export async function lecturasDe(
+  idEquipo: string,
+  limite = 400,
+): Promise<LecturaHorometro[]> {
+  const db = await leer();
+  return (db.lecturas_horometro ?? [])
+    .filter((l) => l.id_equipo === idEquipo)
+    .sort((a, b) => a.momento.localeCompare(b.momento))
+    .slice(-limite);
 }

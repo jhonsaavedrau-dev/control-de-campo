@@ -194,3 +194,13 @@ export const guardarPdfReporteFalla = (
   usarSupabase()
     ? supabase.guardarPdfReporteFalla(...a)
     : json.guardarPdfReporteFalla(...a);
+
+/* ---------- Lecturas de horómetro ---------- */
+
+export const registrarLectura = (
+  ...a: Parameters<typeof json.registrarLectura>
+) =>
+  usarSupabase() ? supabase.registrarLectura(...a) : json.registrarLectura(...a);
+
+export const lecturasDe = (...a: Parameters<typeof json.lecturasDe>) =>
+  usarSupabase() ? supabase.lecturasDe(...a) : json.lecturasDe(...a);

@@ -9,6 +9,7 @@ import PanelFotos from "./PanelFotos";
 import {
   mantenimientoDe, colorMantenimiento, frase, ETIQUETA_MANTENIMIENTO,
 } from "@/lib/mantenimiento";
+import { fechaProyectada, ritmoLegible } from "@/lib/horometro";
 import type { IntervencionParaContar } from "@/lib/mantenimiento";
 import { ETIQUETA_COMBUSTIBLE } from "@/lib/tipos";
 import type { Equipo, Controlador } from "@/lib/tipos";
@@ -373,10 +374,13 @@ export function BloqueMantenimiento({
   equipo: e,
   intervenciones,
   puedeEditar,
+  ritmo,
 }: {
   equipo: Equipo;
   intervenciones: IntervencionParaContar[];
   puedeEditar: boolean;
+  /** Horas al día que opera, sacado de las lecturas de horómetro. */
+  ritmo?: { horasPorDia: number } | null;
 }) {
   const m = mantenimientoDe(e, intervenciones);
   const color = colorMantenimiento(m.situacion);
@@ -427,6 +431,25 @@ export function BloqueMantenimiento({
           <p className="text-[13.5px] mt-2.5 leading-relaxed" style={{ color }}>
             {frase(m)}
           </p>
+
+          {/* Con el ritmo real de operación, "faltan 120 horas" se
+              convierte en una fecha, que es la pregunta que de verdad
+              se hace al programar: no cuántas horas quedan, sino cuándo
+              hay que ir. */}
+          {(() => {
+            const p = fechaProyectada(m.horasRestantes, ritmo?.horasPorDia);
+            if (!p) return null;
+            return (
+              <p
+                className="text-[12.5px] mt-1.5"
+                style={{ color: "var(--color-tenue)" }}
+              >
+                A {ritmoLegible(ritmo?.horasPorDia)} cae alrededor del{" "}
+                <strong>{fechaCorta(p.fecha)}</strong>
+                {p.dias > 0 ? ` · en ${p.dias} días` : ""}
+              </p>
+            );
+          })()}
 
           {m.ultimo ? (
             <p

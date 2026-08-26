@@ -1,7 +1,9 @@
 "use client";
 
 import { useActionState } from "react";
-import { ETIQUETA_ESTADO, ETIQUETA_COMBUSTIBLE } from "@/lib/tipos";
+import {
+  ETIQUETA_ESTADO, ETIQUETA_COMBUSTIBLE, ETIQUETA_SINCRONISMO,
+} from "@/lib/tipos";
 import type { EstadoEquipo, TipoCombustible } from "@/lib/tipos";
 import {
   nuevaSede, nuevoEquipo, nuevoControlador, type Respuesta,
@@ -216,6 +218,33 @@ export function AltaEquipo({
           <input name="frecuencia_mto" inputMode="decimal" placeholder="350" className="entrada font-[family-name:var(--font-mono)]" />
         </Campo>
       </div>
+      {/* Como opera respecto a los demas del campo. Dos equipos que
+          sincronizan se comportan igual, y sin esto no habia forma de
+          saber cuales van juntos. */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Campo etiqueta="Sincronismo">
+          <select name="sincronismo" defaultValue={"individual"} className="entrada">
+            {Object.entries(ETIQUETA_SINCRONISMO).map(([v, e]) => (
+              <option key={v} value={v}>
+                {e}
+              </option>
+            ))}
+          </select>
+        </Campo>
+        <Campo etiqueta="Grupo de sincronismo">
+          <input
+            name="grupo_sincronismo"
+            defaultValue={""}
+            placeholder="Barra 1"
+            className="entrada"
+          />
+        </Campo>
+      </div>
+      <p className="text-[12.5px] -mt-1 mb-1" style={{ color: "var(--color-sin-info)" }}>
+        Los equipos de la misma sede con el mismo grupo quedan asociados entre
+        sí.
+      </p>
+
       <p className="text-[12.5px] -mt-1" style={{ color: "var(--color-sin-info)" }}>
         Con el horómetro y las horas de preventivo, el sistema empieza a avisar
         solo cuándo toca. El resto de la ficha se completa después.

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { obtenerFichaEquipo } from "@/lib/db";
+import { obtenerFichaEquipo, equiposConSede, lecturasDe } from "@/lib/db";
+import { ritmoDiario } from "@/lib/horometro";
 import { Encabezado, PieDePagina } from "@/components/Marco";
 import { InsigniaResultado, fechaCorta } from "@/components/Piezas";
 import {
@@ -9,11 +10,14 @@ import {
 } from "@/components/FichaEquipo";
 import {
   IcoHerramienta, IcoCodigoQR, IcoLapiz, IcoFlecha, IcoChip, IcoDocumento,
+  IcoRed,
 } from "@/components/Iconos";
 import PanelBackups from "@/components/PanelBackups";
 import AccionesHojaVida from "@/components/AccionesHojaVida";
 import PanelManuales from "@/components/PanelManuales";
-import { ETIQUETA_TIPO, ETIQUETA_ESTADO, semaforo } from "@/lib/tipos";
+import {
+  ETIQUETA_TIPO, ETIQUETA_ESTADO, ETIQUETA_SINCRONISMO, semaforo,
+} from "@/lib/tipos";
 import { usuarioActual, puedeEditar } from "@/lib/sesion";
 
 export default async function FichaEquipo({
@@ -22,15 +26,40 @@ export default async function FichaEquipo({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [ficha, usuario] = await Promise.all([
+  const [ficha, usuario, pares] = await Promise.all([
     obtenerFichaEquipo(decodeURIComponent(id).toUpperCase()),
     usuarioActual(),
+    equiposConSede(),
   ]);
+
+  // El ritmo real de operación, para poder decir cuándo cae el
+  // preventivo y no solo cuántas horas faltan. Si falta la migración 11
+  // no pasa nada: se sigue mostrando en horas.
+  let ritmo: { horasPorDia: number } | null = null;
+  try {
+    ritmo = ritmoDiario(await lecturasDe(decodeURIComponent(id).toUpperCase()));
+  } catch {
+    ritmo = null;
+  }
   if (!ficha) notFound();
   const puedeEditarFicha = puedeEditar(usuario);
 
   const { equipo: e, sede: s, controlador: c, intervenciones, documentos } = ficha;
   const tono = semaforo(e.estado);
+
+  // Los que sincronizan con este: misma sede y mismo grupo. Es una
+  // lista sin jerarquia, asi que basta con compartir el nombre.
+  const asociados = e.grupo_sincronismo
+    ? pares
+        .filter(
+          (x) =>
+            x.equipo.id_sede === e.id_sede &&
+            x.equipo.grupo_sincronismo === e.grupo_sincronismo &&
+            x.equipo.id_equipo !== e.id_equipo,
+        )
+        .map((x) => x.equipo)
+        .sort((a, b) => a.id_equipo.localeCompare(b.id_equipo))
+    : [];
 
   return (
     <>
@@ -132,9 +161,60 @@ export default async function FichaEquipo({
                 equipo={e}
                 intervenciones={intervenciones}
                 puedeEditar={puedeEditarFicha}
+                ritmo={ritmo}
               />
 
               <BloqueEquipo equipo={e} />
+
+              {/* Sincronismo: como opera y con cuales va en paralelo.
+                  Dos equipos que sincronizan se comportan igual, y sin
+                  esto no habia forma de saber cuales van juntos. */}
+              {(e.sincronismo && e.sincronismo !== "individual") ||
+              e.grupo_sincronismo ? (
+                <div className="bloque">
+                  <div className="bloque-cabeza">
+                    <IcoRed />
+                    Sincronismo
+                    {e.grupo_sincronismo ? (
+                      <span className="cuenta">{e.grupo_sincronismo}</span>
+                    ) : null}
+                  </div>
+                  <div className="bloque-cuerpo">
+                    <div className="text-[14px]">
+                      {ETIQUETA_SINCRONISMO[e.sincronismo] ?? "Individual"}
+                    </div>
+                    {asociados.length ? (
+                      <>
+                        <div
+                          className="font-[family-name:var(--font-mono)] text-[10.5px] uppercase tracking-[0.1em] mt-3 mb-1.5"
+                          style={{ color: "var(--color-tenue)" }}
+                        >
+                          Asociados en este campo
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {asociados.map((a) => (
+                            <Link
+                              key={a.id_equipo}
+                              href={`/equipo/${a.id_equipo}`}
+                              className="pastilla"
+                            >
+                              {a.id_equipo}
+                            </Link>
+                          ))}
+                        </div>
+                      </>
+                    ) : e.grupo_sincronismo ? (
+                      <p
+                        className="text-[13px] mt-2"
+                        style={{ color: "var(--color-sin-info)" }}
+                      >
+                        Ningún otro equipo de esta sede tiene el grupo «
+                        {e.grupo_sincronismo}».
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
 
               {e.observaciones ? (
                 <div

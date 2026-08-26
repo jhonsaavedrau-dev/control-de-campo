@@ -36,6 +36,8 @@ const COMPROBACIONES = [
   { n: "07", que: "Correccion de actas", tabla: "intervenciones", columna: "editada_en" },
   { n: "08", que: "Reportes de falla", tabla: "reportes_falla", columna: "fecha_evento" },
   { n: "09", que: "Diagnostico y repuestos", tabla: "intervenciones", columna: "causa_falla" },
+  { n: "10", que: "Sincronismo", tabla: "equipos", columna: "grupo_sincronismo" },
+  { n: "11", que: "Lecturas de horometro", tabla: "lecturas_horometro", columna: "horometro" },
 ];
 
 const cabeceras = {
