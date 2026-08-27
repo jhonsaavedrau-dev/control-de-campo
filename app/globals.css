@@ -546,6 +546,44 @@ a.bitacora-fila:hover { background: var(--color-realce); }
 }
 
 /* ============================================================
+   PESTAÑAS — las secciones del dia a dia
+   ============================================================ */
+
+.barra-pestanas {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.barra-pestanas::-webkit-scrollbar { display: none; }
+
+.pestana {
+  position: relative;
+  flex-shrink: 0;
+  padding: 12px 13px 10px;
+  font-family: var(--font-placa);
+  font-weight: 600;
+  font-size: 14.5px;
+  letter-spacing: 0.01em;
+  color: var(--color-tenue);
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: color 140ms ease, border-color 140ms ease;
+}
+.pestana:hover { color: var(--color-tinta); }
+
+/* La activa se marca con el naranja de PBI y no solo con el peso: en
+   una barra que se desplaza, un texto un poco mas oscuro no se
+   distingue de los vecinos. */
+.pestana[data-activa="si"] {
+  color: var(--color-marino);
+  border-bottom-color: var(--color-naranja);
+}
+.pestana:focus-visible {
+  outline: 2px solid var(--color-activo);
+  outline-offset: -3px;
+  border-radius: 3px;
+}
+
+/* ============================================================
    PANELES CON CABECERA
    Cada bloque se anuncia con una etiqueta oscura y su icono en
    amarillo, como los rótulos de un tablero. Es lo que hace que

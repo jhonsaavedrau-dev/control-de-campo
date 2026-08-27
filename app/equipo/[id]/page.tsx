@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   obtenerFichaEquipo, equiposConSede, lecturasDe, instalacionesDe,
-  listarConsumibles,
 } from "@/lib/db";
 import { ritmoDiario } from "@/lib/horometro";
 import { Encabezado, PieDePagina } from "@/components/Marco";
@@ -13,12 +12,11 @@ import {
 } from "@/components/FichaEquipo";
 import {
   IcoHerramienta, IcoCodigoQR, IcoLapiz, IcoFlecha, IcoChip, IcoDocumento,
-  IcoRed, IcoLupa,
+  IcoRed, IcoLupa, IcoDisco,
 } from "@/components/Iconos";
 import PanelBackups from "@/components/PanelBackups";
 import AccionesHojaVida from "@/components/AccionesHojaVida";
 import PanelManuales from "@/components/PanelManuales";
-import ConsumiblesDelEquipo from "@/components/ConsumiblesDelEquipo";
 import {
   ETIQUETA_TIPO, ETIQUETA_ESTADO, ETIQUETA_SINCRONISMO, semaforo,
 } from "@/lib/tipos";
@@ -46,19 +44,13 @@ export default async function FichaEquipo({
     ritmo = null;
   }
 
-  // Lo que hay puesto en este equipo, con su catálogo para saber cada
-  // cuánto se cambia. Si falta la migración 12 el resto de la ficha
-  // sigue igual.
+  // Solo cuántos hay puestos, para el botón. El detalle vive en su
+  // propia página: la ficha ya es larga.
   let instalaciones: Awaited<ReturnType<typeof instalacionesDe>> = [];
-  let catalogo: Awaited<ReturnType<typeof listarConsumibles>> = [];
   try {
-    [instalaciones, catalogo] = await Promise.all([
-      instalacionesDe(decodeURIComponent(id).toUpperCase()),
-      listarConsumibles(),
-    ]);
+    instalaciones = await instalacionesDe(decodeURIComponent(id).toUpperCase());
   } catch {
     instalaciones = [];
-    catalogo = [];
   }
   if (!ficha) notFound();
   const puedeEditarFicha = puedeEditar(usuario);
@@ -185,15 +177,14 @@ export default async function FichaEquipo({
 
               <BloqueEquipo equipo={e} />
 
-              {catalogo.length || instalaciones.length ? (
-                <ConsumiblesDelEquipo
-                  idEquipo={e.id_equipo}
-                  horometroActual={e.horometro_actual}
-                  instalaciones={instalaciones}
-                  catalogo={catalogo}
-                  puedeEditar={puedeEditarFicha}
-                />
-              ) : null}
+              <Link
+                href={`/equipo/${e.id_equipo}/consumibles`}
+                className="accion accion-secundaria"
+              >
+                <IcoDisco className="w-4 h-4" />
+                Consumibles del equipo
+                {instalaciones.length ? ` · ${instalaciones.length}` : ""}
+              </Link>
 
               {/* Sincronismo: como opera y con cuales va en paralelo.
                   Dos equipos que sincronizan se comportan igual, y sin

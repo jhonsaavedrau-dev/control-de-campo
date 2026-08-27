@@ -4,9 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  IcoLista, IcoHerramienta, IcoCodigoQR, IcoPersona, IcoDocumento,
-  IcoChip, IcoLlave, IcoBandera, IcoTermometro, IcoRayo, IcoCombustible,
-  IcoDisco,
+  IcoHerramienta, IcoCodigoQR, IcoPersona, IcoDocumento, IcoLlave, IcoDisco,
 } from "./Iconos";
 import Tema from "./Tema";
 import type { Tema as ValorTema } from "@/lib/tema";
@@ -41,56 +39,20 @@ type Destino = {
 
 const GRUPOS: { titulo: string; destinos: Destino[] }[] = [
   {
-    titulo: "El trabajo del día",
+    titulo: "Registrar",
     destinos: [
-      {
-        href: "/",
-        texto: "Equipos",
-        nota: "Todos los generadores, por sede",
-        icono: <IcoChip className="w-4 h-4" />,
-      },
-      {
-        href: "/intervenciones",
-        texto: "Intervenciones",
-        nota: "Historial, con búsqueda y filtros",
-        icono: <IcoLista className="w-4 h-4" />,
-      },
-      {
-        href: "/programa",
-        texto: "Programa del año",
-        nota: "Qué toca cada mes y qué se cumplió",
-        icono: <IcoBandera className="w-4 h-4" />,
-      },
-      {
-        href: "/indicadores",
-        texto: "Indicadores",
-        nota: "Disponibilidad y confiabilidad, mes a mes",
-        icono: <IcoTermometro className="w-4 h-4" />,
-      },
-      {
-        href: "/aceite",
-        texto: "Consumo de aceite",
-        nota: "Reposiciones y cambios, con su gln/hora",
-        icono: <IcoCombustible className="w-4 h-4" />,
-      },
-      {
-        href: "/consumibles",
-        texto: "Consumibles",
-        nota: "Qué hay, cuánto queda y cada cuánto se cambia",
-        icono: <IcoDisco className="w-4 h-4" />,
-      },
-      {
-        href: "/fallas",
-        texto: "Reportes de falla",
-        nota: "Qué pasó en cada evento · FOR-MTO-53",
-        icono: <IcoRayo className="w-4 h-4" />,
-      },
       {
         href: "/nuevo",
         texto: "Dar de alta",
         nota: "Un equipo, controlador o sede nuevos",
         icono: <IcoHerramienta className="w-4 h-4" />,
         soloEditor: true,
+      },
+      {
+        href: "/consumibles",
+        texto: "Catálogo de consumibles",
+        nota: "Existencias de bodega. Lo puesto en cada equipo va en su ficha",
+        icono: <IcoDisco className="w-4 h-4" />,
       },
     ],
   },

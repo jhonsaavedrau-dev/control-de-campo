@@ -5,6 +5,7 @@ import {
 } from "@/lib/sesion";
 import { ETIQUETA_ROL } from "@/lib/tipos";
 import MenuPrincipal from "./MenuPrincipal";
+import Pestanas from "./Pestanas";
 import { cookies } from "next/headers";
 import { COOKIE_TEMA, temaDeCookie, type Tema } from "@/lib/tema";
 
@@ -82,6 +83,10 @@ export async function Encabezado({
       </div>
 
       <div style={{ height: "3px", background: "var(--color-naranja)" }} />
+
+      {/* Las secciones del dia a dia, siempre a la vista. Estaban
+          dentro del menu, y un menu esconde. */}
+      <Pestanas />
     </header>
   );
 }
