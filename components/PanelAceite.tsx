@@ -7,6 +7,7 @@ import {
   ETIQUETA_OPERACION, consumoLegible, galonesLegible,
 } from "@/lib/aceite";
 import type { FilaConsumo, ResumenAceite } from "@/lib/aceite";
+import GraficasAceite from "@/components/GraficasAceite";
 
 /**
  * La hoja de consumo de aceite, que se va llenando.
@@ -220,6 +221,14 @@ export default function PanelAceite({
           ) : null}
         </form>
       ) : null}
+
+      {/* Las cuatro lecturas del tablero, antes de la tabla: se mira el
+          conjunto y solo despues se baja al detalle. */}
+      <GraficasAceite filas={filas} />
+
+      <h2 className="font-[family-name:var(--font-placa)] font-semibold text-[18px] mt-6 mb-2">
+        Cada adición
+      </h2>
 
       {filas.length ? (
         <div className="marco-programa">
