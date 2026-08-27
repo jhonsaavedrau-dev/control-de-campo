@@ -205,6 +205,9 @@ export const registrarLectura = (
 export const lecturasDe = (...a: Parameters<typeof json.lecturasDe>) =>
   usarSupabase() ? supabase.lecturasDe(...a) : json.lecturasDe(...a);
 
+export const lecturasEntre = (...a: Parameters<typeof json.lecturasEntre>) =>
+  usarSupabase() ? supabase.lecturasEntre(...a) : json.lecturasEntre(...a);
+
 /* ---------- Consumibles ---------- */
 
 export const listarConsumibles = (

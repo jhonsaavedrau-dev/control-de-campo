@@ -1066,6 +1066,35 @@ export async function registrarLectura(
   return (data as LecturaHorometro[])[0];
 }
 
+/** Las lecturas de un rango, para cerrar los meses de un año. */
+export async function lecturasEntre(
+  idEquipo: string,
+  desde: string,
+  hasta: string,
+): Promise<LecturaHorometro[]> {
+  const salida: LecturaHorometro[] = [];
+  // Supabase corta en mil por peticion; un año son unas cuatro mil.
+  for (let pagina = 0; pagina < 12; pagina++) {
+    const { data, error } = await cliente()
+      .from("lecturas_horometro")
+      .select("*")
+      .eq("id_equipo", idEquipo)
+      .gte("momento", desde)
+      .lte("momento", hasta)
+      .order("momento", { ascending: true })
+      .range(pagina * 1000, pagina * 1000 + 999);
+
+    if (error) {
+      if (faltaTablaLecturas(error)) throw new FaltaLecturasError();
+      throw errorConCodigo(error);
+    }
+    const lote = (data ?? []) as LecturaHorometro[];
+    salida.push(...lote);
+    if (lote.length < 1000) break;
+  }
+  return salida;
+}
+
 export async function lecturasDe(
   idEquipo: string,
   limite = 400,

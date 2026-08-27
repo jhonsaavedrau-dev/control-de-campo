@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
-  equiposConSede, indicadoresDelAnio, listarReportesFalla,
+  equiposConSede, indicadoresDelAnio, listarReportesFalla, lecturasEntre,
 } from "@/lib/db";
 import { Encabezado, PieDePagina } from "@/components/Marco";
 import PanelIndicadores from "@/components/PanelIndicadores";
@@ -9,6 +9,7 @@ import { usuarioActual, puedeEditar, loginConfigurado } from "@/lib/sesion";
 import {
   horasDelMes, horasOperadas, disponibilidad, confiabilidad, mtbf, META,
 } from "@/lib/indicadores";
+import { cierresMensuales } from "@/lib/horometro";
 import type { IndicadorMes } from "@/lib/indicadores";
 import type { ReporteFalla } from "@/lib/tipos";
 
@@ -20,6 +21,10 @@ export const dynamic = "force-dynamic";
  * En el Excel, cada equipo tiene dos hojas —disponibilidad y
  * confiabilidad— y las horas se digitan en las dos, aunque son el mismo
  * número. Aquí se escriben una vez y alimentan los dos indicadores.
+ *
+ * El horómetro tampoco: si el mes no lo trae escrito, se toma la
+ * última lectura de ese mes de la serie horaria. Escribirlo a mano
+ * sigue mandando, para los meses que la serie no puede resolver.
  *
  * El número de fallas ya no se cuenta a mano. Sale, por este orden:
  *
@@ -71,6 +76,7 @@ export default async function Indicadores({
   let meses: IndicadorMes[] = [];
   let correctivas: { fecha: string; id_intervencion: string }[] = [];
   let reportes: ReporteFalla[] = [];
+  let cierres = new Map<string, number>();
   let falta = false;
   if (elegido) {
     try {
@@ -80,6 +86,21 @@ export default async function Indicadores({
     } catch (e) {
       falta = (e as Error)?.name === "FaltaIndicadoresError";
       if (!falta) throw e;
+    }
+    try {
+      // El cierre de cada mes, sacado de la serie horaria. Se pide
+      // desde diciembre del año anterior porque enero se calcula
+      // restándole ese cierre.
+      cierres = cierresMensuales(
+        await lecturasEntre(
+          idEquipo,
+          `${anio - 1}-12-01T00:00:00Z`,
+          `${anio}-12-31T23:59:59Z`,
+        ),
+      );
+    } catch {
+      // Sin migración 11 no hay serie: se sigue con lo escrito a mano.
+      cierres = new Map();
     }
     try {
       reportes = await listarReportesFalla({ anio, idEquipo });
@@ -113,10 +134,19 @@ export default async function Indicadores({
     // del año pasado no está en esta consulta, así que enero solo se
     // deduce si alguien escribió sus horas.
     const previo = porMes.get(mes - 1) ?? null;
+
+    // Lo escrito a mano manda; si no está, lo dice la serie horaria.
+    // Diciembre del año anterior sirve de arranque para enero.
+    const clave = (m: number) =>
+      m === 0 ? `${anio - 1}-12` : `${anio}-${String(m).padStart(2, "0")}`;
+    const horometroMes = d?.horometro ?? cierres.get(clave(mes)) ?? null;
+    const horometroPrevio =
+      previo?.horometro ?? cierres.get(clave(mes - 1)) ?? null;
+
     const { horas, origen } = horasOperadas(
       d?.horas_operacion ?? null,
-      d?.horometro ?? null,
-      previo?.horometro ?? null,
+      horometroMes,
+      horometroPrevio,
     );
 
     const disp = disponibilidad(horas, d?.horas_requeridas ?? null);
@@ -124,8 +154,8 @@ export default async function Indicadores({
 
     return {
       mes,
-      horometro: d?.horometro ?? null,
-      horometroPrevio: previo?.horometro ?? null,
+      horometro: horometroMes,
+      horometroPrevio,
       origenHoras: origen,
       horasOperacion: horas,
       horasEscritas: d?.horas_operacion ?? null,

@@ -136,3 +136,80 @@ export function ritmoLegible(horasPorDia: number | null | undefined): string {
   if (!horasPorDia || horasPorDia <= 0) return "—";
   return `${horasPorDia.toFixed(1).replace(".", ",")} h/día`;
 }
+
+/* ---------- La serie, depurada ---------- */
+
+/**
+ * La serie sin lo que no puede ser.
+ *
+ * Se recorre en orden y se descarta toda lectura que retroceda o que
+ * implique más de 24 horas de operación al día. No se corrige nada: se
+ * salta. Una lectura mal digitada no dice cuál era la buena, así que
+ * inventarla sería peor que perderla.
+ *
+ * Es la misma regla que usa `tramos()`, y por el mismo motivo: sobre
+ * los datos reales de PBI un 5 % de las lecturas son saltos de
+ * digitación, y bastan unas pocas para desfigurar cualquier resta.
+ */
+export function serieLimpia(lecturas: LecturaHorometro[]): LecturaHorometro[] {
+  const orden = [...lecturas].sort((a, b) => a.momento.localeCompare(b.momento));
+  const salida: LecturaHorometro[] = [];
+
+  for (const l of orden) {
+    const previa = salida[salida.length - 1];
+    if (!previa) { salida.push(l); continue; }
+
+    const horas = l.horometro - previa.horometro;
+    if (horas < 0) continue;
+
+    const dias =
+      (new Date(l.momento).getTime() - new Date(previa.momento).getTime()) /
+      MS_POR_DIA;
+    if (dias > 0 && horas / dias > TECHO_HORAS_DIA) continue;
+
+    salida.push(l);
+  }
+  return salida;
+}
+
+/** Cuántos días antes de fin de mes se acepta la última lectura. */
+const MARGEN_CIERRE_DIAS = 2;
+
+/**
+ * El horómetro al cerrar cada mes.
+ *
+ * Es lo que hasta ahora se escribía a mano en la hoja de indicadores.
+ * Con la serie horaria ya no hace falta pedirlo, pero hay una trampa
+ * que conviene tener escrita.
+ *
+ * Un mes solo se cierra si su última lectura está a menos de dos días
+ * del final. Si no, no se devuelve: se deja en blanco.
+ *
+ * El motivo: restar el cierre de un mes al del anterior solo mide ese
+ * mes si ambas lecturas caen donde el mes acaba. Si febrero se dejó de
+ * anotar el día 10, la resta de marzo se come también los veinte días
+ * que faltan de febrero — y sale una disponibilidad del 113 %, que es
+ * justo el error que este sistema existe para no repetir. Medido sobre
+ * los datos de PBI, pasa de verdad.
+ *
+ * Un mes sin cerrar no es un problema: el número se escribe a mano,
+ * como antes. Lo que no se puede es dar por bueno un dato que no lo es.
+ */
+export function cierresMensuales(
+  lecturas: LecturaHorometro[],
+): Map<string, number> {
+  const ultima = new Map<string, LecturaHorometro>();
+  for (const l of serieLimpia(lecturas)) {
+    ultima.set(l.momento.slice(0, 7), l);
+  }
+
+  const cierres = new Map<string, number>();
+  for (const [mes, l] of ultima) {
+    const [anio, m] = mes.split("-").map(Number);
+    // El día 0 del mes siguiente es el último del mes.
+    const finDeMes = Date.UTC(anio, m, 0, 23, 59, 59);
+    const dias = (finDeMes - new Date(l.momento).getTime()) / MS_POR_DIA;
+    if (dias <= MARGEN_CIERRE_DIAS) cierres.set(mes, l.horometro);
+  }
+  return cierres;
+}

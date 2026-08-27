@@ -885,6 +885,19 @@ export async function registrarLectura(
   return nueva;
 }
 
+export async function lecturasEntre(
+  idEquipo: string,
+  desde: string,
+  hasta: string,
+): Promise<LecturaHorometro[]> {
+  const db = await leer();
+  return (db.lecturas_horometro ?? [])
+    .filter(
+      (l) => l.id_equipo === idEquipo && l.momento >= desde && l.momento <= hasta,
+    )
+    .sort((a, b) => a.momento.localeCompare(b.momento));
+}
+
 export async function lecturasDe(
   idEquipo: string,
   limite = 400,
