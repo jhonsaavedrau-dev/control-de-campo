@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "migraciones": "node scripts/revisar-migraciones.mjs"
+    "migraciones": "node scripts/revisar-migraciones.mjs",
+    "datos": "node scripts/verificar-datos.mjs"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.3.1",

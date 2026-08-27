@@ -11,6 +11,7 @@ import type {
   Consumible, MovimientoConsumible, InstalacionConsumible,
 } from "./consumibles";
 import type { AdicionAceite } from "./aceite";
+import type { RegistroOperacion } from "./operacion";
 import type { EntradaAceite } from "./db-json";
 import { depurarChecklist } from "./checklist";
 import type { IntervencionParaContar } from "./mantenimiento";
@@ -1328,4 +1329,72 @@ export async function adicionesAceite(filtro?: {
     throw errorConCodigo(error);
   }
   return (data ?? []) as AdicionAceite[];
+}
+
+/* ---------- Registro horario de operación ---------- */
+
+/** Falta la tabla de operacion: la migracion 14 no se ha ejecutado. */
+export class FaltaOperacionError extends Error {
+  constructor() {
+    super("La tabla de registros de operacion todavia no existe.");
+    this.name = "FaltaOperacionError";
+  }
+}
+
+export async function registrosOperacion(filtro?: {
+  idEquipo?: string;
+  desde?: string;
+  hasta?: string;
+  soloSospechosos?: boolean;
+  limite?: number;
+}): Promise<RegistroOperacion[]> {
+  let q = cliente().from("registros_operacion").select("*");
+  if (filtro?.idEquipo) q = q.eq("id_equipo", filtro.idEquipo);
+  if (filtro?.desde) q = q.gte("fecha", filtro.desde);
+  if (filtro?.hasta) q = q.lte("fecha", filtro.hasta);
+  if (filtro?.soloSospechosos) q = q.neq("sospechoso", "");
+
+  const { data, error } = await q
+    .order("fecha", { ascending: false })
+    .order("hora", { ascending: false })
+    .limit(filtro?.limite ?? 2000);
+
+  if (error) {
+    if (
+      error.code === "42P01" ||
+      error.code === "PGRST205" ||
+      /registros_operacion/i.test(error.message ?? "")
+    ) {
+      throw new FaltaOperacionError();
+    }
+    throw errorConCodigo(error);
+  }
+  return (data ?? []) as RegistroOperacion[];
+}
+
+/** Cuántos hay, sin traérselos. Es lo que permite decir «25.318». */
+export async function contarOperacion(idEquipo?: string): Promise<{
+  total: number;
+  sospechosos: number;
+}> {
+  const db = cliente();
+  const base = db
+    .from("registros_operacion")
+    .select("*", { count: "exact", head: true });
+  const uno = idEquipo ? base.eq("id_equipo", idEquipo) : base;
+  const { count, error } = await uno;
+  if (error) {
+    if (error.code === "42P01" || error.code === "PGRST205") {
+      throw new FaltaOperacionError();
+    }
+    throw errorConCodigo(error);
+  }
+
+  const s = db
+    .from("registros_operacion")
+    .select("*", { count: "exact", head: true })
+    .neq("sospechoso", "");
+  const { count: sos } = await (idEquipo ? s.eq("id_equipo", idEquipo) : s);
+
+  return { total: count ?? 0, sospechosos: sos ?? 0 };
 }

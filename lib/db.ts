@@ -253,3 +253,15 @@ export const registrarAdicionAceite = (
 
 export const adicionesAceite = (...a: Parameters<typeof json.adicionesAceite>) =>
   usarSupabase() ? supabase.adicionesAceite(...a) : json.adicionesAceite(...a);
+
+/* ---------- Registro horario de operación ---------- */
+
+export const registrosOperacion = (
+  ...a: Parameters<typeof json.registrosOperacion>
+) =>
+  usarSupabase()
+    ? supabase.registrosOperacion(...a)
+    : json.registrosOperacion(...a);
+
+export const contarOperacion = (...a: Parameters<typeof json.contarOperacion>) =>
+  usarSupabase() ? supabase.contarOperacion(...a) : json.contarOperacion(...a);

@@ -12,7 +12,7 @@ import {
 } from "@/components/FichaEquipo";
 import {
   IcoHerramienta, IcoCodigoQR, IcoLapiz, IcoFlecha, IcoChip, IcoDocumento,
-  IcoRed, IcoLupa, IcoDisco,
+  IcoRed, IcoLupa, IcoDisco, IcoTermometro,
 } from "@/components/Iconos";
 import PanelBackups from "@/components/PanelBackups";
 import AccionesHojaVida from "@/components/AccionesHojaVida";
@@ -282,6 +282,14 @@ export default async function FichaEquipo({
                   ) : null}
                 </div>
               </div>
+
+              <Link
+                href={`/operacion?equipo=${e.id_equipo}`}
+                className="accion accion-secundaria"
+              >
+                <IcoTermometro className="w-4 h-4" />
+                Registro de operación
+              </Link>
 
               <Link
                 href={`/equipo/${e.id_equipo}/trazabilidad`}

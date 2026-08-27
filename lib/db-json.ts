@@ -10,6 +10,7 @@ import type {
   Consumible, MovimientoConsumible, InstalacionConsumible,
 } from "./consumibles";
 import type { AdicionAceite } from "./aceite";
+import type { RegistroOperacion } from "./operacion";
 import {
   siguienteId as siguienteIdDeFamilia,
   sedeNueva, equipoNuevo, controladorNuevo,
@@ -1074,4 +1075,39 @@ export async function adicionesAceite(filtro?: {
       return true;
     })
     .sort((a, b) => b.fecha.localeCompare(a.fecha));
+}
+
+/* ---------- Registro horario de operación ---------- */
+
+export async function registrosOperacion(filtro?: {
+  idEquipo?: string;
+  desde?: string;
+  hasta?: string;
+  soloSospechosos?: boolean;
+  limite?: number;
+}): Promise<RegistroOperacion[]> {
+  const db = await leer();
+  return (db.registros_operacion ?? [])
+    .filter((r) => {
+      if (filtro?.idEquipo && r.id_equipo !== filtro.idEquipo) return false;
+      if (filtro?.desde && r.fecha < filtro.desde) return false;
+      if (filtro?.hasta && r.fecha > filtro.hasta) return false;
+      if (filtro?.soloSospechosos && !r.sospechoso) return false;
+      return true;
+    })
+    .sort((a, b) => b.fecha.localeCompare(a.fecha) || b.hora.localeCompare(a.hora))
+    .slice(0, filtro?.limite ?? 2000);
+}
+
+export async function contarOperacion(
+  idEquipo?: string,
+): Promise<{ total: number; sospechosos: number }> {
+  const db = await leer();
+  const todos = (db.registros_operacion ?? []).filter(
+    (r) => !idEquipo || r.id_equipo === idEquipo,
+  );
+  return {
+    total: todos.length,
+    sospechosos: todos.filter((r) => r.sospechoso).length,
+  };
 }

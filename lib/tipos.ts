@@ -329,6 +329,7 @@ import type {
   Consumible, MovimientoConsumible, InstalacionConsumible,
 } from "./consumibles";
 import type { AdicionAceite } from "./aceite";
+import type { RegistroOperacion } from "./operacion";
 
 export type BaseDatos = {
   usuarios: Usuario[];
@@ -345,6 +346,7 @@ export type BaseDatos = {
   movimientos_consumible?: MovimientoConsumible[];
   instalaciones_consumible?: InstalacionConsumible[];
   adiciones_aceite?: AdicionAceite[];
+  registros_operacion?: RegistroOperacion[];
 };
 
 /**

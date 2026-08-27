@@ -19,6 +19,7 @@ import { useEffect, useRef } from "react";
 
 const PESTANAS = [
   { href: "/", texto: "Equipos" },
+  { href: "/operacion", texto: "Operación" },
   { href: "/programa", texto: "Programa" },
   { href: "/indicadores", texto: "Indicadores" },
   { href: "/intervenciones", texto: "Intervenciones" },
