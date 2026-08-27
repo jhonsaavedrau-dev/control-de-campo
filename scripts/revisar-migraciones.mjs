@@ -40,6 +40,7 @@ const COMPROBACIONES = [
   { n: "11", que: "Lecturas de horometro", tabla: "lecturas_horometro", columna: "horometro" },
   { n: "12", que: "Consumibles", tabla: "consumibles", columna: "vida_util_horas" },
   { n: "13", que: "Consumo de aceite", tabla: "adiciones_aceite", columna: "cantidad_gln" },
+  { n: "14", que: "Registro horario de operacion", tabla: "registros_operacion", columna: "kw_real" },
 ];
 
 const cabeceras = {
