@@ -34,12 +34,24 @@ export type Tramo = {
 
 const MS_POR_DIA = 24 * 60 * 60 * 1000;
 
+/** Un día tiene 24 horas: nada puede operar más que eso. */
+const TECHO_HORAS_DIA = 24.5;
+
 /**
  * Los tramos entre lecturas consecutivas.
  *
- * Se descartan los que no dicen nada: horómetro que retrocede (lo
- * cambiaron, o alguien tecleó mal) y tramos de menos de una hora, donde
- * el ritmo se dispara por redondeo y no significa nada.
+ * Se descartan los que no dicen nada:
+ *
+ * - Horómetro que retrocede: lo cambiaron, o alguien tecleó mal.
+ * - Tramos de menos de una hora, donde el ritmo se dispara por
+ *   redondeo y no significa nada.
+ * - Y tramos que implican más de 24 horas de operación por día, que es
+ *   sencillamente imposible. Sobre los datos reales de PBI —25.000
+ *   lecturas de nueve meses— el 93 % de los tramos son coherentes y un
+ *   5 % son saltos de digitación; sin este filtro esos pocos saltos se
+ *   llevan la media por delante y el ritmo sale en miles de horas al
+ *   día. El margen de 0,5 h deja pasar el redondeo de una lectura
+ *   tomada con unos minutos de diferencia.
  */
 export function tramos(lecturas: LecturaHorometro[]): Tramo[] {
   const orden = [...lecturas].sort((a, b) => a.momento.localeCompare(b.momento));
@@ -53,6 +65,7 @@ export function tramos(lecturas: LecturaHorometro[]): Tramo[] {
     if (horas < 0 || ms < 60 * 60 * 1000) continue;
 
     const dias = ms / MS_POR_DIA;
+    if (horas / dias > TECHO_HORAS_DIA) continue;
     salida.push({
       desde: a.momento,
       hasta: b.momento,

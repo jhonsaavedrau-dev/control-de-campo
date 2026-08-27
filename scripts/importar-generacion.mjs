@@ -87,7 +87,12 @@ function aFecha(serie) {
 /** La hora viene como texto ("13:00") o como fracción de día. */
 function aHora(v) {
   if (v == null || v === "") return "";
-  if (typeof v === "string" && v.includes(":")) return v.slice(0, 5);
+  // Con cero delante: "7:00" y "07:00" son la misma hora, y sin
+  // igualarlas producen dos instantes distintos que luego chocan.
+  if (typeof v === "string" && v.includes(":")) {
+    const [hh, mm] = v.split(":");
+    return `${String(Number(hh) || 0).padStart(2, "0")}:${(mm ?? "00").slice(0, 2).padStart(2, "0")}`;
+  }
   const n = Number(v);
   if (!Number.isFinite(n)) return String(v).slice(0, 5);
   const frac = n - Math.floor(n);
@@ -275,7 +280,16 @@ const lecturas = listos
     id_intervencion: null,
     registrado_por: "Excel BD Generación",
   }));
-console.log(`\nLecturas de horómetro utilizables: ${lecturas.length}`);
+// Sin repetidas dentro del propio lote: la clave real de la tabla es
+// (equipo, momento), no (equipo, fecha, hora).
+const porMomento = new Map();
+for (const l of lecturas) porMomento.set(`${l.id_equipo}|${l.momento}`, l);
+const lecturasUnicas = [...porMomento.values()];
+
+console.log(`\nLecturas de horómetro utilizables: ${lecturasUnicas.length}`);
+if (lecturasUnicas.length !== lecturas.length) {
+  console.log(`  (${lecturas.length - lecturasUnicas.length} caían en el mismo instante que otra)`);
+}
 
 if (!ESCRIBIR) {
   console.log("\n--- SIMULACRO: no se escribió nada. Añade --escribir para cargarlo. ---");
@@ -303,17 +317,34 @@ const cabeceras = {
   Prefer: "resolution=ignore-duplicates,return=minimal",
 };
 
+/**
+ * Sobre qué columnas se decide que una fila ya estaba.
+ *
+ * `ignore-duplicates` no hace nada por sí solo: hay que decirle contra
+ * qué restricción comparar. Sin esto, un choque aborta el lote entero.
+ */
+const CONFLICTO = {
+  registros_operacion: "id_equipo,fecha,hora",
+  lecturas_horometro: "id_equipo,momento",
+};
+
 async function cargar(tabla, filas, tam = 500) {
   let hechas = 0;
   for (let i = 0; i < filas.length; i += tam) {
     const lote = filas.slice(i, i + tam);
-    const r = await fetch(`${URL_BASE}/rest/v1/${tabla}`, {
+    const r = await fetch(`${URL_BASE}/rest/v1/${tabla}?on_conflict=${CONFLICTO[tabla]}`, {
       method: "POST",
       headers: cabeceras,
       body: JSON.stringify(lote),
     });
     if (!r.ok) {
       const t = await r.text();
+      // Si la tabla todavía no existe se dice y se sigue con lo demás:
+      // media importación es mejor que ninguna.
+      if (/42P01|PGRST205/.test(t)) {
+        console.log(`\n  ${tabla}: la tabla no existe todavía. Saltada.`);
+        return -1;
+      }
       console.log(`\n  ERROR en ${tabla}, lote ${i}-${i + lote.length}: ${r.status} ${t.slice(0, 300)}`);
       return hechas;
     }
@@ -326,7 +357,15 @@ async function cargar(tabla, filas, tam = 500) {
 
 console.log("\nEscribiendo…");
 const a = await cargar("registros_operacion", listos);
-console.log(`  registros_operacion: ${a} filas`);
-const b = await cargar("lecturas_horometro", lecturas);
-console.log(`  lecturas_horometro:  ${b} filas`);
+console.log(
+  a < 0
+    ? "  registros_operacion: falta la migración 14"
+    : `  registros_operacion: ${a} filas`,
+);
+const b = await cargar("lecturas_horometro", lecturasUnicas);
+console.log(
+  b < 0
+    ? "  lecturas_horometro: falta la migración 11"
+    : `  lecturas_horometro:  ${b} filas`,
+);
 console.log("\nListo.");
