@@ -9,6 +9,7 @@ import type { LecturaHorometro } from "./horometro";
 import type {
   Consumible, MovimientoConsumible, InstalacionConsumible,
 } from "./consumibles";
+import type { AdicionAceite } from "./aceite";
 import {
   siguienteId as siguienteIdDeFamilia,
   sedeNueva, equipoNuevo, controladorNuevo,
@@ -1007,4 +1008,70 @@ export async function retirarInstalacion(
   if (!i) return;
   Object.assign(i, datos);
   await escribir(db);
+}
+
+/* ---------- Adiciones de aceite ---------- */
+
+export type EntradaAceite = Partial<AdicionAceite> & {
+  id_equipo: string;
+  fecha: string;
+  cantidad_gln: number;
+};
+
+export async function registrarAdicionAceite(
+  datos: EntradaAceite,
+): Promise<AdicionAceite> {
+  const db = await leer();
+  db.adiciones_aceite ??= [];
+
+  const equipo = db.equipos.find((e) => e.id_equipo === datos.id_equipo);
+  if (!equipo) throw new Error(`El equipo ${datos.id_equipo} no existe`);
+
+  const anio = new Date(`${datos.fecha}T00:00:00`).getFullYear();
+  const marca = `AC-${anio}-`;
+  const ultimo = db.adiciones_aceite
+    .map((a) => a.id_adicion)
+    .filter((id) => id.startsWith(marca))
+    .map((id) => parseInt(id.slice(marca.length), 10))
+    .filter((n) => !Number.isNaN(n))
+    .reduce((max, n) => Math.max(max, n), 0);
+
+  const nueva: AdicionAceite = {
+    id_adicion: `${marca}${String(ultimo + 1).padStart(4, "0")}`,
+    id_equipo: equipo.id_equipo,
+    id_sede: equipo.id_sede,
+    fecha: datos.fecha,
+    // Copia fiel: es la foto de como se llamaba ese dia.
+    marca: datos.marca || equipo.fabricante || "",
+    modelo: datos.modelo || equipo.modelo || "",
+    tag: datos.tag || equipo.tag || equipo.id_equipo,
+    horometro: datos.horometro ?? null,
+    nombre_aceite: datos.nombre_aceite ?? "",
+    cantidad_gln: datos.cantidad_gln,
+    operacion: datos.operacion ?? "reposicion",
+    observacion: datos.observacion ?? "",
+    id_consumible: datos.id_consumible ?? null,
+    id_intervencion: datos.id_intervencion ?? null,
+    registrado_por: datos.registrado_por ?? "",
+  };
+
+  db.adiciones_aceite.push(nueva);
+  await escribir(db);
+  return nueva;
+}
+
+export async function adicionesAceite(filtro?: {
+  idEquipo?: string;
+  idSede?: string;
+  anio?: number;
+}): Promise<AdicionAceite[]> {
+  const db = await leer();
+  return (db.adiciones_aceite ?? [])
+    .filter((a) => {
+      if (filtro?.idEquipo && a.id_equipo !== filtro.idEquipo) return false;
+      if (filtro?.idSede && a.id_sede !== filtro.idSede) return false;
+      if (filtro?.anio && !a.fecha.startsWith(String(filtro.anio))) return false;
+      return true;
+    })
+    .sort((a, b) => b.fecha.localeCompare(a.fecha));
 }

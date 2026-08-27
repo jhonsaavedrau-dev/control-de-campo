@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   IcoLista, IcoHerramienta, IcoCodigoQR, IcoPersona, IcoDocumento,
   IcoChip, IcoLlave, IcoBandera, IcoTermometro, IcoRayo, IcoCombustible,
+  IcoDisco,
 } from "./Iconos";
 import Tema from "./Tema";
 import type { Tema as ValorTema } from "@/lib/tema";
@@ -67,10 +68,16 @@ const GRUPOS: { titulo: string; destinos: Destino[] }[] = [
         icono: <IcoTermometro className="w-4 h-4" />,
       },
       {
+        href: "/aceite",
+        texto: "Consumo de aceite",
+        nota: "Reposiciones y cambios, con su gln/hora",
+        icono: <IcoCombustible className="w-4 h-4" />,
+      },
+      {
         href: "/consumibles",
         texto: "Consumibles",
         nota: "Qué hay, cuánto queda y cada cuánto se cambia",
-        icono: <IcoCombustible className="w-4 h-4" />,
+        icono: <IcoDisco className="w-4 h-4" />,
       },
       {
         href: "/fallas",

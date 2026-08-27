@@ -241,3 +241,15 @@ export const retirarInstalacion = (
   usarSupabase()
     ? supabase.retirarInstalacion(...a)
     : json.retirarInstalacion(...a);
+
+/* ---------- Adiciones de aceite ---------- */
+
+export const registrarAdicionAceite = (
+  ...a: Parameters<typeof json.registrarAdicionAceite>
+) =>
+  usarSupabase()
+    ? supabase.registrarAdicionAceite(...a)
+    : json.registrarAdicionAceite(...a);
+
+export const adicionesAceite = (...a: Parameters<typeof json.adicionesAceite>) =>
+  usarSupabase() ? supabase.adicionesAceite(...a) : json.adicionesAceite(...a);

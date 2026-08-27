@@ -10,6 +10,8 @@ import type { LecturaHorometro } from "./horometro";
 import type {
   Consumible, MovimientoConsumible, InstalacionConsumible,
 } from "./consumibles";
+import type { AdicionAceite } from "./aceite";
+import type { EntradaAceite } from "./db-json";
 import { depurarChecklist } from "./checklist";
 import type { IntervencionParaContar } from "./mantenimiento";
 import type { TareaPrograma, ActaDelPrograma } from "./programa";
@@ -1232,4 +1234,98 @@ export async function retirarInstalacion(
     .update(datos)
     .eq("id", id);
   if (error) throw errorConCodigo(error);
+}
+
+/* ---------- Adiciones de aceite ---------- */
+
+/** Falta la tabla de aceite: la migracion 13 no se ha ejecutado. */
+export class FaltaAceiteError extends Error {
+  constructor() {
+    super("La tabla de adiciones de aceite todavia no existe.");
+    this.name = "FaltaAceiteError";
+  }
+}
+
+function faltaTablaAceite(e: { code?: string; message?: string }) {
+  return (
+    e?.code === "42P01" ||
+    e?.code === "PGRST205" ||
+    /adiciones_aceite/i.test(e?.message ?? "")
+  );
+}
+
+export async function registrarAdicionAceite(
+  datos: EntradaAceite,
+): Promise<AdicionAceite> {
+  const db = cliente();
+
+  const par = await equipoConSede(datos.id_equipo);
+  if (!par) throw new Error(`El equipo ${datos.id_equipo} no existe`);
+  const { equipo } = par;
+
+  const anio = new Date(`${datos.fecha}T00:00:00`).getFullYear();
+  const fila = {
+    id_equipo: equipo.id_equipo,
+    id_sede: equipo.id_sede,
+    fecha: datos.fecha,
+    marca: datos.marca || equipo.fabricante || "",
+    modelo: datos.modelo || equipo.modelo || "",
+    tag: datos.tag || equipo.tag || equipo.id_equipo,
+    horometro: datos.horometro ?? null,
+    nombre_aceite: datos.nombre_aceite ?? "",
+    cantidad_gln: datos.cantidad_gln,
+    operacion: datos.operacion ?? "reposicion",
+    observacion: datos.observacion ?? "",
+    id_consumible: datos.id_consumible ?? null,
+    id_intervencion: datos.id_intervencion ?? null,
+    registrado_por: datos.registrado_por ?? "",
+  };
+
+  for (let intento = 0; intento < 6; intento++) {
+    const marca = `AC-${anio}-`;
+    const { data: previos, error: e1 } = await db
+      .from("adiciones_aceite")
+      .select("id_adicion")
+      .like("id_adicion", `${marca}%`);
+    if (e1) {
+      if (faltaTablaAceite(e1)) throw new FaltaAceiteError();
+      throw errorConCodigo(e1);
+    }
+    const ultimo = (previos ?? [])
+      .map((p) => parseInt(String(p.id_adicion).slice(marca.length), 10))
+      .filter((n) => !Number.isNaN(n))
+      .reduce((max, n) => Math.max(max, n), 0);
+    const id = `${marca}${String(ultimo + 1 + intento).padStart(4, "0")}`;
+
+    const { data, error } = await db
+      .from("adiciones_aceite")
+      .insert({ id_adicion: id, ...fila })
+      .select();
+
+    if (!error) return (data as AdicionAceite[])[0];
+    if (faltaTablaAceite(error)) throw new FaltaAceiteError();
+    if (error.code !== "23505") throw errorConCodigo(error);
+  }
+  throw new Error("No se pudo asignar un consecutivo a la adición de aceite.");
+}
+
+export async function adicionesAceite(filtro?: {
+  idEquipo?: string;
+  idSede?: string;
+  anio?: number;
+}): Promise<AdicionAceite[]> {
+  let q = cliente().from("adiciones_aceite").select("*");
+  if (filtro?.idEquipo) q = q.eq("id_equipo", filtro.idEquipo);
+  if (filtro?.idSede) q = q.eq("id_sede", filtro.idSede);
+  if (filtro?.anio) {
+    q = q
+      .gte("fecha", `${filtro.anio}-01-01`)
+      .lte("fecha", `${filtro.anio}-12-31`);
+  }
+  const { data, error } = await q.order("fecha", { ascending: false }).limit(2000);
+  if (error) {
+    if (faltaTablaAceite(error)) throw new FaltaAceiteError();
+    throw errorConCodigo(error);
+  }
+  return (data ?? []) as AdicionAceite[];
 }

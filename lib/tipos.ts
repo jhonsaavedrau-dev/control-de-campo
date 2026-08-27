@@ -328,6 +328,7 @@ import type { LecturaHorometro } from "./horometro";
 import type {
   Consumible, MovimientoConsumible, InstalacionConsumible,
 } from "./consumibles";
+import type { AdicionAceite } from "./aceite";
 
 export type BaseDatos = {
   usuarios: Usuario[];
@@ -343,6 +344,7 @@ export type BaseDatos = {
   consumibles?: Consumible[];
   movimientos_consumible?: MovimientoConsumible[];
   instalaciones_consumible?: InstalacionConsumible[];
+  adiciones_aceite?: AdicionAceite[];
 };
 
 /**
