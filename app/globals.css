@@ -546,6 +546,213 @@ a.bitacora-fila:hover { background: var(--color-realce); }
 }
 
 /* ============================================================
+   TARJETA DE GRAFICA
+   ============================================================ */
+
+/* Una grafica no es un panel mas: lleva su cabecera con filo de color,
+   que es lo que hace que un tablero se lea como un tablero y no como
+   una pila de cajas blancas. */
+.gr {
+  background: var(--color-panel);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 11px;
+  box-shadow: var(--sombra-2);
+  overflow: hidden;
+}
+
+.gr-cabeza {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px 10px;
+  border-bottom: 1px solid var(--color-borde-suave);
+}
+
+.gr-icono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.gr-titulo {
+  font-family: var(--font-placa);
+  font-weight: 600;
+  font-size: 15.5px;
+  letter-spacing: 0.01em;
+  color: var(--color-tinta);
+}
+.gr-nota {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-sin-info);
+  text-align: right;
+}
+
+.gr-cuerpo { padding: 14px; }
+
+/* Las lineas de referencia: se leen, no se miran. */
+.gr-rejilla { stroke: var(--color-borde-suave); stroke-width: 1; }
+.gr-eje {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  fill: var(--color-sin-info);
+}
+
+/* La barra se aclara al pasar por encima, en vez de cambiar de color:
+   el color es la identidad del equipo y no puede moverse. */
+.gr-barra { transition: filter 140ms ease, opacity 140ms ease; }
+.gr-barra:hover { filter: brightness(1.12); }
+
+/* ============================================================
+   ATAJO — un boton que lleva a una pantalla entera
+   ============================================================ */
+
+/* Un enlace que abre otra pagina no es un boton de formulario: lleva
+   su icono en una placa de color, dice a donde va y muestra la cuenta
+   de lo que hay al otro lado. Un `accion-secundaria` gris no distingue
+   "guardar" de "ir a otro sitio". */
+.atajo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 10px;
+  background: var(--color-panel);
+  box-shadow: var(--sombra-1);
+  transition: box-shadow 160ms ease, border-color 160ms ease,
+              transform 160ms ease;
+}
+.atajo:hover {
+  border-color: var(--color-borde);
+  box-shadow: var(--sombra-2);
+  transform: translateY(-1px);
+}
+.atajo:active { transform: none; box-shadow: var(--sombra-1); }
+
+.atajo-placa {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.atajo-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+.atajo-titulo {
+  font-family: var(--font-placa);
+  font-weight: 600;
+  font-size: 15.5px;
+  color: var(--color-tinta);
+}
+.atajo-nota {
+  font-size: 12.5px;
+  color: var(--color-tenue);
+}
+
+.atajo-cuenta {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--color-hundido);
+  color: var(--color-tenue);
+}
+
+.atajo-flecha {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--color-sin-info);
+}
+.atajo-cuenta + .atajo-flecha { margin-left: 8px; }
+
+/* ============================================================
+   BARRA DE FILTROS — sede, equipo y año en una linea
+   ============================================================ */
+
+.barra-filtros {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 8px;
+  padding: 9px 11px;
+  margin-bottom: 16px;
+  background: var(--color-panel);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 10px;
+  box-shadow: var(--sombra-2);
+}
+
+.filtro {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 150px;
+}
+
+.filtro-rotulo {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--color-sin-info);
+  padding-left: 2px;
+}
+
+/* La flecha se dibuja aqui: la nativa cambia en cada navegador y
+   rompe la linea. */
+.filtro-select {
+  width: 100%;
+  appearance: none;
+  padding: 7px 28px 7px 10px;
+  border: 1px solid var(--color-borde);
+  border-radius: 7px;
+  background-color: var(--color-campo);
+  background-image: linear-gradient(45deg, transparent 50%, var(--color-tenue) 50%),
+                    linear-gradient(135deg, var(--color-tenue) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-tinta);
+  cursor: pointer;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+.filtro-select:hover { border-color: var(--color-borde-fuerte); }
+.filtro-select:focus-visible {
+  outline: none;
+  border-color: var(--color-activo);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-activo) 18%, transparent);
+}
+
+@media print { .barra-filtros { display: none; } }
+
+/* ============================================================
    PESTAÑAS — las secciones del dia a dia
    ============================================================ */
 

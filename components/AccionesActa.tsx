@@ -13,14 +13,21 @@ export default function AccionesActa({
   idIntervencion,
   urlDrive,
   puedeCorregir,
+  puedeBorrar,
+  idEquipo,
 }: {
   idIntervencion: string;
   urlDrive: string;
   /** Solo supervisión corrige un acta ya guardada. */
   puedeCorregir: boolean;
+  /** Borrar es de administración: un acta es un documento firmado. */
+  puedeBorrar: boolean;
+  idEquipo: string;
 }) {
   const router = useRouter();
   const [archivando, setArchivando] = useState(false);
+  const [borrando, setBorrando] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
   const [mensaje, setMensaje] = useState<
     { tono: "ok" | "error"; texto: string } | null
   >(null);
@@ -46,6 +53,32 @@ export default function AccionesActa({
       });
     } finally {
       setArchivando(false);
+    }
+  }
+
+  /**
+   * Borrar pide confirmar en la propia pantalla, no con un `confirm()`.
+   * Un cuadro del navegador se acepta sin leerlo; un botón rojo que
+   * aparece donde estaba el otro obliga a mirar qué se va a borrar.
+   */
+  async function borrar() {
+    setBorrando(true);
+    setMensaje(null);
+    try {
+      const r = await fetch(`/api/intervenciones/${idIntervencion}`, {
+        method: "DELETE",
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error ?? "No se pudo borrar");
+      router.push(`/equipo/${idEquipo}`);
+      router.refresh();
+    } catch (e) {
+      setBorrando(false);
+      setConfirmando(false);
+      setMensaje({
+        tono: "error",
+        texto: e instanceof Error ? e.message : "No se pudo borrar",
+      });
     }
   }
 
@@ -86,6 +119,53 @@ export default function AccionesActa({
         >
           Corregir el acta
         </Link>
+      ) : null}
+
+      {puedeBorrar ? (
+        confirmando ? (
+          <div
+            className="border rounded px-3.5 py-3"
+            style={{
+              borderColor: "var(--color-critico)",
+              background: "var(--color-campo)",
+            }}
+          >
+            <p className="text-[13.5px] leading-relaxed">
+              Se va a borrar <strong>{idIntervencion}</strong> con sus fotos. El
+              PDF y las fotos van a la papelera de Drive, así que se pueden
+              recuperar de ahí; el registro del acta no.
+            </p>
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={borrar}
+                disabled={borrando}
+                className="accion"
+                style={{
+                  background: "var(--color-critico)",
+                  borderColor: "var(--color-critico)",
+                  color: "#fff",
+                }}
+              >
+                {borrando ? "Borrando…" : "Sí, borrar el acta"}
+              </button>
+              <button
+                onClick={() => setConfirmando(false)}
+                disabled={borrando}
+                className="accion accion-secundaria"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmando(true)}
+            className="accion accion-secundaria"
+            style={{ color: "var(--color-critico)" }}
+          >
+            Borrar el acta
+          </button>
+        )
       ) : null}
 
       {mensaje ? (

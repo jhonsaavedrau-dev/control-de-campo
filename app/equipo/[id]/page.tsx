@@ -177,15 +177,6 @@ export default async function FichaEquipo({
 
               <BloqueEquipo equipo={e} />
 
-              <Link
-                href={`/equipo/${e.id_equipo}/consumibles`}
-                className="accion accion-secundaria"
-              >
-                <IcoDisco className="w-4 h-4" />
-                Consumibles del equipo
-                {instalaciones.length ? ` · ${instalaciones.length}` : ""}
-              </Link>
-
               {/* Sincronismo: como opera y con cuales va en paralelo.
                   Dos equipos que sincronizan se comportan igual, y sin
                   esto no habia forma de saber cuales van juntos. */}
@@ -283,21 +274,34 @@ export default async function FichaEquipo({
                 </div>
               </div>
 
-              <Link
-                href={`/operacion?equipo=${e.id_equipo}`}
-                className="accion accion-secundaria"
-              >
-                <IcoTermometro className="w-4 h-4" />
-                Registro de operación
-              </Link>
-
-              <Link
-                href={`/equipo/${e.id_equipo}/trazabilidad`}
-                className="accion accion-secundaria"
-              >
-                <IcoLupa className="w-4 h-4" />
-                Ver la trazabilidad del equipo
-              </Link>
+              {/* Los tres atajos a pantallas propias. Con placa de color
+                  y con la cuenta de lo que hay al otro lado: un boton
+                  gris no distingue "guardar" de "ir a otro sitio", y sin
+                  la cuenta hay que entrar para saber si hay algo. */}
+              <div className="flex flex-col gap-2">
+                <Atajo
+                  href={`/equipo/${e.id_equipo}/consumibles`}
+                  color="var(--color-activo)"
+                  icono={<IcoDisco className="w-[19px] h-[19px]" />}
+                  titulo="Consumibles"
+                  nota="Qué le pusieron y cuánto le queda"
+                  cuenta={instalaciones.length || null}
+                />
+                <Atajo
+                  href={`/operacion?equipo=${e.id_equipo}`}
+                  color="var(--color-marino)"
+                  icono={<IcoTermometro className="w-[19px] h-[19px]" />}
+                  titulo="Operación"
+                  nota="El registro hora a hora"
+                />
+                <Atajo
+                  href={`/equipo/${e.id_equipo}/trazabilidad`}
+                  color="var(--color-naranja-hondo)"
+                  icono={<IcoLupa className="w-[19px] h-[19px]" />}
+                  titulo="Trazabilidad"
+                  nota="Cómo se ha comportado el equipo"
+                />
+              </div>
 
               <Bloque
                 titulo="Intervenciones"
@@ -442,5 +446,31 @@ export default async function FichaEquipo({
 
       <PieDePagina />
     </>
+  );
+}
+
+/** Un enlace a una pantalla entera, con su color y su cuenta. */
+function Atajo({
+  href, color, icono, titulo, nota, cuenta,
+}: {
+  href: string;
+  color: string;
+  icono: React.ReactNode;
+  titulo: string;
+  nota: string;
+  cuenta?: number | null;
+}) {
+  return (
+    <Link href={href} className="atajo no-imprimir">
+      <span className="atajo-placa" style={{ background: color }}>
+        {icono}
+      </span>
+      <span className="atajo-texto">
+        <span className="atajo-titulo">{titulo}</span>
+        <span className="atajo-nota">{nota}</span>
+      </span>
+      {cuenta ? <span className="atajo-cuenta">{cuenta}</span> : null}
+      <IcoFlecha className="w-4 h-4 atajo-flecha" />
+    </Link>
   );
 }

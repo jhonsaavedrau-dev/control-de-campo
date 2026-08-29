@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { adicionesAceite, equiposConSede, listarConsumibles } from "@/lib/db";
 import { Encabezado, PieDePagina } from "@/components/Marco";
 import PanelAceite from "@/components/PanelAceite";
+import Filtros from "@/components/Filtros";
 import { conConsumo, resumenDe } from "@/lib/aceite";
 import type { AdicionAceite } from "@/lib/aceite";
 import { usuarioActual, puedeEditar, loginConfigurado } from "@/lib/sesion";
@@ -79,23 +80,30 @@ export default async function Aceite({
             Cada reposición o cambio, con sus galones por hora calculados.
           </p>
 
-          <div className="flex flex-wrap gap-1.5 mb-4">
-            <Link
-              href="/aceite"
-              className={!equipo && !p.sede ? "pastilla pastilla-activa" : "pastilla"}
-            >
-              Todas
-            </Link>
-            {sedes.map((s) => (
-              <Link
-                key={s.id_sede}
-                href={`/aceite?sede=${s.id_sede}`}
-                className={p.sede === s.id_sede ? "pastilla pastilla-activa" : "pastilla"}
-              >
-                {s.nombre}
-              </Link>
-            ))}
-          </div>
+          <Filtros
+            campos={[
+              {
+                clave: "sede",
+                etiqueta: "Sede",
+                valor: p.sede ?? "",
+                todos: "Todas las sedes",
+                opciones: sedes.map((x) => ({
+                  valor: x.id_sede,
+                  texto: x.nombre || x.id_sede,
+                })),
+              },
+              {
+                clave: "equipo",
+                etiqueta: "Equipo",
+                valor: equipo,
+                todos: "Todos los equipos",
+                opciones: equipos.map((x) => ({
+                  valor: x.id_equipo,
+                  texto: `${x.id_equipo} · ${x.nombre}`,
+                })),
+              },
+            ]}
+          />
 
           {falta ? (
             <div

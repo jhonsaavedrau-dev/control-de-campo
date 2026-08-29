@@ -1124,3 +1124,12 @@ export async function contarOperacion(
     sospechosos: todos.filter((r) => r.sospechoso).length,
   };
 }
+
+export async function borrarIntervencion(id: string): Promise<void> {
+  const db = await leer();
+  db.intervenciones = db.intervenciones.filter((i) => i.id_intervencion !== id);
+  db.intervencion_fotos = (db.intervencion_fotos ?? []).filter(
+    (f) => f.id_intervencion !== id,
+  );
+  await escribir(db);
+}

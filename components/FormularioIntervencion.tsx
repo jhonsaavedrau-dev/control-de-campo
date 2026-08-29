@@ -29,6 +29,7 @@ const MAX_FOTOS = 6;
  * obligatorio" no.
  */
 const OBLIGATORIOS = [
+  { campo: "fecha", falta: "Falta la fecha del trabajo." },
   { campo: "tecnico_nombre", falta: "Falta el nombre del técnico que intervino." },
   { campo: "tecnico_cargo", falta: "Falta el cargo con el que firma el técnico." },
   { campo: "tipo_intervencion", falta: "Falta decir si fue preventiva, correctiva, diagnóstico, inspección u otra." },
@@ -84,6 +85,11 @@ export default function FormularioIntervencion({
   // y repuestos, y un preventivo pide la rutina marcada.
   const esCorrectiva = tipo === "correctiva";
   const esRutina = tipo === "preventiva" || tipo === "inspeccion";
+
+  // Solo como valor inicial del formulario: lo que vale es lo que el
+  // tecnico deje escrito.
+  const hoy = new Date().toISOString().slice(0, 10);
+  const ahora = new Date().toTimeString().slice(0, 5);
 
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -214,14 +220,11 @@ export default function FormularioIntervencion({
       responsable_cliente: texto("responsable_cliente"),
       observaciones_finales: texto("observaciones_finales"),
 
-      // Solo se mandan al corregir: al registrar las pone el servidor.
-      ...(corrigiendo
-        ? {
-            fecha: texto("fecha"),
-            hora: texto("hora"),
-            motivo_edicion: texto("motivo_edicion"),
-          }
-        : {}),
+      // La fecha va siempre: es del trabajo, no del momento en que se
+      // registra. Un acta se llena a menudo al día siguiente.
+      fecha: texto("fecha"),
+      hora: texto("hora"),
+      ...(corrigiendo ? { motivo_edicion: texto("motivo_edicion") } : {}),
     };
 
     if (corrigiendo) {
@@ -346,28 +349,6 @@ export default function FormularioIntervencion({
               placeholder="Ej.: el horómetro se digitó 12500 en vez de 1250."
             />
           </Grupo>
-          {/* La fecha y la hora solo aparecen aquí: al registrar las pone
-              el sistema, y por eso quedan mal cuando el acta se llena al
-              día siguiente. De la fecha depende en qué mes cuenta la
-              intervención dentro del programa. */}
-          <div className="grid grid-cols-2 gap-3">
-            <Grupo etiqueta="Fecha">
-              <input
-                type="date"
-                name="fecha"
-                defaultValue={previa!.fecha}
-                className="entrada font-[family-name:var(--font-mono)]"
-              />
-            </Grupo>
-            <Grupo etiqueta="Hora">
-              <input
-                type="time"
-                name="hora"
-                defaultValue={previa!.hora}
-                className="entrada font-[family-name:var(--font-mono)]"
-              />
-            </Grupo>
-          </div>
         </>
       ) : null}
 
@@ -401,6 +382,37 @@ export default function FormularioIntervencion({
       </Grupo>
 
       <Seccion titulo="Datos de la intervención" icono={<IcoPersona />} numero="2 de 5" />
+
+      {/* La fecha se puede escribir siempre, no solo al corregir. Un acta
+          se llena a menudo al dia siguiente, o se suben trabajos
+          antiguos, y ponerles la fecha de hoy las manda al mes
+          equivocado del programa. */}
+      <div className="grid grid-cols-2 gap-3">
+        <Grupo
+          etiqueta="Fecha del trabajo"
+          obligatorio
+          campo="fecha"
+          mal={faltante === "fecha"}
+          ayuda="Cuándo se hizo, no cuándo se registra."
+        >
+          <input
+            type="date"
+            name="fecha"
+            required
+            defaultValue={previa?.fecha ?? hoy}
+            max={hoy}
+            className="entrada font-[family-name:var(--font-mono)]"
+          />
+        </Grupo>
+        <Grupo etiqueta="Hora">
+          <input
+            type="time"
+            name="hora"
+            defaultValue={previa?.hora ?? ahora}
+            className="entrada font-[family-name:var(--font-mono)]"
+          />
+        </Grupo>
+      </div>
       <Grupo
         etiqueta="Técnico responsable"
         obligatorio

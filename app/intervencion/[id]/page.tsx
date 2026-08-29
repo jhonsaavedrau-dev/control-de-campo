@@ -7,7 +7,7 @@ import { fechaLarga, numero } from "@/components/Piezas";
 import { ETIQUETA_TIPO } from "@/lib/tipos";
 import AccionesActa from "@/components/AccionesActa";
 import { firmaDeTecnico } from "@/lib/firmas";
-import { usuarioActual, puedeEditar, loginConfigurado } from "@/lib/sesion";
+import { usuarioActual, puedeEditar, esAdministrador, loginConfigurado } from "@/lib/sesion";
 import type {
   TipoIntervencion, EstadoEquipo, ResultadoIntervencion, TipoCombustible,
   IntervencionFoto,
@@ -283,6 +283,8 @@ export default async function ActaIntervencion({
           idIntervencion={i.id_intervencion}
           urlDrive={i.pdf_drive_url}
           puedeCorregir={!loginConfigurado() || puedeEditar(usuario)}
+          puedeBorrar={!loginConfigurado() || esAdministrador(usuario)}
+          idEquipo={i.id_equipo}
         />
 
         <div

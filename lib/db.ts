@@ -268,3 +268,10 @@ export const registrosOperacion = (
 
 export const contarOperacion = (...a: Parameters<typeof json.contarOperacion>) =>
   usarSupabase() ? supabase.contarOperacion(...a) : json.contarOperacion(...a);
+
+export const borrarIntervencion = (
+  ...a: Parameters<typeof json.borrarIntervencion>
+) =>
+  usarSupabase()
+    ? supabase.borrarIntervencion(...a)
+    : json.borrarIntervencion(...a);

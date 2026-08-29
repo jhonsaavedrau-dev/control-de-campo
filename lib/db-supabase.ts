@@ -1427,3 +1427,24 @@ export async function contarOperacion(idEquipo?: string): Promise<{
 
   return { total: count ?? 0, sospechosos: sos ?? 0 };
 }
+
+/**
+ * Borra un acta, con sus fotos y su rastro.
+ *
+ * El PDF y las fotos de Drive no se tocan aqui: se mandan a la papelera
+ * desde la ruta, que es la que sabe hablar con Drive. Y a la papelera,
+ * no a borrado definitivo — un acta borrada por error tiene que poder
+ * recuperarse.
+ */
+export async function borrarIntervencion(id: string): Promise<void> {
+  const db = cliente();
+
+  // Las fotos primero: cuelgan del acta.
+  await db.from("intervencion_fotos").delete().eq("id_intervencion", id);
+
+  const { error } = await db
+    .from("intervenciones")
+    .delete()
+    .eq("id_intervencion", id);
+  if (error) throw errorConCodigo(error);
+}

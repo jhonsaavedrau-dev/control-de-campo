@@ -8,6 +8,7 @@ import {
   resumirOperacion, ETIQUETA_ESTADO_OP, colorEstadoOp, cifra,
 } from "@/lib/operacion";
 import type { RegistroOperacion } from "@/lib/operacion";
+import Filtros from "@/components/Filtros";
 import { usuarioActual, loginConfigurado } from "@/lib/sesion";
 
 export const dynamic = "force-dynamic";
@@ -61,18 +62,7 @@ export default async function Operacion({
   const pares = await equiposConSede();
   const equipos = [...new Set(pares.map((x) => x.equipo.id_equipo))].sort();
 
-  const conFiltro = (extra: Record<string, string>) => {
-    const u = new URLSearchParams();
-    if (equipo) u.set("equipo", equipo);
-    if (p.desde) u.set("desde", p.desde);
-    if (p.hasta) u.set("hasta", p.hasta);
-    if (soloSospechosos) u.set("revisar", "si");
-    for (const [k, v] of Object.entries(extra)) {
-      if (v) u.set(k, v);
-      else u.delete(k);
-    }
-    return `/operacion?${u.toString()}`;
-  };
+
 
   return (
     <>
@@ -167,36 +157,27 @@ export default async function Operacion({
                 </div>
               ) : null}
 
-              {/* --- Filtros --- */}
-              <div className="flex flex-wrap gap-1.5 mt-5">
-                <Link
-                  href={conFiltro({ equipo: "" })}
-                  className={!equipo ? "pastilla pastilla-activa" : "pastilla"}
-                >
-                  Todos
-                </Link>
-                {equipos.map((id) => (
-                  <Link
-                    key={id}
-                    href={conFiltro({ equipo: id })}
-                    className={id === equipo ? "pastilla pastilla-activa" : "pastilla"}
-                  >
-                    {id}
-                  </Link>
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                <Link
-                  href={conFiltro({ revisar: soloSospechosos ? "" : "si" })}
-                  className={soloSospechosos ? "pastilla pastilla-activa" : "pastilla"}
-                  style={
-                    soloSospechosos
-                      ? undefined
-                      : { color: "var(--color-pendiente)" }
-                  }
-                >
-                  Solo lo que hay que revisar
-                </Link>
+              <div className="mt-5">
+                <Filtros
+                  campos={[
+                    {
+                      clave: "equipo",
+                      etiqueta: "Equipo",
+                      valor: equipo,
+                      todos: "Todos los equipos",
+                      opciones: equipos.map((id) => ({ valor: id, texto: id })),
+                    },
+                    {
+                      clave: "revisar",
+                      etiqueta: "Mostrar",
+                      valor: soloSospechosos ? "si" : "",
+                      opciones: [
+                        { valor: "", texto: "Todos los registros" },
+                        { valor: "si", texto: "Solo lo que hay que revisar" },
+                      ],
+                    },
+                  ]}
+                />
               </div>
 
               <p

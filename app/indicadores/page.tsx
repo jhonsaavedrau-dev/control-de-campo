@@ -5,6 +5,7 @@ import {
 } from "@/lib/db";
 import { Encabezado, PieDePagina } from "@/components/Marco";
 import PanelIndicadores from "@/components/PanelIndicadores";
+import Filtros from "@/components/Filtros";
 import { usuarioActual, puedeEditar, loginConfigurado } from "@/lib/sesion";
 import {
   horasDelMes, horasOperadas, disponibilidad, confiabilidad, mtbf, META,
@@ -201,46 +202,38 @@ export default async function Indicadores({
             confiabilidad {(META.confiabilidad * 100).toFixed(1)} %
           </p>
 
-          {sedes.length > 1 ? (
-            <div className="flex flex-wrap gap-1.5 mt-5">
-              {sedes.map(([id, s]) => (
-                <Link
-                  key={id}
-                  href={`/indicadores?sede=${id}&anio=${anio}`}
-                  className={id === sede ? "pastilla pastilla-activa" : "pastilla"}
-                >
-                  {s.nombre}
-                </Link>
-              ))}
-            </div>
-          ) : null}
-
-          <div className="flex flex-wrap gap-1.5 mt-2">
-            {deLaSede.map((x) => (
-              <Link
-                key={x.equipo.id_equipo}
-                href={`/indicadores?equipo=${x.equipo.id_equipo}&anio=${anio}`}
-                className={
-                  x.equipo.id_equipo === idEquipo
-                    ? "pastilla pastilla-activa"
-                    : "pastilla"
-                }
-              >
-                {x.equipo.id_equipo}
-                {x.equipo.tag ? ` · ${x.equipo.tag}` : ""}
-              </Link>
-            ))}
-          </div>
-          <div className="flex flex-wrap gap-1.5 mt-2">
-            {[anio - 1, anio, anio + 1].map((a) => (
-              <Link
-                key={a}
-                href={`/indicadores?equipo=${idEquipo}&anio=${a}`}
-                className={a === anio ? "pastilla pastilla-activa" : "pastilla"}
-              >
-                {a}
-              </Link>
-            ))}
+          <div className="mt-5">
+            <Filtros
+              campos={[
+                {
+                  clave: "sede",
+                  etiqueta: "Sede",
+                  valor: sede,
+                  opciones: sedes.map(([id, x]) => ({
+                    valor: id,
+                    texto: x.nombre || id,
+                  })),
+                },
+                {
+                  clave: "equipo",
+                  etiqueta: "Equipo",
+                  valor: idEquipo,
+                  opciones: deLaSede.map((x) => ({
+                    valor: x.equipo.id_equipo,
+                    texto: `${x.equipo.id_equipo}${x.equipo.tag ? ` · ${x.equipo.tag}` : ""}`,
+                  })),
+                },
+                {
+                  clave: "anio",
+                  etiqueta: "Año",
+                  valor: String(anio),
+                  opciones: [anio - 1, anio, anio + 1].map((a) => ({
+                    valor: String(a),
+                    texto: String(a),
+                  })),
+                },
+              ]}
+            />
           </div>
 
           {!elegido ? (

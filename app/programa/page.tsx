@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { equiposConSede, programaDelAnio } from "@/lib/db";
 import { Encabezado, PieDePagina } from "@/components/Marco";
 import PanelPrograma from "@/components/PanelPrograma";
+import Filtros from "@/components/Filtros";
 import { usuarioActual, puedeEditar, loginConfigurado } from "@/lib/sesion";
 import {
   MESES_CORTOS, actasPorEquipoYMes, estadoDeTarea, cumplimiento,
@@ -110,28 +111,29 @@ export default async function Programa({
             Programa de mantenimiento
           </h1>
 
-          {/* Sedes y años */}
-          <div className="flex flex-wrap gap-1.5 mt-5">
-            {sedes.map(([id, s]) => (
-              <Link
-                key={id}
-                href={`/programa?anio=${anio}&sede=${id}`}
-                className={id === sede ? "pastilla pastilla-activa" : "pastilla"}
-              >
-                {s.nombre}
-              </Link>
-            ))}
-          </div>
-          <div className="flex flex-wrap gap-1.5 mt-2">
-            {[anio - 1, anio, anio + 1].map((a) => (
-              <Link
-                key={a}
-                href={`/programa?anio=${a}&sede=${sede}`}
-                className={a === anio ? "pastilla pastilla-activa" : "pastilla"}
-              >
-                {a}
-              </Link>
-            ))}
+          <div className="mt-5">
+            <Filtros
+              campos={[
+                {
+                  clave: "sede",
+                  etiqueta: "Sede",
+                  valor: sede,
+                  opciones: sedes.map(([id, x]) => ({
+                    valor: id,
+                    texto: x.nombre || id,
+                  })),
+                },
+                {
+                  clave: "anio",
+                  etiqueta: "Año",
+                  valor: String(anio),
+                  opciones: [anio - 1, anio, anio + 1].map((a) => ({
+                    valor: String(a),
+                    texto: String(a),
+                  })),
+                },
+              ]}
+            />
           </div>
 
           {falta ? (
