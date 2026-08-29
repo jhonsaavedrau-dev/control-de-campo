@@ -199,20 +199,14 @@ export default function MenuPrincipal({
         onClick={() => setAbierto(true)}
         aria-label="Abrir el menú"
         aria-expanded={abierto}
-        className="flex items-center gap-2 rounded-md px-3 h-[36px] shrink-0 transition-colors hover:bg-[rgba(13,61,97,0.06)]"
-        style={{
-          border: "1px solid rgba(13, 61, 97, 0.22)",
-          color: "var(--color-marino)",
-        }}
+        className="boton-menu shrink-0"
       >
-        <span className="flex flex-col gap-[3px]" aria-hidden>
-          <span className="block w-[15px] h-[1.5px] bg-current rounded" />
-          <span className="block w-[15px] h-[1.5px] bg-current rounded" />
-          <span className="block w-[15px] h-[1.5px] bg-current rounded" />
+        <span className="boton-menu-rayas" aria-hidden>
+          <i />
+          <i />
+          <i />
         </span>
-        <span className="font-[family-name:var(--font-mono)] text-[11.5px] tracking-[0.08em] hidden sm:inline">
-          MENÚ
-        </span>
+        <span>MENÚ</span>
       </button>
 
       {abierto ? (
@@ -302,10 +296,7 @@ export default function MenuPrincipal({
             <div className="px-3 pb-3 sm:py-2">
               {grupos.map((g) => (
                 <div key={g.titulo} className="mt-2 first:mt-1">
-                  <div
-                    className="font-[family-name:var(--font-mono)] text-[10.5px] uppercase tracking-[0.12em] px-2.5 pt-2 pb-1.5"
-                    style={{ color: "var(--color-sin-info)" }}
-                  >
+                  <div className="menu-grupo">
                     {g.titulo}
                   </div>
 
@@ -316,32 +307,15 @@ export default function MenuPrincipal({
                       <Link
                         key={d.href}
                         href={d.href}
-                        className="flex items-start gap-3 rounded-md px-2.5 py-3 transition-colors"
-                        style={{
-                          background: aqui ? "var(--color-campo)" : "transparent",
-                          color: "var(--color-tinta)",
-                        }}
+                        onClick={cerrar}
+                        data-aqui={aqui ? "si" : undefined}
+                        aria-current={aqui ? "page" : undefined}
+                        className="menu-enlace"
                       >
-                        <span
-                          className="mt-[1px] shrink-0"
-                          style={{
-                            color: aqui
-                              ? "var(--color-activo)"
-                              : "var(--color-tenue)",
-                          }}
-                        >
-                          {d.icono}
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block text-[14.5px] font-medium leading-tight">
-                            {d.texto}
-                          </span>
-                          <span
-                            className="block text-[12.5px] mt-0.5 leading-snug"
-                            style={{ color: "var(--color-tenue)" }}
-                          >
-                            {d.nota}
-                          </span>
+                        <span className="menu-icono">{d.icono}</span>
+                        <span className="menu-texto">
+                          <span className="menu-titulo">{d.texto}</span>
+                          <span className="menu-nota">{d.nota}</span>
                         </span>
                       </Link>
                     );

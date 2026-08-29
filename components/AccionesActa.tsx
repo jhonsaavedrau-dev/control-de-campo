@@ -139,12 +139,7 @@ export default function AccionesActa({
               <button
                 onClick={borrar}
                 disabled={borrando}
-                className="accion"
-                style={{
-                  background: "var(--color-critico)",
-                  borderColor: "var(--color-critico)",
-                  color: "#fff",
-                }}
+                className="accion accion-peligro-firme"
               >
                 {borrando ? "Borrando…" : "Sí, borrar el acta"}
               </button>
@@ -160,8 +155,7 @@ export default function AccionesActa({
         ) : (
           <button
             onClick={() => setConfirmando(true)}
-            className="accion accion-secundaria"
-            style={{ color: "var(--color-critico)" }}
+            className="accion accion-peligro"
           >
             Borrar el acta
           </button>

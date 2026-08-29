@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
 import { MESES } from "@/lib/programa";
 import { IcoLapiz, IcoLista } from "./Iconos";
+import { TarjetaGrafica, GraficaLinea } from "@/components/Grafica";
 import {
   ETIQUETA_BANDA, ACCION_BANDA, colorBanda, porcentaje, FRASES, META,
 } from "@/lib/indicadores";
@@ -469,199 +470,97 @@ function Medidor({
  * Con una serie por gráfica no hace falta leyenda: el título dice cuál
  * es, y el color queda libre para significar solamente «este dato».
  */
+/**
+ * Las dos gráficas del año.
+ *
+ * Separadas y no superpuestas. Antes iban las dos líneas en un mismo
+ * plano, en verde y verde azulado: medidas con el validador, esos dos
+ * colores dan una separación de 9 sobre 100, cuando el mínimo para
+ * distinguirlos con vista normal es 15. No se diferenciaban, y encima
+ * disponibilidad y confiabilidad no se comparan punto a punto — cada
+ * una tiene su propia meta.
+ *
+ * Con una serie por gráfica no hace falta leyenda: el título dice cuál
+ * es, y el color queda libre para significar solamente «este dato».
+ */
 function Graficas({ filas }: { filas: Fila[] }) {
+  const puntos = (
+    campo: "disponibilidad" | "confiabilidad",
+    conAviso: boolean,
+  ) =>
+    filas.map((f) => ({
+      etiqueta: MESES[f.mes - 1].slice(0, 3),
+      valor: f[campo].resultado,
+      aviso: conAviso ? Boolean(f[campo].advertencia) : false,
+    }));
+
+  const ultimo = (campo: "disponibilidad" | "confiabilidad") => {
+    const con = filas.filter((f) => f[campo].resultado != null);
+    return con.length ? con[con.length - 1][campo].resultado : null;
+  };
+
+  const pct = (v: number) => `${Math.round(v * 100)} %`;
+
   return (
-    <div className="grid gap-3 lg:grid-cols-2 mt-5">
-      <Grafica
+    <div className="grid gap-3.5 lg:grid-cols-2 mt-5">
+      <TarjetaGrafica
         titulo="Disponibilidad"
+        unidad="% del mes"
         color="var(--serie-disponibilidad)"
-        meta={META.disponibilidad}
-        valores={filas.map((f) => f.disponibilidad.resultado)}
-        avisos={filas.map((f) => Boolean(f.disponibilidad.advertencia))}
-      />
-      <Grafica
-        titulo="Confiabilidad"
-        color="var(--serie-confiabilidad)"
-        meta={META.confiabilidad}
-        valores={filas.map((f) => f.confiabilidad.resultado)}
-        avisos={filas.map(() => false)}
-      />
-    </div>
-  );
-}
-
-function Grafica({
-  titulo,
-  color,
-  meta,
-  valores,
-  avisos,
-}: {
-  titulo: string;
-  color: string;
-  meta: number;
-  valores: (number | null)[];
-  avisos: boolean[];
-}) {
-  const [encima, setEncima] = useState<number | null>(null);
-
-  const ancho = 560;
-  const alto = 200;
-  const m = { i: 38, d: 16, s: 16, b: 30 };
-  const w = ancho - m.i - m.d;
-  const h = alto - m.s - m.b;
-
-  // Hasta 110 %: por encima del 100 caben los meses que se pasan, que
-  // son justamente los que hay que ver.
-  const tope = 1.1;
-  const x = (i: number) => m.i + (w * i) / 11;
-  const y = (v: number) => m.s + h * (1 - Math.min(tope, v) / tope);
-
-  const puntos = valores
-    .map((v, i) => ({ i, v }))
-    .filter((p): p is { i: number; v: number } => p.v != null);
-
-  if (!puntos.length) {
-    return (
-      <div className="marco-programa p-4">
-        <div className="grafica-titulo">{titulo}</div>
-        <p className="text-[13.5px] mt-2" style={{ color: "var(--color-sin-info)" }}>
-          Sin meses cargados todavía.
-        </p>
-      </div>
-    );
-  }
-
-  const linea = puntos.map((p, k) => `${k ? "L" : "M"}${x(p.i)},${y(p.v)}`).join(" ");
-  // El área se cierra contra la base para dar peso al dato; el trazo
-  // solo no basta cuando la línea vive pegada al techo.
-  const area =
-    `M${x(puntos[0].i)},${m.s + h} ` +
-    puntos.map((p) => `L${x(p.i)},${y(p.v)}`).join(" ") +
-    ` L${x(puntos[puntos.length - 1].i)},${m.s + h} Z`;
-
-  const ultimo = puntos[puntos.length - 1];
-  const activo = encima != null ? valores[encima] : null;
-
-  return (
-    <div className="marco-programa p-3 sm:p-4">
-      <div className="flex items-baseline justify-between gap-3">
-        <div className="grafica-titulo">{titulo}</div>
-        <div className="grafica-meta">meta {(meta * 100).toFixed(meta < 0.9 ? 1 : 0)} %</div>
-      </div>
-
-      <svg
-        viewBox={`0 0 ${ancho} ${alto}`}
-        className="w-full h-auto mt-1.5 grafica-lienzo"
-        role="img"
-        aria-label={`${titulo} mes a mes`}
-        onMouseLeave={() => setEncima(null)}
+        insignia={
+          ultimo("disponibilidad") != null
+            ? {
+                texto: porcentaje(ultimo("disponibilidad"), 0),
+                color:
+                  (ultimo("disponibilidad") ?? 0) >= META.disponibilidad
+                    ? "var(--color-operativo)"
+                    : "var(--color-pendiente)",
+              }
+            : undefined
+        }
       >
-        <defs>
-          <linearGradient id={`g-${titulo}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.22" />
-            <stop offset="100%" stopColor={color} stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
-
-        {/* Rejilla discreta: sitúa sin competir con el dato */}
-        {[0, 0.5, 1].map((v) => (
-          <g key={v}>
-            <line
-              x1={m.i} x2={ancho - m.d} y1={y(v)} y2={y(v)}
-              stroke="var(--color-borde)" strokeWidth="1"
-            />
-            <text
-              x={m.i - 7} y={y(v) + 3.5} textAnchor="end"
-              className="grafica-eje"
-            >
-              {v * 100}
-            </text>
-          </g>
-        ))}
-
-        {/* La meta: es el listón, va punteada y rotulada */}
-        <line
-          x1={m.i} x2={ancho - m.d} y1={y(meta)} y2={y(meta)}
-          stroke="var(--color-tenue)" strokeWidth="1" strokeDasharray="5 4"
+        <GraficaLinea
+          puntos={puntos("disponibilidad", true)}
+          color="var(--serie-disponibilidad)"
+          meta={{
+            valor: META.disponibilidad,
+            texto: `meta ${Math.round(META.disponibilidad * 100)} %`,
+          }}
+          tope={1.1}
+          formato={pct}
         />
+      </TarjetaGrafica>
 
-        <path d={area} fill={`url(#g-${titulo})`} />
-        <path
-          d={linea}
-          fill="none"
-          stroke={color}
-          strokeWidth="2"
-          strokeLinejoin="round"
-          strokeLinecap="round"
+      <TarjetaGrafica
+        titulo="Confiabilidad"
+        unidad="misión de 24 h"
+        color="var(--serie-confiabilidad)"
+        insignia={
+          ultimo("confiabilidad") != null
+            ? {
+                texto: porcentaje(ultimo("confiabilidad"), 0),
+                color:
+                  (ultimo("confiabilidad") ?? 0) >= META.confiabilidad
+                    ? "var(--color-operativo)"
+                    : "var(--color-pendiente)",
+              }
+            : undefined
+        }
+      >
+        <GraficaLinea
+          puntos={puntos("confiabilidad", false)}
+          color="var(--serie-confiabilidad)"
+          meta={{
+            valor: META.confiabilidad,
+            texto: `meta ${(META.confiabilidad * 100).toFixed(1)} %`,
+          }}
+          tope={1.1}
+          formato={pct}
         />
-
-        {puntos.map((p) => (
-          <circle
-            key={p.i}
-            cx={x(p.i)}
-            cy={y(p.v)}
-            r={p.i === ultimo.i || encima === p.i ? 4.5 : 3}
-            fill={avisos[p.i] ? "var(--color-critico)" : color}
-            stroke="var(--color-panel)"
-            strokeWidth="2"
-          />
-        ))}
-
-        {/* El último punto, rotulado: es el que se busca al abrir */}
-        <text
-          x={Math.min(x(ultimo.i) + 8, ancho - m.d)}
-          y={y(ultimo.v) - 9}
-          textAnchor={ultimo.i > 8 ? "end" : "start"}
-          className="grafica-ultimo"
-        >
-          {(ultimo.v * 100).toFixed(0)} %
-        </text>
-
-        {/* Zonas de toque: más anchas que el punto, que en el celular
-            un círculo de 3 px no lo acierta nadie. */}
-        {valores.map((v, i) => (
-          <rect
-            key={i}
-            x={x(i) - w / 22} y={m.s} width={w / 11} height={h}
-            fill="transparent"
-            onMouseEnter={() => v != null && setEncima(i)}
-            onFocus={() => v != null && setEncima(i)}
-          />
-        ))}
-
-        {encima != null && activo != null ? (
-          <line
-            x1={x(encima)} x2={x(encima)} y1={m.s} y2={m.s + h}
-            stroke="var(--color-borde-fuerte)" strokeWidth="1"
-          />
-        ) : null}
-
-        {MESES.map((mes, i) => (
-          <text
-            key={i} x={x(i)} y={alto - 9} textAnchor="middle"
-            className={encima === i ? "grafica-mes grafica-mes-activo" : "grafica-mes"}
-          >
-            {mes.slice(0, 3).toUpperCase()}
-          </text>
-        ))}
-      </svg>
-
-      <div className="grafica-pie">
-        {encima != null && activo != null ? (
-          <>
-            <strong>{MESES[encima]}</strong> · {(activo * 100).toFixed(1)} %
-            {avisos[encima] ? " · revisar el dato" : ""}
-          </>
-        ) : (
-          <>Línea punteada: la meta. Pasa por encima de un mes para ver su valor.</>
-        )}
-      </div>
+      </TarjetaGrafica>
     </div>
   );
 }
-
-/* ---------- Cargar un mes ---------- */
 
 function Editor({
   idEquipo,
@@ -910,8 +809,7 @@ function Editor({
             <button
               type="button"
               onClick={alCerrar}
-              className="accion-secundaria"
-              style={{ width: "auto" }}
+              className="accion-secundaria accion-suelta"
             >
               Cancelar
             </button>

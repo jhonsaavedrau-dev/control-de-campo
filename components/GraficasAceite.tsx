@@ -6,6 +6,9 @@ import type { FilaConsumo } from "@/lib/aceite";
 import {
   IcoCombustible, IcoDisco, IcoReloj, IcoLista,
 } from "@/components/Iconos";
+import {
+  TarjetaGrafica, BarrasHorizontales, techo,
+} from "@/components/Grafica";
 
 /**
  * El consumo de aceite, en cuatro lecturas.
@@ -86,113 +89,56 @@ export default function GraficasAceite({ filas }: { filas: FilaConsumo[] }) {
 
   return (
     <div className="grid gap-3.5 lg:grid-cols-2 mt-5">
-      <Tarjeta
+      <TarjetaGrafica
         titulo="Consumo por equipo"
-        nota="galones"
+        unidad="galones"
+        insignia={{ texto: `${galonesLegible(totalAceite)} gln` }}
         color="var(--serie-disponibilidad)"
         icono={<IcoCombustible className="w-4 h-4" />}
       >
-        <BarrasEquipo equipos={equipos} />
-      </Tarjeta>
+        <BarrasHorizontales
+          filas={equipos.map((e) => ({
+            id: e.id,
+            valor: e.gln,
+            color: e.color,
+            nota: `${e.adiciones} adiciones`,
+          }))}
+          formato={(v) => `${galonesLegible(v)} gln`}
+        />
+      </TarjetaGrafica>
 
-      <Tarjeta
+      <TarjetaGrafica
         titulo="Tipo de aceite"
-        nota={`${aceites.length} referencias`}
+        unidad={`${aceites.length} referencias`}
         color="var(--serie-confiabilidad)"
         icono={<IcoDisco className="w-4 h-4" />}
       >
         <Reparto aceites={aceites} total={totalAceite} />
-      </Tarjeta>
+      </TarjetaGrafica>
 
-      <Tarjeta
+      <TarjetaGrafica
         titulo="Consumo por hora"
-        nota="gln / hora"
+        unidad="gln / hora"
         color="var(--color-naranja-hondo)"
         icono={<IcoReloj className="w-4 h-4" />}
       >
         <Indicador filas={indicador} />
-      </Tarjeta>
+      </TarjetaGrafica>
 
-      <Tarjeta
+      <TarjetaGrafica
         titulo="Seguimiento mes a mes"
-        nota="galones por mes"
+        unidad="galones por mes"
         color="var(--color-marino)"
         icono={<IcoLista className="w-4 h-4" />}
       >
         <Mensual meses={meses} colorDe={colorDe} />
-      </Tarjeta>
+      </TarjetaGrafica>
     </div>
   );
 }
 
 /* ---------- Piezas ---------- */
 
-/** La escala redondeada hacia arriba: un eje que acaba en 273 se lee mal. */
-function techo(v: number): number {
-  if (v <= 0) return 1;
-  const orden = 10 ** Math.floor(Math.log10(v));
-  return Math.ceil(v / (orden / 2)) * (orden / 2);
-}
-
-function BarrasEquipo({
-  equipos,
-}: {
-  equipos: { id: string; gln: number; adiciones: number; color: string }[];
-}) {
-  const [encima, setEncima] = useState<string | null>(null);
-  const max = techo(Math.max(...equipos.map((e) => e.gln)));
-  const marcas = [0, max / 2, max];
-
-  return (
-    <div>
-      <ul className="space-y-3">
-        {equipos.map((e) => (
-          <li
-            key={e.id}
-            onMouseEnter={() => setEncima(e.id)}
-            onMouseLeave={() => setEncima(null)}
-          >
-            <div className="flex items-baseline justify-between gap-2 mb-1.5">
-              <span className="font-[family-name:var(--font-mono)] text-[12.5px] font-medium">
-                {e.id}
-              </span>
-              <span className="text-[12.5px] tabular-nums" style={{ color: "var(--color-tenue)" }}>
-                <strong style={{ color: "var(--color-tinta)" }}>
-                  {galonesLegible(e.gln)}
-                </strong>{" "}
-                gln · {e.adiciones} adiciones
-              </span>
-            </div>
-            {/* La barra sobre su carril: sin el carril no se ve cuánto
-                falta para el máximo. */}
-            <div
-              className="h-[13px] rounded-[3px] overflow-hidden"
-              style={{ background: "var(--color-hundido)" }}
-            >
-              <div
-                className="h-full rounded-[3px] gr-barra"
-                style={{
-                  width: `${(e.gln / max) * 100}%`,
-                  background: e.color,
-                  opacity: encima && encima !== e.id ? 0.5 : 1,
-                }}
-              />
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      <div
-        className="flex justify-between mt-2 font-[family-name:var(--font-mono)] text-[9.5px]"
-        style={{ color: "var(--color-sin-info)" }}
-      >
-        {marcas.map((m) => (
-          <span key={m}>{galonesLegible(m)}</span>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function Reparto({
   aceites, total,
@@ -423,26 +369,6 @@ function Mensual({
           </span>
         ))}
       </div>
-    </div>
-  );
-}
-
-function Tarjeta({
-  titulo, nota, color, icono, children,
-}: {
-  titulo: string; nota: string; color: string;
-  icono: React.ReactNode; children: React.ReactNode;
-}) {
-  return (
-    <div className="gr">
-      <div className="gr-cabeza">
-        <span className="gr-icono" style={{ background: color }}>
-          {icono}
-        </span>
-        <span className="gr-titulo">{titulo}</span>
-        <span className="gr-nota">{nota}</span>
-      </div>
-      <div className="gr-cuerpo">{children}</div>
     </div>
   );
 }

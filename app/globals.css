@@ -331,14 +331,15 @@ button.panel:hover {
    ============================================================ */
 
 .accion {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   width: 100%;
   border: 1px solid var(--color-accion-hondo);
-  border-radius: 7px;
-  padding: 13px 16px;
+  border-radius: 8px;
+  padding: 12px 18px;
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--color-accion) 92%, #fff) 0%,
@@ -348,13 +349,39 @@ button.panel:hover {
   font-family: var(--font-sans);
   font-weight: 600;
   font-size: 14.5px;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.005em;
   cursor: pointer;
-  box-shadow: var(--sombra-1);
-  transition: box-shadow 140ms ease, transform 80ms ease, filter 140ms ease;
+  overflow: hidden;
+  box-shadow: var(--sombra-1),
+              inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: box-shadow 160ms ease, transform 90ms ease, filter 160ms ease;
 }
-.accion:hover { filter: brightness(1.04); box-shadow: var(--sombra-2); }
-.accion:active { transform: translateY(1px); box-shadow: none; }
+/* Un brillo que cruza al pasar por encima. Es el unico adorno del
+   sistema y esta aqui a proposito: el boton de registrar es la accion
+   que mas se repite en el dia, y merece responder. */
+.accion::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.28) 50%,
+    transparent 70%
+  );
+  transform: translateX(-100%);
+  transition: transform 620ms ease;
+  pointer-events: none;
+}
+.accion:hover::after { transform: translateX(100%); }
+.accion:hover { filter: brightness(1.03); box-shadow: var(--sombra-2); }
+.accion:active { transform: translateY(1px); box-shadow: var(--sombra-1); }
+.accion:focus-visible {
+  outline: none;
+  box-shadow: var(--sombra-1),
+              0 0 0 3px color-mix(in srgb, var(--color-accion) 40%, transparent);
+}
+.accion svg { flex-shrink: 0; }
 .accion:disabled { opacity: 0.5; cursor: default; transform: none; }
 
 .accion-secundaria {
@@ -362,12 +389,49 @@ button.panel:hover {
   border-color: var(--color-borde);
   color: var(--color-tinta);
   font-weight: 600;
+  box-shadow: var(--sombra-1);
 }
+.accion-secundaria::after { display: none; }
 .accion-secundaria:hover {
   background: var(--color-realce);
   border-color: var(--color-borde-fuerte);
   filter: none;
 }
+.accion-secundaria:focus-visible {
+  box-shadow: var(--sombra-1),
+              0 0 0 3px color-mix(in srgb, var(--color-activo) 25%, transparent);
+}
+
+/* El que borra. Va aparte y no como estilo suelto en cada sitio: una
+   accion que no se puede deshacer tiene que verse igual en toda la
+   aplicacion. */
+.accion-peligro {
+  background: var(--color-panel);
+  border-color: color-mix(in srgb, var(--color-critico) 45%, var(--color-borde));
+  color: var(--color-critico);
+  font-weight: 600;
+  box-shadow: var(--sombra-1);
+}
+.accion-peligro::after { display: none; }
+.accion-peligro:hover {
+  background: color-mix(in srgb, var(--color-critico) 8%, var(--color-panel));
+  border-color: var(--color-critico);
+  filter: none;
+}
+
+/* Cuando ya se confirmo: relleno, para que no se pulse por inercia. */
+.accion-peligro-firme {
+  background: var(--color-critico);
+  border-color: var(--color-critico);
+  color: #fff;
+}
+.accion-peligro-firme::after { display: none; }
+.accion-peligro-firme:hover {
+  background: color-mix(in srgb, var(--color-critico) 88%, #000);
+}
+
+/* En una fila, no ocupando el ancho entero. */
+.accion-suelta { width: auto; }
 
 /* ============================================================
    FORMULARIO
@@ -546,18 +610,16 @@ a.bitacora-fila:hover { background: var(--color-realce); }
 }
 
 /* ============================================================
-   TARJETA DE GRAFICA
+   GRAFICAS — un solo sistema para todas
    ============================================================ */
 
-/* Una grafica no es un panel mas: lleva su cabecera con filo de color,
-   que es lo que hace que un tablero se lea como un tablero y no como
-   una pila de cajas blancas. */
 .gr {
   background: var(--color-panel);
   border: 1px solid var(--color-borde-suave);
-  border-radius: 11px;
+  border-radius: 12px;
   box-shadow: var(--sombra-2);
   overflow: hidden;
+  margin: 0;
 }
 
 .gr-cabeza {
@@ -566,6 +628,13 @@ a.bitacora-fila:hover { background: var(--color-realce); }
   gap: 10px;
   padding: 11px 14px 10px;
   border-bottom: 1px solid var(--color-borde-suave);
+  /* Una veladura hacia el fondo: separa la cabecera del lienzo sin
+     meter otra linea. */
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-hundido) 55%, transparent),
+    transparent
+  );
 }
 
 .gr-icono {
@@ -574,8 +643,18 @@ a.bitacora-fila:hover { background: var(--color-realce); }
   justify-content: center;
   width: 30px;
   height: 30px;
-  border-radius: 8px;
+  border-radius: 9px;
   color: #fff;
+  flex-shrink: 0;
+  box-shadow: var(--sombra-1);
+}
+
+/* Cuando no hay icono, un filo del color de la serie: la tarjeta tiene
+   que decir de que color es su dato antes de mirar la linea. */
+.gr-filo {
+  width: 4px;
+  height: 22px;
+  border-radius: 999px;
   flex-shrink: 0;
 }
 
@@ -586,19 +665,33 @@ a.bitacora-fila:hover { background: var(--color-realce); }
   letter-spacing: 0.01em;
   color: var(--color-tinta);
 }
-.gr-nota {
-  margin-left: auto;
+
+.gr-insignia {
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.09em;
+  font-size: 15px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--color-hundido);
+}
+
+.gr-nota {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-sin-info);
   text-align: right;
 }
+.gr-insignia + .gr-nota { margin-left: 0; }
+.gr-titulo + .gr-nota { margin-left: auto; }
 
-.gr-cuerpo { padding: 14px; }
+.gr-cuerpo { padding: 13px 14px 12px; }
 
-/* Las lineas de referencia: se leen, no se miran. */
+/* --- El lienzo --- */
+
 .gr-rejilla { stroke: var(--color-borde-suave); stroke-width: 1; }
 .gr-eje {
   font-family: var(--font-mono);
@@ -606,10 +699,236 @@ a.bitacora-fila:hover { background: var(--color-realce); }
   fill: var(--color-sin-info);
 }
 
-/* La barra se aclara al pasar por encima, en vez de cambiar de color:
-   el color es la identidad del equipo y no puede moverse. */
-.gr-barra { transition: filter 140ms ease, opacity 140ms ease; }
-.gr-barra:hover { filter: brightness(1.12); }
+/* El pie dice el valor donde esta el cursor. Ocupa siempre la misma
+   altura, para que la tarjeta no de saltos al pasar por encima. */
+.gr-pie {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 22px;
+  margin-top: 6px;
+  padding-top: 7px;
+  border-top: 1px solid var(--color-borde-suave);
+  font-size: 12.5px;
+  color: var(--color-tenue);
+}
+.gr-pie strong { color: var(--color-tinta); font-weight: 600; }
+.gr-pie-valor {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-tinta);
+}
+.gr-punto {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+/* --- Barras --- */
+
+.gr-carril {
+  height: 13px;
+  border-radius: 4px;
+  background: var(--color-hundido);
+  overflow: hidden;
+}
+.gr-barra {
+  height: 100%;
+  border-radius: 4px;
+  transition: filter 140ms ease, opacity 140ms ease, width 320ms ease;
+}
+.gr-barra:hover { filter: brightness(1.1); }
+
+.gr-clave {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.gr-cifra {
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-tenue);
+}
+.gr-cifra strong { color: var(--color-tinta); }
+
+.gr-escala {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 9px;
+  padding-top: 7px;
+  border-top: 1px solid var(--color-borde-suave);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--color-sin-info);
+}
+
+/* --- Sin datos --- */
+
+.gr-vacio {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 22px 4px;
+  font-size: 13.5px;
+  color: var(--color-sin-info);
+}
+.gr-vacio-marca {
+  width: 26px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--color-borde);
+  flex-shrink: 0;
+}
+
+/* --- Leyenda --- */
+
+.gr-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 14px;
+  margin-top: 11px;
+  padding-top: 9px;
+  border-top: 1px solid var(--color-borde-suave);
+}
+.gr-leyenda span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--color-tenue);
+}
+.gr-leyenda i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   MENU — el boton y su hoja
+   ============================================================ */
+
+/* El boton del menu no es un icono suelto: lleva el nombre al lado y
+   se ve como algo que se pulsa. Una hamburguesa sola obliga a probar
+   para saber que hace. */
+.boton-menu {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 38px;
+  padding: 0 13px 0 11px;
+  border: 1px solid rgba(13, 61, 97, 0.2);
+  border-radius: 9px;
+  background: var(--color-panel);
+  color: var(--color-marino);
+  font-family: var(--font-placa);
+  font-weight: 600;
+  font-size: 13.5px;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  box-shadow: var(--sombra-1);
+  transition: background 150ms ease, border-color 150ms ease,
+              box-shadow 150ms ease;
+}
+.boton-menu:hover {
+  background: color-mix(in srgb, var(--color-marino) 5%, var(--color-panel));
+  border-color: rgba(13, 61, 97, 0.36);
+  box-shadow: var(--sombra-2);
+}
+.boton-menu:focus-visible {
+  outline: 2px solid var(--color-activo);
+  outline-offset: 2px;
+}
+
+/* Las tres rayas se convierten en aspa al abrir. */
+.boton-menu-rayas {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 16px;
+  height: 12px;
+}
+.boton-menu-rayas i {
+  display: block;
+  height: 1.8px;
+  border-radius: 2px;
+  background: currentColor;
+  transition: transform 220ms cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 160ms ease;
+}
+.boton-menu-rayas i:nth-child(1) { width: 16px; }
+.boton-menu-rayas i:nth-child(2) { width: 12px; }
+.boton-menu-rayas i:nth-child(3) { width: 16px; }
+
+.boton-menu[aria-expanded="true"] .boton-menu-rayas i:nth-child(1) {
+  transform: translateY(5.8px) rotate(45deg);
+}
+.boton-menu[aria-expanded="true"] .boton-menu-rayas i:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+.boton-menu[aria-expanded="true"] .boton-menu-rayas i:nth-child(3) {
+  width: 16px;
+  transform: translateY(-5.8px) rotate(-45deg);
+}
+
+/* --- La hoja --- */
+
+.menu-grupo {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-sin-info);
+  padding: 14px 10px 7px;
+}
+
+.menu-enlace {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 10px;
+  border-radius: 9px;
+  transition: background 140ms ease;
+}
+.menu-enlace:hover { background: var(--color-campo); }
+
+/* El sitio donde uno esta: filo de color y fondo, no solo negrita. */
+.menu-enlace[data-aqui="si"] {
+  background: color-mix(in srgb, var(--color-activo) 8%, transparent);
+  box-shadow: inset 3px 0 0 var(--color-activo);
+}
+
+.menu-icono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  background: var(--color-hundido);
+  color: var(--color-marino);
+}
+.menu-enlace[data-aqui="si"] .menu-icono {
+  background: var(--color-activo);
+  color: #fff;
+}
+
+.menu-texto { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
+.menu-titulo {
+  font-family: var(--font-placa);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--color-tinta);
+}
+.menu-nota {
+  font-size: 12.5px;
+  line-height: 1.3;
+  color: var(--color-tenue);
+}
 
 /* ============================================================
    ATAJO — un boton que lleva a una pantalla entera

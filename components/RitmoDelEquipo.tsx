@@ -4,6 +4,8 @@ import { useState } from "react";
 import { tramos } from "@/lib/horometro";
 import type { LecturaHorometro } from "@/lib/horometro";
 import { colorEvento, ETIQUETA_EVENTO } from "@/lib/trazabilidad";
+import { TarjetaGrafica } from "@/components/Grafica";
+import { IcoReloj } from "@/components/Iconos";
 import type { Evento } from "@/lib/trazabilidad";
 
 /**
@@ -73,17 +75,14 @@ export default function RitmoDelEquipo({
     });
 
   return (
-    <div className="panel px-3 py-3 mt-5">
-      <div className="flex items-baseline justify-between gap-3 px-1">
-        <span className="text-[14px] font-semibold">Ritmo de operación</span>
-        <span
-          className="font-[family-name:var(--font-mono)] text-[11px]"
-          style={{ color: "var(--color-sin-info)" }}
-        >
-          horas por día
-        </span>
-      </div>
-
+    <div className="mt-5">
+      <TarjetaGrafica
+        titulo="Ritmo de operación"
+        unidad="horas por día"
+        color="var(--serie-disponibilidad)"
+        icono={<IcoReloj className="w-4 h-4" />}
+        insignia={{ texto: `${ultimo.ritmo.toFixed(1).replace(".", ",")} h/día` }}
+      >
       <div className="overflow-x-auto">
         <svg
           viewBox={`0 0 ${ANCHO} ${ALTO}`}
@@ -99,16 +98,13 @@ export default function RitmoDelEquipo({
                 x2={ANCHO - MARGEN.derecha}
                 y1={y(v)}
                 y2={y(v)}
-                stroke="var(--color-borde-suave)"
-                strokeWidth="1"
+                className="gr-rejilla"
               />
               <text
                 x={MARGEN.izquierda - 7}
                 y={y(v) + 3.5}
                 textAnchor="end"
-                fontSize="9.5"
-                fill="var(--color-sin-info)"
-                fontFamily="var(--font-mono)"
+                className="gr-eje"
               >
                 {v}
               </text>
@@ -222,32 +218,40 @@ export default function RitmoDelEquipo({
         </svg>
       </div>
 
-      <p
-        className="text-[12.5px] px-1 mt-1 tabular-nums"
-        style={{ color: "var(--color-tenue)" }}
-      >
-        {encima != null
-          ? `${dia(puntos[encima].fecha)} · ${puntos[encima].ritmo.toFixed(1).replace(".", ",")} h/día`
-          : `Último tramo: ${ultimo.ritmo.toFixed(1).replace(".", ",")} h/día`}
-      </p>
+      <div className="gr-pie">
+        <span
+          className="gr-punto"
+          style={{ background: "var(--serie-disponibilidad)" }}
+        />
+        {encima != null ? (
+          <>
+            <strong>{dia(puntos[encima].fecha)}</strong>
+            <span className="gr-pie-valor">
+              {puntos[encima].ritmo.toFixed(1).replace(".", ",")} h/día
+            </span>
+          </>
+        ) : (
+          <>
+            <span style={{ color: "var(--color-sin-info)" }}>Último tramo:</span>
+            <strong>{dia(ultimo.fecha)}</strong>
+            <span className="gr-pie-valor">
+              {ultimo.ritmo.toFixed(1).replace(".", ",")} h/día
+            </span>
+          </>
+        )}
+      </div>
 
       {marcas.length ? (
-        <div className="flex flex-wrap gap-x-3 gap-y-1 px-1 mt-2">
+        <div className="gr-leyenda">
           {[...new Set(marcas.map((m) => m.tipo))].map((t) => (
-            <span
-              key={t}
-              className="flex items-center gap-1.5 text-[11.5px]"
-              style={{ color: "var(--color-tenue)" }}
-            >
-              <span
-                className="inline-block w-2.5 h-[2px]"
-                style={{ background: colorEvento(t) }}
-              />
+            <span key={t}>
+              <i style={{ background: colorEvento(t) }} />
               {ETIQUETA_EVENTO[t]}
             </span>
           ))}
         </div>
       ) : null}
+      </TarjetaGrafica>
     </div>
   );
 }

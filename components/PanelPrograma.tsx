@@ -515,8 +515,7 @@ function Editor({
             <button
               type="button"
               onClick={alCerrar}
-              className="accion-secundaria"
-              style={{ width: "auto" }}
+              className="accion-secundaria accion-suelta"
             >
               Cancelar
             </button>

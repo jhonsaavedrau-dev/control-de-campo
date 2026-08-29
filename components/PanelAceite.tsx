@@ -98,8 +98,7 @@ export default function PanelAceite({
         {puedeEditar ? (
           <button
             type="button"
-            className="accion"
-            style={{ width: "auto" }}
+            className="accion accion-suelta"
             onClick={() => setAbierto(!abierto)}
           >
             <IcoCombustible className="w-4 h-4" />
@@ -110,8 +109,7 @@ export default function PanelAceite({
           href={enlacePdf}
           target="_blank"
           rel="noreferrer"
-          className="accion accion-secundaria"
-          style={{ width: "auto" }}
+          className="accion accion-secundaria accion-suelta"
         >
           <IcoDocumento className="w-4 h-4" />
           Ver la hoja en PDF

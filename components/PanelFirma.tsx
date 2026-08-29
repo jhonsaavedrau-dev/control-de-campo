@@ -124,7 +124,6 @@ export default function PanelFirma({
       <div className="flex flex-wrap gap-1.5 mt-2.5">
         <label
           className="accion-secundaria text-[12.5px] py-1.5 px-2.5 inline-flex items-center gap-1.5 cursor-pointer"
-          style={{ width: "auto" }}
         >
           <input
             type="file"

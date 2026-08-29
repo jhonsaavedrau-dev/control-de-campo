@@ -91,8 +91,7 @@ export default function PanelConsumibles({
         <div className="flex flex-wrap gap-2 mb-4">
           <button
             type="button"
-            className="accion accion-secundaria"
-            style={{ width: "auto" }}
+            className="accion accion-secundaria accion-suelta"
             onClick={() => setAbierto(abierto === "alta" ? null : "alta")}
           >
             <IcoLista className="w-4 h-4" />
@@ -100,8 +99,7 @@ export default function PanelConsumibles({
           </button>
           <button
             type="button"
-            className="accion accion-secundaria"
-            style={{ width: "auto" }}
+            className="accion accion-secundaria accion-suelta"
             onClick={() =>
               setAbierto(abierto === "movimiento" ? null : "movimiento")
             }
