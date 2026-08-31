@@ -43,6 +43,8 @@ const TABLAS = [
   ["reportes_falla", "Reportes de falla"],
   ["indicadores_mensuales", "Indicadores mensuales"],
   ["programa_mantenimiento", "Tareas del programa"],
+  ["generacion_diaria", "Cierres diarios de generación"],
+  ["consumo_planta", "Días de consumo de la planta"],
 ];
 
 console.log("QUÉ HAY EN LA BASE\n");
@@ -91,6 +93,51 @@ if (total) {
       if (v === null || v === "" || k === "id") continue;
       console.log(`    ${k.padEnd(22)} ${v}`);
     }
+  }
+}
+
+/* ---------- La conexion con la hoja ---------- */
+
+/**
+ * Lo que de verdad hay que poder comprobar: que la hoja sigue entrando.
+ *
+ * Sin esto, «se actualiza solo» es una promesa. El dia que el reloj se
+ * caiga, la pagina seguira enseñando cifras viejas con toda la seguridad
+ * del mundo, y aqui es donde se ve.
+ */
+const corridas = await (
+  await fetch(
+    `${U}/rest/v1/sincronizaciones` +
+      `?select=momento,ok,disparo,filas_leidas,cierres,segundos,mensaje` +
+      `&order=momento.desc&limit=6`,
+    { headers: H },
+  )
+)
+  .json()
+  .catch(() => []);
+
+console.log("\nLA HOJA DE GOOGLE");
+if (!Array.isArray(corridas) || !corridas.length) {
+  console.log("  Todavía no se ha traído ninguna vez.");
+} else {
+  const buena = corridas.find((c) => c.ok && c.filas_leidas > 0);
+  if (buena) {
+    const min = Math.round((Date.now() - Date.parse(buena.momento)) / 60000);
+    const cuando =
+      min < 60 ? `hace ${min} min` : `hace ${Math.round(min / 60)} h`;
+    console.log(`  Al día ${cuando} · ${buena.cierres} cierres`);
+  }
+  console.log("\n  últimas corridas:");
+  for (const c of corridas) {
+    const hora = String(c.momento).slice(0, 16).replace("T", " ");
+    const que =
+      c.filas_leidas === 0 && c.ok
+        ? "sin cambios en la hoja"
+        : String(c.mensaje).slice(0, 44);
+    console.log(
+      `    ${hora}  ${c.ok ? "OK " : "MAL"}  ${String(c.disparo).padEnd(6)}` +
+        ` ${String(c.segundos ?? "").padStart(5)}s  ${que}`,
+    );
   }
 }
 

@@ -11,7 +11,7 @@ import type {
 } from "./consumibles";
 import type { AdicionAceite } from "./aceite";
 import type { RegistroOperacion } from "./operacion";
-import type { DiaGeneracion } from "./generacion";
+import type { DiaGeneracion, DiaEnPantalla } from "./generacion";
 import {
   siguienteId as siguienteIdDeFamilia,
   sedeNueva, equipoNuevo, controladorNuevo,
@@ -1151,7 +1151,7 @@ export async function generacionDiaria(filtro?: {
   hasta?: string;
   combustible?: string;
   limite?: number;
-}): Promise<DiaGeneracion[]> {
+}): Promise<DiaEnPantalla[]> {
   const db = await leer();
   return ((db.generacion_diaria ?? []) as DiaGeneracion[])
     .filter((d) => {
@@ -1162,7 +1162,8 @@ export async function generacionDiaria(filtro?: {
       return true;
     })
     .sort((a, b) => b.fecha.localeCompare(a.fecha))
-    .slice(0, filtro?.limite ?? 2000);
+    .slice(0, filtro?.limite ?? 2000)
+    .map(({ nota, ...resto }) => ({ ...resto, revisar: Boolean(nota) }));
 }
 
 export async function consumoPlanta(filtro?: {

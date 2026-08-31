@@ -9,7 +9,7 @@ import {
   consolidarPorDia, resumirGeneracion, ETIQUETA_COMBUSTIBLE,
   colorCombustible, unidadConsumo, consumoPorEquipo,
 } from "@/lib/generacion";
-import type { DiaGeneracion } from "@/lib/generacion";
+import type { DiaEnPantalla } from "@/lib/generacion";
 
 /**
  * Lo que la planta generó y gastó, día a día.
@@ -81,7 +81,7 @@ export default function PanelGeneracion({
   planta = [],
   equipos,
 }: {
-  dias: DiaGeneracion[];
+  dias: DiaEnPantalla[];
   /** Lo que bajó el tanque cada día: la cifra con la que PBI pide combustible. */
   planta?: DiaPlanta[];
   equipos: { id_equipo: string; nombre: string }[];

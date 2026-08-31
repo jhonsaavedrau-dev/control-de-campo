@@ -133,6 +133,25 @@ export type DiaGeneracion = {
   origen: string;
 };
 
+/**
+ * Un día tal como lo necesita una pantalla.
+ *
+ * Sin los campos que solo dicen de dónde salió la fila —la sede, el
+ * operador, el origen—: nadie los mira y viajan en cada carga. Con seis
+ * equipos y un año son dos mil doscientas filas, y en campo la página se
+ * abre desde un teléfono con la señal que haya.
+ *
+ * Y de la nota va solo si la hay. El texto entero —«acumulado de 44 días
+ * en el combustible: en la hoja faltan las lecturas intermedias»— viaja
+ * en mil cuatrocientas filas y la pantalla no lo enseña en ninguna: lo
+ * único que hace con él es contarlo. La explicación de cada día sigue
+ * guardada entera en la base, donde se puede consultar.
+ */
+export type DiaEnPantalla = Omit<
+  DiaGeneracion,
+  "id_sede" | "estado" | "operador" | "origen" | "nota" | "dias_cubiertos"
+> & { revisar: boolean };
+
 const diasEntre = (a: string, b: string) =>
   Math.round(
     (Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000,
@@ -472,10 +491,10 @@ export type ResumenGeneracion = {
   conNota: number;
 };
 
-const suma = (l: DiaGeneracion[], campo: keyof DiaGeneracion) =>
+const suma = (l: DiaEnPantalla[], campo: keyof DiaEnPantalla) =>
   l.reduce((n, d) => n + (Number(d[campo]) || 0), 0);
 
-export function resumirGeneracion(dias: DiaGeneracion[]): ResumenGeneracion {
+export function resumirGeneracion(dias: DiaEnPantalla[]): ResumenGeneracion {
   const fechas = dias.map((d) => d.fecha).sort();
   const dieselGln = suma(dias, "diesel_gln");
   const glpKg = suma(dias, "glp_kg");
@@ -504,7 +523,7 @@ export function resumirGeneracion(dias: DiaGeneracion[]): ResumenGeneracion {
     glpKg,
     kwhPorGalon: dieselGln > 0 ? kwhDiesel / dieselGln : null,
     kwhPorKg: glpKg > 0 ? kwhGlp / glpKg : null,
-    conNota: dias.filter((d) => d.nota).length,
+    conNota: dias.filter((d) => d.revisar).length,
   };
 }
 
@@ -518,7 +537,7 @@ export type DiaConsolidado = {
   equipos: number;
 };
 
-export function consolidarPorDia(dias: DiaGeneracion[]): DiaConsolidado[] {
+export function consolidarPorDia(dias: DiaEnPantalla[]): DiaConsolidado[] {
   const mapa = new Map<string, DiaConsolidado>();
   for (const d of dias) {
     const x = mapa.get(d.fecha) ?? {

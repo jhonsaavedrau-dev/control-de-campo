@@ -16,6 +16,7 @@
     "@react-pdf/renderer": "^4.3.1",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",
+    "fflate": "0.8.3",
     "google-auth-library": "^11.0.2",
     "next": "^16.3.2",
     "qrcode": "1.5.4",
@@ -30,6 +31,7 @@
     "@types/react": "19.1.13",
     "@types/react-dom": "19.1.9",
     "tailwindcss": "4.1.13",
+    "tsx": "4.20.6",
     "typescript": "5.9.2"
   }
 }

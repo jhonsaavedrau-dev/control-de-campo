@@ -12,7 +12,7 @@ import type {
 } from "./consumibles";
 import type { AdicionAceite } from "./aceite";
 import type { RegistroOperacion } from "./operacion";
-import type { DiaGeneracion } from "./generacion";
+import type { DiaEnPantalla } from "./generacion";
 import type { EntradaAceite } from "./db-json";
 import { depurarChecklist } from "./checklist";
 import type { IntervencionParaContar } from "./mantenimiento";
@@ -1470,14 +1470,27 @@ const noExiste = (error: { code?: string; message?: string }) =>
  * horómetro, combustible y kilovatios, un renglón por día. Lo llena el
  * sincronizador desde la hoja de Google.
  */
+/**
+ * Las columnas que la pantalla de operacion usa de verdad.
+ *
+ * Pedir `*` traia diecisiete columnas por fila, y de un ano son dos mil
+ * doscientas filas que ademas viajan enteras al navegador dentro del
+ * HTML. Las siete que sobran —el id, la sede, el origen, la marca de
+ * tiempo— no las mira nadie y pesan en cada carga, que en campo se hace
+ * desde un telefono con la senal que haya.
+ */
+const COLUMNAS_GENERACION =
+  "id_equipo,fecha,combustible,horometro,horas_dia,kwh_dia," +
+  "diesel_gln,glp_m3,glp_kg,nota";
+
 export async function generacionDiaria(filtro?: {
   idEquipo?: string;
   desde?: string;
   hasta?: string;
   combustible?: string;
   limite?: number;
-}): Promise<DiaGeneracion[]> {
-  let q = cliente().from("generacion_diaria").select("*");
+}): Promise<DiaEnPantalla[]> {
+  let q = cliente().from("generacion_diaria").select(COLUMNAS_GENERACION);
   if (filtro?.idEquipo) q = q.eq("id_equipo", filtro.idEquipo);
   if (filtro?.combustible) q = q.eq("combustible", filtro.combustible);
   if (filtro?.desde) q = q.gte("fecha", filtro.desde);
@@ -1491,7 +1504,12 @@ export async function generacionDiaria(filtro?: {
     if (noExiste(error)) throw new FaltaGeneracionError();
     throw errorConCodigo(error);
   }
-  return (data ?? []) as DiaGeneracion[];
+  // La nota se cambia por un si/no antes de salir de aqui. La pantalla
+  // solo cuenta cuantos dias hay que mirar; mandarle el texto entero de
+  // cada uno serian cien kilobytes que nadie lee.
+  return ((data ?? []) as unknown as (DiaEnPantalla & { nota?: string })[]).map(
+    ({ nota, ...resto }) => ({ ...resto, revisar: Boolean(nota) }),
+  );
 }
 
 /** Lo que gastó la planta cada día, medido en el tanque. */
@@ -1500,7 +1518,9 @@ export async function consumoPlanta(filtro?: {
   hasta?: string;
   limite?: number;
 }): Promise<Record<string, unknown>[]> {
-  let q = cliente().from("consumo_planta").select("*");
+  let q = cliente()
+    .from("consumo_planta")
+    .select("fecha,diesel_gln,nivel_tanque_gln,glp_kg,kwh_glp");
   if (filtro?.desde) q = q.gte("fecha", filtro.desde);
   if (filtro?.hasta) q = q.lte("fecha", filtro.hasta);
 

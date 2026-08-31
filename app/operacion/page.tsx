@@ -14,7 +14,7 @@ import PanelGeneracion from "@/components/PanelGeneracion";
 import type { DiaPlanta } from "@/components/PanelGeneracion";
 import EstadoSincronizacion from "@/components/EstadoSincronizacion";
 import type { Corrida } from "@/components/EstadoSincronizacion";
-import type { DiaGeneracion } from "@/lib/generacion";
+import type { DiaEnPantalla } from "@/lib/generacion";
 import { correoDelRobot } from "@/lib/sincronizar";
 import { usuarioActual, puedeEditar, loginConfigurado } from "@/lib/sesion";
 
@@ -32,6 +32,15 @@ export const dynamic = "force-dynamic";
 const LIMITE = 80;
 
 /**
+ * Cuanto historico se le manda al navegador.
+ *
+ * La ventana mas ancha del panel es un ano, asi que traer mas seria
+ * traer lo que nadie va a poder mirar. Con seis equipos son unas dos mil
+ * doscientas filas; sin este corte iban cuatro mil.
+ */
+const DIAS_DEL_PANEL = 366;
+
+/**
  * El registro horario de operación.
  *
  * Es la hoja «BD Generación» del Excel, ya dentro del sistema: una fila
@@ -41,6 +50,10 @@ const LIMITE = 80;
  * navegador no pinta veinticinco mil filas sin ahogarse, y nadie las lee
  * de corrido: se mira lo reciente, o se filtra por equipo y por fecha.
  */
+/** La fecha de hace tantos dias, en ISO. */
+const hace = (dias: number) =>
+  new Date(Date.now() - dias * 86400000).toISOString().slice(0, 10);
+
 export default async function Operacion({
   searchParams,
 }: {
@@ -77,14 +90,20 @@ export default async function Operacion({
   // La generación diaria y el estado de la sincronización van aparte:
   // si falta la migración 15 se enseña el resto igual, que media pantalla
   // es mejor que ninguna.
-  let generacion: DiaGeneracion[] = [];
+  let generacion: DiaEnPantalla[] = [];
   let planta: DiaPlanta[] = [];
   let corridas: Corrida[] = [];
   let faltaGeneracion = false;
   try {
     [generacion, planta, corridas] = await Promise.all([
-      generacionDiaria({ idEquipo: equipo || undefined, limite: 4000 }),
-      consumoPlanta({ limite: 400 }) as Promise<DiaPlanta[]>,
+      generacionDiaria({
+        idEquipo: equipo || undefined,
+        desde: hace(DIAS_DEL_PANEL),
+        limite: 4000,
+      }),
+      consumoPlanta({ desde: hace(DIAS_DEL_PANEL), limite: 400 }) as Promise<
+        DiaPlanta[]
+      >,
       ultimasSincronizaciones(12) as Promise<Corrida[]>,
     ]);
   } catch (e) {
