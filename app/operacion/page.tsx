@@ -145,7 +145,7 @@ export default async function Operacion({
               }
               revision={corridas[0] ?? null}
               correoRobot={robot}
-              puedeEditar={puedeEditar(usuario)}
+              puedeEditar={!loginConfigurado() || puedeEditar(usuario)}
             />
           </div>
 

@@ -12,11 +12,10 @@ import { useRouter } from "next/navigation";
  * mundo. Aquí se ve la hora de la última que trajo algo y cuándo se miró
  * por última vez.
  *
- * No hay botón, a propósito: la hoja entra sola cada diez minutos —por
- * fuera un reloj que corre aunque no haya nadie mirando, y aquí dentro
- * otro que se ocupa de quien SÍ está mirando—, y un botón que hace lo
- * que ya pasa solo no es un atajo, es una duda: obliga a preguntarse si
- * hace falta apretarlo.
+ * No hay botón, a propósito. La hoja entra sola: al abrir la pantalla si
+ * lleva más de diez minutos sin traerse, y cada diez mientras se deje
+ * abierta. Un botón que hace lo que ya pasa solo no es un atajo, es una
+ * duda: obliga a preguntarse si hace falta apretarlo.
  */
 
 const CADA = 10 * 60 * 1000;
@@ -97,13 +96,30 @@ export default function EstadoSincronizacion({
     }
   }, [router]);
 
+  /** La última vez que se miró la hoja, haya traído algo o no. */
+  const mirada = revision ?? ultima;
+
   /**
-   * El reloj de la pantalla.
+   * El reloj de la pantalla — y, sobre todo, el tirón de la apertura.
    *
-   * Se para cuando la pestaña no se ve y se pone al día en cuanto
-   * vuelve: nadie necesita que una pestaña olvidada en el fondo del
-   * navegador siga pidiendo la hoja cada diez minutos, y quien vuelve a
-   * ella lo que quiere es encontrársela al día, no esperar el turno.
+   * Aquí está la garantía de que los datos nunca tienen más de diez
+   * minutos, y no viene de ningún reloj de fuera. Ninguno gratis promete
+   * la hora: GitHub trata sus tareas programadas como «cuando pueda» y
+   * con intervalos cortos se retrasa media hora sin avisar.
+   *
+   * Así que la promesa se da al revés. **Al abrir la pantalla**, si la
+   * hoja lleva más de diez minutos sin traerse, se trae. Quien la mira
+   * ve datos de hace diez minutos como mucho, siempre, porque el que
+   * mira es el que dispara. Y mientras la deje abierta, cada diez.
+   *
+   * Preguntar sale casi gratis —se consulta la fecha de modificación de
+   * la hoja, y si no se ha tocado la corrida acaba en tres décimas—, así
+   * que abrir la pantalla veinte veces al día no cuesta nada.
+   *
+   * El reloj se para cuando la pestaña no se ve y se pone al día en
+   * cuanto vuelve: una pestaña olvidada en el fondo del navegador no
+   * necesita seguir pidiendo, y quien vuelve a ella quiere encontrársela
+   * al día, no esperar su turno.
    *
    * Quien no puede editar tampoco puede sincronizar, así que a ese solo
    * se le repinta la página: verá lo que hayan traído los demás.
@@ -115,6 +131,10 @@ export default function EstadoSincronizacion({
       else router.refresh();
     };
 
+    // El tirón de la apertura: solo si de verdad hace falta.
+    const desde = mirada ? Date.now() - Date.parse(mirada.momento) : Infinity;
+    if (!Number.isFinite(desde) || desde > CADA) tocar();
+
     const reloj = setInterval(tocar, CADA);
     const alVolver = () => {
       if (document.visibilityState === "visible") tocar();
@@ -125,10 +145,12 @@ export default function EstadoSincronizacion({
       clearInterval(reloj);
       document.removeEventListener("visibilitychange", alVolver);
     };
+    // `mirada` solo decide el primer tirón; que cambie luego no tiene
+    // que rearmar el reloj, o cada refresco lo reiniciaría.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [puedeEditar, traer, router]);
 
   const mal = ultima != null && !ultima.ok;
-  const mirada = revision ?? ultima;
 
   return (
     <div className="sinc">
@@ -175,7 +197,7 @@ export default function EstadoSincronizacion({
               ) : null}
             </>
           ) : (
-            "La página mira la hoja de la planta sola, cada diez minutos."
+            "La página trae la hoja sola al abrirla, y cada diez minutos mientras siga abierta."
           )}
         </span>
       </div>
