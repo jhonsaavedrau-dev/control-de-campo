@@ -3,6 +3,7 @@ import {
   generarReporteFallaPdf, nombreArchivoReporteFalla,
 } from "@/lib/pdf-reporte-falla";
 import { descargarArchivo } from "@/lib/drive";
+import { exigirSesion } from "@/lib/sesion";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,11 @@ export async function GET(
   _p: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const permiso = await exigirSesion();
+  if (!permiso.ok) {
+    return new Response(permiso.motivo, { status: permiso.codigo });
+  }
+
   const { id } = await params;
   const datos = await obtenerReporteFalla(decodeURIComponent(id).toUpperCase());
   if (!datos) return new Response("Reporte no encontrado", { status: 404 });

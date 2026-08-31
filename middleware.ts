@@ -9,7 +9,26 @@ import { createServerClient } from "@supabase/ssr";
  * sistema nunca se queda inaccesible por un problema de configuración.
  */
 
-const PUBLICAS = ["/entrar", "/_next", "/favicon", "/logo-pbi"];
+// El icono entra aquí porque el navegador lo pide también en la
+// pantalla de entrar, antes de que haya sesión.
+const PUBLICAS = [
+  "/entrar",
+  "/_next",
+  "/favicon",
+  "/logo-pbi",
+  "/icon",
+  // Lo que hace falta para poder instalar el sistema en el teléfono. El
+  // navegador los pide ANTES de que nadie haya entrado, y mandarlos a
+  // /entrar no da un error visible: simplemente no aparece la opción de
+  // instalar, y nadie sabe por qué.
+  "/icono-",
+  "/manifest",
+  "/sw.js",
+  // La huella con la que Android comprueba que la APK y esta
+  // dirección son de los mismos. Si va a /entrar, la aplicación se
+  // abre con la barra del navegador puesta y nadie sabe por qué.
+  "/.well-known",
+];
 
 /**
  * La sincronización con la hoja, que la pide el cron de Vercel.
@@ -72,6 +91,11 @@ export async function middleware(peticion: NextRequest) {
   return respuesta;
 }
 
+// El matcher excluía además cualquier ruta acabada en .png, y eso no
+// era una regla sobre los archivos de public/: era una rendija que
+// dejaba pasar sin sesión a todo lo que terminara en esas cuatro
+// letras. Lo que de verdad se ve sin entrar está arriba, en PUBLICAS,
+// que es donde se puede leer cuáles son.
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.png$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

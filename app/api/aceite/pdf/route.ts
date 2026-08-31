@@ -1,11 +1,17 @@
 import { adicionesAceite, equiposConSede } from "@/lib/db";
 import { conConsumo, resumenDe } from "@/lib/aceite";
 import { generarAceitePdf, nombreArchivoAceite } from "@/lib/pdf-aceite";
+import { exigirSesion } from "@/lib/sesion";
 
 export const dynamic = "force-dynamic";
 
 /** La hoja de consumo en PDF, con lo que haya registrado hasta hoy. */
 export async function GET(peticion: Request) {
+  const permiso = await exigirSesion();
+  if (!permiso.ok) {
+    return new Response(permiso.motivo, { status: permiso.codigo });
+  }
+
   const u = new URL(peticion.url);
   const equipo = u.searchParams.get("equipo")?.toUpperCase() || undefined;
   const sede = u.searchParams.get("sede") || undefined;

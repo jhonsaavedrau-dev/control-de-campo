@@ -121,3 +121,46 @@ export async function exigirAdministrador(): Promise<
   }
   return { ok: true, usuario };
 }
+
+/**
+ * Deja pasar a quien puede escribir; si no, devuelve el motivo.
+ *
+ * Es el hermano de `exigirAdministrador` para lo que no es
+ * administración pero tampoco es mirar: registrar un acta, corregirla,
+ * archivarla, subir la hoja de vida.
+ *
+ * Hasta ahora esas rutas se apoyaban solo en el middleware, que
+ * comprueba que HAYA sesión pero no cuál. Un técnico llegaba a escribir
+ * donde solo tenía que mirar, y quien escribía no quedaba identificado
+ * en ninguna parte.
+ */
+export async function exigirEditor(): Promise<
+  { ok: true; usuario: Usuario | null } | { ok: false; motivo: string; codigo: number }
+> {
+  if (!loginConfigurado()) return { ok: true, usuario: null };
+
+  const usuario = await usuarioActual();
+  if (!usuario) return { ok: false, motivo: "Hay que entrar primero", codigo: 401 };
+  if (!puedeEditar(usuario)) {
+    return { ok: false, motivo: "Esto es solo para supervisión", codigo: 403 };
+  }
+  return { ok: true, usuario };
+}
+
+/**
+ * Deja pasar a cualquiera que haya entrado.
+ *
+ * Para lo que se lee y no se escribe pero tampoco es público: los PDF.
+ * El middleware ya los tapa, pero una ruta que sirve un documento no
+ * debería depender de que un matcher de más arriba siga estando bien
+ * escrito.
+ */
+export async function exigirSesion(): Promise<
+  { ok: true; usuario: Usuario | null } | { ok: false; motivo: string; codigo: number }
+> {
+  if (!loginConfigurado()) return { ok: true, usuario: null };
+
+  const usuario = await usuarioActual();
+  if (!usuario) return { ok: false, motivo: "Hay que entrar primero", codigo: 401 };
+  return { ok: true, usuario };
+}

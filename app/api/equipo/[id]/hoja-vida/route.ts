@@ -3,6 +3,7 @@ import { obtenerFichaEquipo, equipoConSede } from "@/lib/db";
 import { generarHojaVidaPdf, nombreArchivoHojaVida } from "@/lib/pdf-hoja-vida";
 import { asegurarEstructuraEquipo } from "@/lib/estructura-drive";
 import { reemplazarArchivo } from "@/lib/drive";
+import { exigirSesion, exigirEditor } from "@/lib/sesion";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -23,6 +24,11 @@ export async function GET(
   _p: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const permiso = await exigirSesion();
+  if (!permiso.ok) {
+    return new Response(permiso.motivo, { status: permiso.codigo });
+  }
+
   const { id } = await params;
   const datos = await armar(decodeURIComponent(id).toUpperCase());
   if (!datos) return new Response("El equipo no existe", { status: 404 });
@@ -52,6 +58,11 @@ export async function POST(
   _p: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const permiso = await exigirEditor();
+  if (!permiso.ok) {
+    return NextResponse.json({ error: permiso.motivo }, { status: permiso.codigo });
+  }
+
   const { id } = await params;
   const idEquipo = decodeURIComponent(id).toUpperCase();
 

@@ -2,6 +2,7 @@ import { obtenerIntervencion } from "@/lib/db";
 import { generarActaPdf, nombreArchivoActa } from "@/lib/pdf-acta";
 import { descargarArchivo } from "@/lib/drive";
 import { fotosArchivadas } from "@/lib/fotos";
+import { exigirSesion } from "@/lib/sesion";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,11 @@ export async function GET(
   _peticion: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const permiso = await exigirSesion();
+  if (!permiso.ok) {
+    return new Response(permiso.motivo, { status: permiso.codigo });
+  }
+
   const { id } = await params;
   const registro = await obtenerIntervencion(decodeURIComponent(id).toUpperCase());
   if (!registro) {
