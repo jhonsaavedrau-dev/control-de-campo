@@ -11,6 +11,25 @@ import { createServerClient } from "@supabase/ssr";
 
 const PUBLICAS = ["/entrar", "/_next", "/favicon", "/logo-pbi"];
 
+/**
+ * La sincronización con la hoja, que la pide el cron de Vercel.
+ *
+ * El cron no tiene sesión ni puede tenerla: es una máquina llamando a
+ * una dirección. Sin esta excepción la puerta lo mandaba a /entrar y la
+ * actualización automática no se ejecutaba nunca —y lo peor es que no
+ * se notaba, porque el cron veía un 307 y lo daba por bueno.
+ *
+ * Se abre solo para quien traiga la clave, no para la dirección: sin
+ * `CRON_SECRET` configurado no pasa nadie, y quien llegue sin ella
+ * sigue yendo a la puerta como todo el mundo.
+ */
+function esElCronDeVercel(peticion: NextRequest): boolean {
+  if (peticion.nextUrl.pathname !== "/api/sincronizar") return false;
+  const clave = process.env.CRON_SECRET?.trim();
+  if (!clave) return false;
+  return peticion.headers.get("authorization") === `Bearer ${clave}`;
+}
+
 export async function middleware(peticion: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const llave = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
@@ -20,6 +39,7 @@ export async function middleware(peticion: NextRequest) {
 
   const ruta = peticion.nextUrl.pathname;
   if (PUBLICAS.some((p) => ruta.startsWith(p))) return NextResponse.next();
+  if (esElCronDeVercel(peticion)) return NextResponse.next();
 
   let respuesta = NextResponse.next({ request: peticion });
 

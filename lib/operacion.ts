@@ -106,6 +106,12 @@ export function resumirOperacion(filas: RegistroOperacion[]): ResumenOperacion {
   );
   const kws = operando.map((f) => f.kw_real as number);
 
+  // Ojo con estas sumas: las columnas de combustible de la hoja son
+  // CONTADORES acumulados, no consumos del dia. Sumarlas da una cifra
+  // sin sentido —doscientos millones de galones—, asi que no se enseña
+  // en pantalla; el consumo de verdad se calcula en `lib/generacion.ts`
+  // como la diferencia entre dos cierres. Se dejan porque el resumen las
+  // declara, pero no las mire nadie como consumo.
   const suma = (campo: keyof RegistroOperacion) =>
     filas.reduce((n, f) => n + (Number(f[campo]) || 0), 0);
 

@@ -11,6 +11,7 @@ import type {
 } from "./consumibles";
 import type { AdicionAceite } from "./aceite";
 import type { RegistroOperacion } from "./operacion";
+import type { DiaGeneracion } from "./generacion";
 import {
   siguienteId as siguienteIdDeFamilia,
   sedeNueva, equipoNuevo, controladorNuevo,
@@ -1132,4 +1133,60 @@ export async function borrarIntervencion(id: string): Promise<void> {
     (f) => f.id_intervencion !== id,
   );
   await escribir(db);
+}
+
+/* ---------- Generación diaria y sincronización con la hoja ---------- */
+
+/**
+ * En modo archivo estas tablas no se llenan.
+ *
+ * La sincronización con la hoja de Google escribe directamente contra
+ * Supabase: es lo que se ejecuta desde un cron, donde no hay disco que
+ * valga. Aquí se devuelve vacío para que las pantallas no se caigan
+ * mientras se trabaja sin base.
+ */
+export async function generacionDiaria(filtro?: {
+  idEquipo?: string;
+  desde?: string;
+  hasta?: string;
+  combustible?: string;
+  limite?: number;
+}): Promise<DiaGeneracion[]> {
+  const db = await leer();
+  return ((db.generacion_diaria ?? []) as DiaGeneracion[])
+    .filter((d) => {
+      if (filtro?.idEquipo && d.id_equipo !== filtro.idEquipo) return false;
+      if (filtro?.combustible && d.combustible !== filtro.combustible) return false;
+      if (filtro?.desde && d.fecha < filtro.desde) return false;
+      if (filtro?.hasta && d.fecha > filtro.hasta) return false;
+      return true;
+    })
+    .sort((a, b) => b.fecha.localeCompare(a.fecha))
+    .slice(0, filtro?.limite ?? 2000);
+}
+
+export async function consumoPlanta(filtro?: {
+  desde?: string;
+  hasta?: string;
+  limite?: number;
+}): Promise<Record<string, unknown>[]> {
+  const db = await leer();
+  return ((db.consumo_planta ?? []) as Record<string, unknown>[])
+    .filter((d) => {
+      const f = String(d.fecha ?? "");
+      if (filtro?.desde && f < filtro.desde) return false;
+      if (filtro?.hasta && f > filtro.hasta) return false;
+      return true;
+    })
+    .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))
+    .slice(0, filtro?.limite ?? 400);
+}
+
+export async function ultimasSincronizaciones(
+  cuantas = 5,
+): Promise<Record<string, unknown>[]> {
+  const db = await leer();
+  return ((db.sincronizaciones ?? []) as Record<string, unknown>[])
+    .sort((a, b) => String(b.momento).localeCompare(String(a.momento)))
+    .slice(0, cuantas);
 }

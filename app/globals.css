@@ -61,6 +61,14 @@
   --serie-disponibilidad: #0f8a7e;
   --serie-confiabilidad: #1b6fb5;
 
+  /* --- Diesel y GLP ---
+     Van casi siempre juntos en la misma grafica, asi que el par se
+     eligio por separacion, no por gusto: ambar contra azul da 20 de
+     diferencia incluso para quien no distingue el rojo del verde, que
+     es el caso que rompe cualquier pareja de verde y rojo. */
+  --serie-diesel: #b45309;
+  --serie-glp: #0369a1;
+
   /* --- Tinta de los testigos de estado ---
      Van sobre su propio fondo tintado, no sobre el panel, asi que
      necesitan su propio color: el verde que se lee sobre menta clara
@@ -1512,6 +1520,8 @@ a.bitacora-fila:hover { background: var(--color-realce); }
 
     --serie-disponibilidad: #2ec8b3;
     --serie-confiabilidad: #5ac8f2;
+    --serie-diesel: #e39028;
+    --serie-glp: #3fb4e4;
     --tinta-operativo: #6fe0a2;
     --tinta-pendiente: #f5c67a;
     --tinta-critico:   #ff9d99;
@@ -1561,6 +1571,8 @@ a.bitacora-fila:hover { background: var(--color-realce); }
 
     --serie-disponibilidad: #2ec8b3;
     --serie-confiabilidad: #5ac8f2;
+    --serie-diesel: #e39028;
+    --serie-glp: #3fb4e4;
     --tinta-operativo: #6fe0a2;
     --tinta-pendiente: #f5c67a;
     --tinta-critico:   #ff9d99;
@@ -2081,4 +2093,202 @@ a.bitacora-fila:hover { background: var(--color-realce); }
   text-transform: uppercase;
   color: var(--color-sin-info);
   margin: 22px 0 7px;
+}
+
+/* ============================================================
+   SINCRONIZACION CON LA HOJA
+   Una barra, no un panel: es un testigo, no una seccion. Lo que
+   tiene que decir cabe en una linea y el boton va al final, donde
+   se busca. En telefono se apila, que en una sola linea el correo
+   de la cuenta de servicio no cabe de ninguna manera.
+   ============================================================ */
+
+.sinc {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 8px;
+  background: var(--color-campo);
+}
+
+.sinc-luz {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  /* El halo dice "esto esta vivo" sin necesidad de animarlo. */
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 0%, transparent);
+  outline: 3px solid color-mix(in srgb, var(--color-panel) 60%, transparent);
+}
+
+.sinc-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+.sinc-titulo {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+
+.sinc-detalle {
+  font-size: 12px;
+  color: var(--color-tenue);
+  font-family: var(--font-mono);
+}
+
+.sinc-boton { white-space: nowrap; }
+
+.sinc-nota {
+  grid-column: 1 / -1;
+  font-size: 12.5px;
+  color: var(--color-tenue);
+  line-height: 1.5;
+}
+
+.sinc-correo {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--color-panel);
+  border: 1px solid var(--color-borde-suave);
+  /* El correo de una cuenta de servicio no tiene espacios y desborda
+     cualquier ancho: se le deja partir. */
+  word-break: break-all;
+}
+
+@media (max-width: 640px) {
+  .sinc { grid-template-columns: auto 1fr; }
+  .sinc-boton { grid-column: 1 / -1; justify-content: center; }
+}
+
+/* ============================================================
+   VENTANA DE TIEMPO
+   Treinta dias, tres meses, un ano. Van juntos en un mismo raiz
+   porque son una sola eleccion, y la elegida se hunde en vez de
+   pintarse de color: el color de esta pagina significa combustible.
+   ============================================================ */
+
+.ventana {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 8px;
+  background: var(--color-campo);
+}
+
+.ventana-rotulo {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-sin-info);
+  padding: 0 8px 0 6px;
+}
+
+.ventana-opcion {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--color-tenue);
+  font: inherit;
+  font-size: 12.5px;
+  padding: 5px 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.ventana-opcion:hover { color: var(--color-tinta); }
+
+.ventana-opcion.es-activa {
+  background: var(--color-panel);
+  color: var(--color-tinta);
+  font-weight: 600;
+  box-shadow: var(--sombra-1);
+}
+
+/* ============================================================
+   DOS GRAFICAS EN UNA TARJETA
+   Cuando dos series miden cosas distintas —galones y kilos— no se
+   superponen: se ponen una debajo de otra, cada una con su escala
+   y su rotulo. Es lo contrario de un eje doble.
+   ============================================================ */
+
+.doble { display: grid; gap: 14px; }
+
+.doble-rotulo {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+/* ============================================================
+   CABECERA FIJA
+   La pantalla de operacion mide veinte mil pixeles de alto en un
+   celular. Con la cabecera quieta, bajar tres pantallas dejaba el
+   menu y las pestañas veinticinco pantallas atras: el sistema
+   entero se volvia inalcanzable sin volver arriba del todo.
+   Ahora acompaña. Se queda por debajo de la hoja del menu, que va
+   en z-60, para que al abrirlo no le pase por encima.
+   ============================================================ */
+
+.cabecera {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+/* La sombra solo aparece cuando hay algo debajo pasando por detras:
+   quieta arriba del todo seria una raya que no dice nada. */
+.cabecera::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 14px;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-tinta) 11%, transparent),
+    transparent
+  );
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+/* `animation-timeline` deja preguntar por el scroll sin JavaScript.
+   Donde no exista, la sombra simplemente no sale y no se pierde nada:
+   el pegado, que es lo que importa, funciona igual. */
+@supports (animation-timeline: scroll()) {
+  .cabecera::after {
+    animation: sombra-al-bajar linear both;
+    animation-timeline: scroll();
+    animation-range: 0 90px;
+  }
+}
+
+@keyframes sombra-al-bajar {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cabecera::after { transition: none; }
+}
+
+/* El renglon de totales de una tabla de programa: mismo peso que una
+   fila, pero separado por una linea mas firme para que se lea como
+   cierre y no como un equipo mas. */
+.programa tfoot th,
+.programa tfoot td {
+  border-top: 2px solid var(--color-borde-fuerte);
+  background: var(--color-campo);
+  font-weight: 600;
 }

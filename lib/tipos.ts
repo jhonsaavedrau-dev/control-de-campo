@@ -330,6 +330,7 @@ import type {
 } from "./consumibles";
 import type { AdicionAceite } from "./aceite";
 import type { RegistroOperacion } from "./operacion";
+import type { DiaGeneracion } from "./generacion";
 
 export type BaseDatos = {
   usuarios: Usuario[];
@@ -347,6 +348,9 @@ export type BaseDatos = {
   instalaciones_consumible?: InstalacionConsumible[];
   adiciones_aceite?: AdicionAceite[];
   registros_operacion?: RegistroOperacion[];
+  generacion_diaria?: DiaGeneracion[];
+  consumo_planta?: Record<string, unknown>[];
+  sincronizaciones?: Record<string, unknown>[];
 };
 
 /**

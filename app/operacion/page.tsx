@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   registrosOperacion, contarOperacion, equiposConSede,
+  generacionDiaria, ultimasSincronizaciones, consumoPlanta,
 } from "@/lib/db";
 import { Encabezado, PieDePagina } from "@/components/Marco";
 import {
@@ -9,11 +10,26 @@ import {
 } from "@/lib/operacion";
 import type { RegistroOperacion } from "@/lib/operacion";
 import Filtros from "@/components/Filtros";
-import { usuarioActual, loginConfigurado } from "@/lib/sesion";
+import PanelGeneracion from "@/components/PanelGeneracion";
+import type { DiaPlanta } from "@/components/PanelGeneracion";
+import EstadoSincronizacion from "@/components/EstadoSincronizacion";
+import type { Corrida } from "@/components/EstadoSincronizacion";
+import type { DiaGeneracion } from "@/lib/generacion";
+import { correoDelRobot } from "@/lib/sincronizar";
+import { usuarioActual, puedeEditar, loginConfigurado } from "@/lib/sesion";
 
 export const dynamic = "force-dynamic";
 
-const LIMITE = 500;
+/**
+ * Cuántas filas horarias se pintan.
+ *
+ * Eran quinientas, y en un celular ocupaban dieciséis mil pixeles: la
+ * página entera medía veinte mil y todo lo demás quedaba enterrado
+ * debajo. Nadie lee quinientas filas de catorce columnas de corrido; se
+ * mira lo reciente o se filtra. El total sigue diciéndose, y los filtros
+ * de equipo y fecha siguen llegando a cualquier fila.
+ */
+const LIMITE = 80;
 
 /**
  * El registro horario de operación.
@@ -58,9 +74,32 @@ export default async function Operacion({
     if (!falta) throw e;
   }
 
+  // La generación diaria y el estado de la sincronización van aparte:
+  // si falta la migración 15 se enseña el resto igual, que media pantalla
+  // es mejor que ninguna.
+  let generacion: DiaGeneracion[] = [];
+  let planta: DiaPlanta[] = [];
+  let corridas: Corrida[] = [];
+  let faltaGeneracion = false;
+  try {
+    [generacion, planta, corridas] = await Promise.all([
+      generacionDiaria({ idEquipo: equipo || undefined, limite: 4000 }),
+      consumoPlanta({ limite: 400 }) as Promise<DiaPlanta[]>,
+      ultimasSincronizaciones(12) as Promise<Corrida[]>,
+    ]);
+  } catch (e) {
+    faltaGeneracion = (e as Error)?.name === "FaltaGeneracionError";
+    if (!faltaGeneracion) throw e;
+  }
+  const robot = await correoDelRobot().catch(() => "");
+
   const resumen = resumirOperacion(filas);
   const pares = await equiposConSede();
   const equipos = [...new Set(pares.map((x) => x.equipo.id_equipo))].sort();
+  const fichas = pares.map((x) => ({
+    id_equipo: x.equipo.id_equipo,
+    nombre: x.equipo.nombre,
+  }));
 
 
 
@@ -74,8 +113,57 @@ export default async function Operacion({
             Operación
           </h1>
           <p className="text-[14.5px] mt-2" style={{ color: "var(--color-tenue)" }}>
-            El registro hora a hora de cada equipo: lo que marcaban los
-            instrumentos.
+            Lo que la planta generó y gastó, tomado de la hoja de la
+            Extractora La Paz.
+          </p>
+
+          <div className="mt-4">
+            <EstadoSincronizacion
+              ultima={
+                corridas.find((c) => (c.filas_leidas ?? 0) > 0) ??
+                corridas[0] ??
+                null
+              }
+              revision={corridas[0] ?? null}
+              correoRobot={robot}
+              puedeEditar={puedeEditar(usuario)}
+            />
+          </div>
+
+          {faltaGeneracion ? (
+            <div
+              className="border rounded px-4 py-4 mt-4 text-[14.5px] leading-relaxed"
+              style={{
+                borderColor: "var(--color-pendiente)",
+                color: "var(--color-tenue)",
+                background: "var(--color-campo)",
+              }}
+            >
+              <strong style={{ color: "var(--color-pendiente)" }}>
+                Falta ejecutar la migración 15.
+              </strong>{" "}
+              Está en{" "}
+              <span className="font-[family-name:var(--font-mono)] text-[13.5px]">
+                migracion-15-generacion.sql
+              </span>
+              . Hasta entonces no hay dónde guardar lo que trae la hoja.
+            </div>
+          ) : (
+            <div className="mt-4">
+              <PanelGeneracion
+                dias={generacion}
+                planta={planta}
+                equipos={fichas}
+              />
+            </div>
+          )}
+
+          <h2 className="font-[family-name:var(--font-placa)] font-semibold text-[22px] mt-8">
+            Registro hora a hora
+          </h2>
+          <p className="text-[13.5px] mt-1" style={{ color: "var(--color-tenue)" }}>
+            Lo que marcaban los instrumentos, hora por hora. Es la capa de
+            abajo: de aquí sale todo lo de arriba.
           </p>
 
           {falta ? (
@@ -118,11 +206,11 @@ export default async function Operacion({
                   }
                 />
                 <Dato
-                  valor={cifra(resumen.dieselGln, 0)}
-                  etiqueta="Diésel (gln)"
-                  pie={
-                    resumen.glpM3 ? `GLP ${cifra(resumen.glpM3)} m³` : "en la vista"
-                  }
+                  valor={cifra(
+                    resumen.porEstado.find((e) => e.estado === "OP")?.horas ?? 0,
+                  )}
+                  etiqueta="Horas en operación"
+                  pie={`de ${cifra(filas.length)} registros`}
                 />
                 <Dato
                   valor={cifra(cuenta.sospechosos)}
@@ -184,8 +272,8 @@ export default async function Operacion({
                 className="text-[12.5px] mt-4"
                 style={{ color: "var(--color-sin-info)" }}
               >
-                {filas.length < cuenta.total && !p.desde && !soloSospechosos
-                  ? `Se muestran los ${cifra(filas.length)} más recientes de ${cifra(cuenta.total)}. Filtra por equipo para ver los suyos.`
+                {filas.length < cuenta.total
+                  ? `Se muestran los ${cifra(filas.length)} más recientes de ${cifra(cuenta.total)}. Filtra por equipo o por fecha para llegar a los demás.`
                   : `${cifra(filas.length)} registros.`}
               </p>
 

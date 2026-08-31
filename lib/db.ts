@@ -269,6 +269,23 @@ export const registrosOperacion = (
 export const contarOperacion = (...a: Parameters<typeof json.contarOperacion>) =>
   usarSupabase() ? supabase.contarOperacion(...a) : json.contarOperacion(...a);
 
+/* ---------- Generación diaria y sincronización con la hoja ---------- */
+
+export const generacionDiaria = (
+  ...a: Parameters<typeof json.generacionDiaria>
+) =>
+  usarSupabase() ? supabase.generacionDiaria(...a) : json.generacionDiaria(...a);
+
+export const consumoPlanta = (...a: Parameters<typeof json.consumoPlanta>) =>
+  usarSupabase() ? supabase.consumoPlanta(...a) : json.consumoPlanta(...a);
+
+export const ultimasSincronizaciones = (
+  ...a: Parameters<typeof json.ultimasSincronizaciones>
+) =>
+  usarSupabase()
+    ? supabase.ultimasSincronizaciones(...a)
+    : json.ultimasSincronizaciones(...a);
+
 export const borrarIntervencion = (
   ...a: Parameters<typeof json.borrarIntervencion>
 ) =>

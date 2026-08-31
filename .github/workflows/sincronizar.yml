@@ -1,0 +1,50 @@
+# Trae la hoja de la planta cada diez minutos.
+#
+# Vercel tambien tiene un cron configurado (vercel.json), pero el plan
+# Hobby solo permite uno al dia. Este lo cubre: GitHub Actions deja
+# programar cada diez minutos y es gratis en un repositorio publico.
+#
+# Ojo con una cosa: GitHub no garantiza la hora. Cuando sus maquinas van
+# cargadas, una tarea programada puede salir con retraso, y si el
+# repositorio se queda sesenta dias sin commits, GitHub la desactiva
+# sola. Por eso no es lo unico: el cron de Vercel es el suelo diario, y
+# la propia pantalla se refresca cada diez minutos mientras este abierta.
+#
+# La corrida no descarga nada si la hoja no se ha tocado: primero
+# pregunta la fecha de modificacion, que es un dato suelto.
+
+name: Sincronizar la hoja
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  # Para poder dispararla a mano desde la pestana Actions.
+  workflow_dispatch:
+
+# Si una corrida se solapa con la anterior, se descarta la nueva: dos a
+# la vez escribirian las mismas filas y no adelantarian nada.
+concurrency:
+  group: sincronizar-hoja
+  cancel-in-progress: false
+
+jobs:
+  traer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Pedirle a la pagina que traiga la hoja
+        run: |
+          respuesta=$(mktemp)
+          codigo=$(curl -sS --max-time 300 \
+            -o "$respuesta" -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ vars.URL_PUBLICA || 'https://control-de-campo.vercel.app' }}/api/sincronizar")
+
+          echo "HTTP $codigo"
+          cat "$respuesta"
+          echo
+
+          if [ "$codigo" != "200" ]; then
+            echo "::error::La sincronizacion respondio $codigo"
+            exit 1
+          fi

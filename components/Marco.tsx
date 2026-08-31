@@ -38,14 +38,14 @@ export async function Encabezado({
   const tema: Tema = temaDeCookie((await cookies()).get(COOKIE_TEMA)?.value);
 
   return (
-    <header className="no-imprimir">
+    <header className="no-imprimir cabecera">
       <div
         style={{
           background: "#ffffff",
           borderBottom: "1px solid rgba(13, 61, 97, 0.12)",
         }}
       >
-        <div className="max-w-[1100px] mx-auto px-4 sm:px-6 h-[70px] flex items-center justify-between gap-4">
+        <div className="max-w-[1100px] mx-auto px-4 sm:px-6 h-[58px] sm:h-[70px] flex items-center justify-between gap-4">
           <Link href="/" className="shrink-0">
             <LogotipoPBI />
           </Link>

@@ -93,6 +93,10 @@ export type Punto = { etiqueta: string; valor: number | null; aviso?: boolean };
  */
 export function GraficaLinea({
   puntos,
+  puntosFondo,
+  colorFondo,
+  nombreSerie,
+  nombreFondo,
   color,
   meta,
   tope,
@@ -100,6 +104,18 @@ export function GraficaLinea({
   alto = 190,
 }: {
   puntos: Punto[];
+  /**
+   * Una segunda serie de referencia, detrás y sin relleno.
+   *
+   * Solo tiene sentido cuando mide LO MISMO que la principal y en la
+   * misma unidad —galones contra galones—, porque comparten el eje. Dos
+   * escalas en un mismo plano invitan a comparar lo que no se compara, y
+   * eso aquí no se hace nunca.
+   */
+  puntosFondo?: Punto[];
+  colorFondo?: string;
+  nombreSerie?: string;
+  nombreFondo?: string;
   color: string;
   meta?: { valor: number; texto: string };
   tope?: number;
@@ -120,8 +136,17 @@ export function GraficaLinea({
   const w = ANCHO - m.i - m.d;
   const h = alto - m.s - m.b;
 
+  const fondo = (puntosFondo ?? [])
+    .map((p, i) => ({ ...p, i }))
+    .filter((p): p is Punto & { i: number; valor: number } => p.valor != null);
+
   const maximo =
-    tope ?? Math.max(...conValor.map((p) => p.valor), meta?.valor ?? 0) * 1.12;
+    tope ??
+    Math.max(
+      ...conValor.map((p) => p.valor),
+      ...fondo.map((p) => p.valor),
+      meta?.valor ?? 0,
+    ) * 1.12;
   const x = (i: number) =>
     m.i + (w * i) / Math.max(1, puntos.length - 1);
   const y = (v: number) => m.s + h * (1 - Math.min(maximo, v) / maximo);
@@ -190,6 +215,21 @@ export function GraficaLinea({
               {meta.texto}
             </text>
           </g>
+        ) : null}
+
+        {/* La referencia va debajo y de trazo fino: acompaña, no compite. */}
+        {fondo.length ? (
+          <path
+            d={fondo
+              .map((p, k) => `${k ? "L" : "M"}${x(p.i)},${y(p.valor)}`)
+              .join(" ")}
+            fill="none"
+            stroke={colorFondo ?? "var(--color-sin-info)"}
+            strokeWidth="1.5"
+            strokeDasharray="4 3"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
         ) : null}
 
         <path d={area} fill={`url(#d${id})`} />
@@ -286,6 +326,14 @@ export function GraficaLinea({
             <span className="gr-punto" style={{ background: color }} />
             <strong>{activo.etiqueta}</strong>
             <span className="gr-pie-valor">{formato(activo.valor)}</span>
+            {/* Cuando hay referencia, se enseña la de ese mismo día: la
+                gracia de tenerla es poder ver la distancia. */}
+            {fondo.length && encima != null && puntosFondo?.[encima]?.valor != null ? (
+              <span style={{ color: "var(--color-sin-info)" }}>
+                · {nombreFondo ?? "referencia"}{" "}
+                {formato(puntosFondo[encima].valor as number)}
+              </span>
+            ) : null}
             {activo.aviso ? (
               <span style={{ color: "var(--color-critico)" }}>· revisar</span>
             ) : null}
@@ -299,6 +347,25 @@ export function GraficaLinea({
           </>
         )}
       </div>
+
+      {/* Con dos series el color no puede ser lo único que las nombra. */}
+      {fondo.length ? (
+        <div className="gr-leyenda">
+          <span>
+            <i style={{ background: color }} />
+            {nombreSerie ?? "Serie"}
+          </span>
+          <span>
+            <i
+              style={{
+                background: colorFondo ?? "var(--color-sin-info)",
+                opacity: 0.7,
+              }}
+            />
+            {nombreFondo ?? "Referencia"}
+          </span>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -364,4 +431,185 @@ export function techo(v: number): number {
   if (v <= 0) return 1;
   const orden = 10 ** Math.floor(Math.log10(v));
   return Math.ceil(v / (orden / 2)) * (orden / 2);
+}
+
+/* ---------- Barras apiladas por día ---------- */
+
+export type Serie = { clave: string; nombre: string; color: string };
+export type Barra = { etiqueta: string; valores: Record<string, number | null> };
+
+/**
+ * Dos o tres series apiladas, un día por barra.
+ *
+ * Se usa cuando lo que importa es el total y de qué está hecho a la vez:
+ * cuántos kilovatios dio la planta y cuántos puso el gas y cuántos el
+ * diésel. Con dos líneas sueltas eso se lee peor, porque el total —que
+ * es la cifra que se mira primero— habría que sumarlo de cabeza.
+ *
+ * Entre segmento y segmento va un hilo del color del panel. Sin ese
+ * hilo, dos colores contiguos se leen como una sola mancha cuando la
+ * barra es estrecha, que es siempre que hay un mes de datos.
+ */
+export function BarrasApiladas({
+  barras,
+  series,
+  formato,
+  alto = 190,
+}: {
+  barras: Barra[];
+  series: Serie[];
+  formato: (v: number) => string;
+  alto?: number;
+}) {
+  const [encima, setEncima] = useState<number | null>(null);
+
+  const totales = barras.map((b) =>
+    series.reduce((n, s) => n + (b.valores[s.clave] ?? 0), 0),
+  );
+  if (!totales.some((t) => t > 0)) return <SinDatos texto="Sin datos todavía." />;
+
+  const ANCHO = 620;
+  const m = { i: 44, d: 14, s: 14, b: 26 };
+  const w = ANCHO - m.i - m.d;
+  const h = alto - m.s - m.b;
+  const max = techo(Math.max(...totales));
+
+  const paso = w / barras.length;
+  // La barra nunca llega a tocar a la vecina: el carril respira y el
+  // ojo separa los días sin necesidad de una rejilla vertical.
+  const ancho = Math.max(1.5, Math.min(14, paso * 0.68));
+  const y = (v: number) => m.s + h - (v / max) * h;
+
+  const activa = encima != null ? barras[encima] : null;
+  const totalActivo = encima != null ? totales[encima] : null;
+
+  return (
+    <div>
+      <div className="overflow-x-auto">
+        <svg
+          viewBox={`0 0 ${ANCHO} ${alto}`}
+          className="w-full min-w-[420px] h-auto"
+          role="img"
+          aria-label={`${series.map((s) => s.nombre).join(" y ")} por día`}
+        >
+          {[0, 0.25, 0.5, 0.75, 1].map((f) => (
+            <g key={f}>
+              <line
+                x1={m.i}
+                x2={ANCHO - m.d}
+                y1={y(max * f)}
+                y2={y(max * f)}
+                className="gr-rejilla"
+              />
+              <text
+                x={m.i - 7}
+                y={y(max * f) + 3.5}
+                textAnchor="end"
+                className="gr-eje"
+              >
+                {formato(max * f)}
+              </text>
+            </g>
+          ))}
+
+          {barras.map((b, i) => {
+            const x = m.i + paso * i + (paso - ancho) / 2;
+            let acumulado = 0;
+            const apagada = encima != null && encima !== i;
+            return (
+              <g key={b.etiqueta} opacity={apagada ? 0.42 : 1}>
+                {series.map((s) => {
+                  const v = b.valores[s.clave] ?? 0;
+                  if (v <= 0) return null;
+                  const abajo = y(acumulado);
+                  acumulado += v;
+                  const arriba = y(acumulado);
+                  return (
+                    <rect
+                      key={s.clave}
+                      x={x}
+                      y={arriba}
+                      width={ancho}
+                      height={Math.max(0.6, abajo - arriba)}
+                      fill={s.color}
+                      stroke="var(--color-panel)"
+                      strokeWidth="1"
+                      rx={ancho > 6 ? 1.5 : 0}
+                    />
+                  );
+                })}
+              </g>
+            );
+          })}
+
+          {/* Zonas de contacto anchas: en un teléfono una barra de tres
+              píxeles no se acierta con el dedo. */}
+          {barras.map((b, i) => (
+            <rect
+              key={`t-${b.etiqueta}`}
+              x={m.i + paso * i}
+              y={m.s}
+              width={paso}
+              height={h}
+              fill="transparent"
+              onMouseEnter={() => setEncima(i)}
+              onMouseLeave={() => setEncima(null)}
+            />
+          ))}
+
+          <text
+            x={m.i}
+            y={alto - 6}
+            fontSize="9.5"
+            fill="var(--color-sin-info)"
+            fontFamily="var(--font-mono)"
+          >
+            {barras[0]?.etiqueta}
+          </text>
+          <text
+            x={ANCHO - m.d}
+            y={alto - 6}
+            textAnchor="end"
+            fontSize="9.5"
+            fill="var(--color-sin-info)"
+            fontFamily="var(--font-mono)"
+          >
+            {barras[barras.length - 1]?.etiqueta}
+          </text>
+        </svg>
+      </div>
+
+      <div className="gr-pie">
+        {activa ? (
+          <>
+            <strong>{activa.etiqueta}</strong>
+            <span className="gr-pie-valor">{formato(totalActivo ?? 0)}</span>
+            {series.map((s) =>
+              activa.valores[s.clave] ? (
+                <span key={s.clave} className="flex items-center gap-1">
+                  <span className="gr-punto" style={{ background: s.color }} />
+                  {formato(activa.valores[s.clave] as number)}
+                </span>
+              ) : null,
+            )}
+          </>
+        ) : (
+          <span style={{ color: "var(--color-sin-info)" }}>
+            Pasa por encima de un día para ver el detalle.
+          </span>
+        )}
+      </div>
+
+      {/* La leyenda va siempre: el color nunca es lo unico que nombra
+          una serie. */}
+      <div className="gr-leyenda">
+        {series.map((s) => (
+          <span key={s.clave}>
+            <i style={{ background: s.color }} />
+            {s.nombre}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
 }

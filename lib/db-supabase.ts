@@ -12,6 +12,7 @@ import type {
 } from "./consumibles";
 import type { AdicionAceite } from "./aceite";
 import type { RegistroOperacion } from "./operacion";
+import type { DiaGeneracion } from "./generacion";
 import type { EntradaAceite } from "./db-json";
 import { depurarChecklist } from "./checklist";
 import type { IntervencionParaContar } from "./mantenimiento";
@@ -1447,4 +1448,92 @@ export async function borrarIntervencion(id: string): Promise<void> {
     .delete()
     .eq("id_intervencion", id);
   if (error) throw errorConCodigo(error);
+}
+
+/* ---------- Generación diaria y sincronización con la hoja ---------- */
+
+/** Falta la tabla: la migración 15 no se ha ejecutado. */
+export class FaltaGeneracionError extends Error {
+  constructor() {
+    super("Las tablas de generacion diaria todavia no existen.");
+    this.name = "FaltaGeneracionError";
+  }
+}
+
+const noExiste = (error: { code?: string; message?: string }) =>
+  error.code === "42P01" || error.code === "PGRST205";
+
+/**
+ * El cierre de cada día, por equipo.
+ *
+ * Es lo que la página muestra en Operación y en la ficha del equipo:
+ * horómetro, combustible y kilovatios, un renglón por día. Lo llena el
+ * sincronizador desde la hoja de Google.
+ */
+export async function generacionDiaria(filtro?: {
+  idEquipo?: string;
+  desde?: string;
+  hasta?: string;
+  combustible?: string;
+  limite?: number;
+}): Promise<DiaGeneracion[]> {
+  let q = cliente().from("generacion_diaria").select("*");
+  if (filtro?.idEquipo) q = q.eq("id_equipo", filtro.idEquipo);
+  if (filtro?.combustible) q = q.eq("combustible", filtro.combustible);
+  if (filtro?.desde) q = q.gte("fecha", filtro.desde);
+  if (filtro?.hasta) q = q.lte("fecha", filtro.hasta);
+
+  const { data, error } = await q
+    .order("fecha", { ascending: false })
+    .limit(filtro?.limite ?? 2000);
+
+  if (error) {
+    if (noExiste(error)) throw new FaltaGeneracionError();
+    throw errorConCodigo(error);
+  }
+  return (data ?? []) as DiaGeneracion[];
+}
+
+/** Lo que gastó la planta cada día, medido en el tanque. */
+export async function consumoPlanta(filtro?: {
+  desde?: string;
+  hasta?: string;
+  limite?: number;
+}): Promise<Record<string, unknown>[]> {
+  let q = cliente().from("consumo_planta").select("*");
+  if (filtro?.desde) q = q.gte("fecha", filtro.desde);
+  if (filtro?.hasta) q = q.lte("fecha", filtro.hasta);
+
+  const { data, error } = await q
+    .order("fecha", { ascending: false })
+    .limit(filtro?.limite ?? 400);
+
+  if (error) {
+    if (noExiste(error)) throw new FaltaGeneracionError();
+    throw errorConCodigo(error);
+  }
+  return (data ?? []) as Record<string, unknown>[];
+}
+
+/**
+ * Las últimas corridas del sincronizador.
+ *
+ * Sin este diario, «se actualiza solo con el Excel» es una promesa que
+ * nadie puede comprobar. Con él, la pantalla puede decir cuándo entró la
+ * última y qué trajo.
+ */
+export async function ultimasSincronizaciones(
+  cuantas = 5,
+): Promise<Record<string, unknown>[]> {
+  const { data, error } = await cliente()
+    .from("sincronizaciones")
+    .select("*")
+    .order("momento", { ascending: false })
+    .limit(cuantas);
+
+  if (error) {
+    if (noExiste(error)) throw new FaltaGeneracionError();
+    throw errorConCodigo(error);
+  }
+  return (data ?? []) as Record<string, unknown>[];
 }

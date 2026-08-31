@@ -41,6 +41,9 @@ const COMPROBACIONES = [
   { n: "12", que: "Consumibles", tabla: "consumibles", columna: "vida_util_horas" },
   { n: "13", que: "Consumo de aceite", tabla: "adiciones_aceite", columna: "cantidad_gln" },
   { n: "14", que: "Registro horario de operacion", tabla: "registros_operacion", columna: "kw_real" },
+  { n: "15a", que: "Generacion diaria", tabla: "generacion_diaria", columna: "kwh_dia" },
+  { n: "15b", que: "Consumo de la planta", tabla: "consumo_planta", columna: "nivel_tanque_gln" },
+  { n: "15c", que: "Diario de sincronizaciones", tabla: "sincronizaciones", columna: "cierres" },
 ];
 
 const cabeceras = {

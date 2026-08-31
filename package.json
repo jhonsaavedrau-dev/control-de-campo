@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "migraciones": "node scripts/revisar-migraciones.mjs",
-    "datos": "node scripts/verificar-datos.mjs"
+    "datos": "node scripts/verificar-datos.mjs",
+    "sincronizar": "tsx scripts/sincronizar.mjs",
+    "comprobar": "tsx scripts/comprobar-generacion.mjs",
+    "unidades": "tsx scripts/revisar-unidades.mjs"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.3.1",
