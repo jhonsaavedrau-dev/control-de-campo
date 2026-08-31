@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   IcoHerramienta, IcoCodigoQR, IcoPersona, IcoDocumento, IcoLlave, IcoDisco,
@@ -113,6 +113,7 @@ export default function MenuPrincipal({
   const inicioY = useRef<number | null>(null);
   const hoja = useRef<HTMLElement | null>(null);
   const ruta = usePathname();
+  const router = useRouter();
 
   // Al cambiar de pantalla el menú sobra: si se quedara abierto habría
   // que cerrarlo a mano cada vez.
@@ -131,6 +132,38 @@ export default function MenuPrincipal({
       setAbierto(false);
     }
   }, []);
+
+  /**
+   * Ir a un destino del menú.
+   *
+   * No se puede cerrar y navegar a la vez. Cerrar consume la entrada de
+   * historial que se metió al abrir —un `history.back()`— y Next apila la
+   * suya para la pantalla nueva: las dos se pisan y la vuelta atrás
+   * deshace la navegación. El menú se cerraba y la pantalla no cambiaba,
+   * que es exactamente lo que se veía al pulsar cualquier opción.
+   *
+   * Así que primero se cierra, y solo cuando el historial ha terminado de
+   * volver se navega. Si no hubiera entrada que consumir —el menú se
+   * abrió sin ella— se navega derecho.
+   */
+  const irA = useCallback(
+    (e: React.MouseEvent, href: string) => {
+      // Se respeta abrir en pestaña nueva: ctrl, cmd o rueda del ratón.
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+      e.preventDefault();
+
+      if (typeof window !== "undefined" && window.history.state?.menuPbi) {
+        window.addEventListener("popstate", () => router.push(href), {
+          once: true,
+        });
+        window.history.back();
+      } else {
+        setAbierto(false);
+        router.push(href);
+      }
+    },
+    [router],
+  );
 
   useEffect(() => {
     if (!abierto) return;
@@ -307,7 +340,7 @@ export default function MenuPrincipal({
                       <Link
                         key={d.href}
                         href={d.href}
-                        onClick={cerrar}
+                        onClick={(e) => irA(e, d.href)}
                         data-aqui={aqui ? "si" : undefined}
                         aria-current={aqui ? "page" : undefined}
                         className="menu-enlace"

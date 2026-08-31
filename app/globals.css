@@ -675,6 +675,7 @@ a.bitacora-fila:hover { background: var(--color-realce); }
 }
 
 .gr-insignia {
+  white-space: nowrap;
   font-family: var(--font-mono);
   font-size: 15px;
   font-weight: 500;
@@ -2105,7 +2106,7 @@ a.bitacora-fila:hover { background: var(--color-realce); }
 
 .sinc {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr;
   align-items: center;
   gap: 10px 12px;
   padding: 10px 14px;
@@ -2137,8 +2138,6 @@ a.bitacora-fila:hover { background: var(--color-realce); }
   font-family: var(--font-mono);
 }
 
-.sinc-boton { white-space: nowrap; }
-
 .sinc-nota {
   grid-column: 1 / -1;
   font-size: 12.5px;
@@ -2158,10 +2157,7 @@ a.bitacora-fila:hover { background: var(--color-realce); }
   word-break: break-all;
 }
 
-@media (max-width: 640px) {
-  .sinc { grid-template-columns: auto 1fr; }
-  .sinc-boton { grid-column: 1 / -1; justify-content: center; }
-}
+
 
 /* ============================================================
    VENTANA DE TIEMPO
@@ -2291,4 +2287,222 @@ a.bitacora-fila:hover { background: var(--color-realce); }
   border-top: 2px solid var(--color-borde-fuerte);
   background: var(--color-campo);
   font-weight: 600;
+}
+
+/* ============================================================
+   LAS CUATRO CIFRAS DE OPERACION
+   Dos por fila en el telefono y cuatro en pantalla ancha. El
+   numero manda, la unidad lo acompaña pequeña y en la misma
+   linea: partirla a otra linea rompia la lectura en el movil,
+   que era justo donde peor se veia.
+   ============================================================ */
+
+.cifras {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+@media (min-width: 900px) {
+  .cifras { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.cifra {
+  min-width: 0;
+  padding: 11px 13px;
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 8px;
+  background: var(--color-panel);
+  box-shadow: var(--sombra-1);
+}
+
+.cifra-valor {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  /* El numero y su unidad no se separan nunca. */
+  white-space: nowrap;
+}
+
+@media (min-width: 900px) {
+  .cifra-valor { font-size: 25px; }
+}
+
+.cifra-unidad {
+  font-size: 11px;
+  margin-left: 3px;
+  color: var(--color-tenue);
+}
+
+.cifra-etiqueta {
+  margin-top: 7px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.045em;
+  color: var(--color-tenue);
+  /* Dos palabras largas caben en dos lineas sin ensanchar la caja. */
+  overflow-wrap: anywhere;
+}
+
+.cifra-pie {
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--color-sin-info);
+  overflow-wrap: anywhere;
+}
+
+/* ============================================================
+   EQUIPOS EN FICHAS, AGRUPADOS POR COMBUSTIBLE
+   Una tabla de siete columnas no cabe en un telefono: o se sale
+   por el lado o se aprieta hasta no leerse. Aqui son seis
+   equipos, no cien filas, asi que cada uno lleva su ficha con
+   los renglones en columna. El grupo dice de que combustible es
+   —y de paso, por que el GLP no trae cifra por maquina.
+   ============================================================ */
+
+.grupo-equipos { margin-top: 16px; }
+
+.grupo-titulo {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 9px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+
+.grupo-marca {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+.grupo-nota {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-tenue);
+}
+
+.ficha-equipo {
+  min-width: 0;
+  padding: 11px 13px 12px;
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 8px;
+  background: var(--color-panel);
+  box-shadow: var(--sombra-1);
+}
+
+.ficha-equipo[data-vacia="si"] { opacity: 0.62; }
+
+.ficha-equipo header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 8px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--color-borde-suave);
+}
+
+.ficha-id {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.ficha-nombre {
+  font-size: 12.5px;
+  color: var(--color-tenue);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ficha-equipo dl { display: grid; gap: 1px; }
+
+.ficha-equipo dl > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2.5px 0;
+}
+
+.ficha-equipo dt {
+  font-size: 12px;
+  color: var(--color-tenue);
+  white-space: nowrap;
+}
+
+.ficha-equipo dd {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* El rendimiento es lo que se busca primero: se separa y pesa mas. */
+.ficha-equipo dl > div[data-destacado="si"] {
+  margin-top: 5px;
+  padding-top: 6px;
+  border-top: 1px solid var(--color-borde-suave);
+}
+
+.ficha-equipo dl > div[data-destacado="si"] dd { font-weight: 600; }
+
+.ficha-unidad {
+  font-size: 10.5px;
+  margin-left: 3px;
+  color: var(--color-sin-info);
+}
+
+.ficha-vacia {
+  font-size: 12.5px;
+  color: var(--color-sin-info);
+  padding: 6px 0 2px;
+}
+
+/* El total del grupo, cuando la medida es del grupo y no del equipo. */
+.grupo-total {
+  display: grid;
+  /* En el telefono, uno debajo de otro: apretados en dos columnas, el
+     rotulo parte de linea y el numero se despega de su nombre. */
+  grid-template-columns: 1fr;
+  gap: 4px 18px;
+  margin-top: 8px;
+  padding: 10px 13px;
+  border: 1px solid;
+  border-radius: 8px;
+  background: var(--color-campo);
+}
+
+.grupo-total > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .grupo-total { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.grupo-total-rotulo { font-size: 12px; color: var(--color-tenue); }
+
+.grupo-total-valor {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }

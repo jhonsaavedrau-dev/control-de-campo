@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { IcoDescarga } from "@/components/Iconos";
 
 /**
  * Cuándo entró por última vez lo que hay en la hoja de Google.
@@ -10,13 +9,14 @@ import { IcoDescarga } from "@/components/Iconos";
  * Un sistema que dice «se actualiza solo» y no enseña cuándo fue la
  * última vez no es de fiar: el día que la actualización se caiga, la
  * pantalla seguirá enseñando cifras viejas con toda la seguridad del
- * mundo. Aquí se ve la hora de la última que trajo algo, cuándo se miró
- * por última vez, y hay un botón para traerla ahora mismo.
+ * mundo. Aquí se ve la hora de la última que trajo algo y cuándo se miró
+ * por última vez.
  *
- * Además se refresca sola cada diez minutos mientras la página esté
- * abierta. Son dos cosas distintas y las dos hacen falta: por fuera hay
- * un reloj que la trae aunque no haya nadie mirando, y aquí dentro está
- * lo que hace que quien SÍ está mirando no tenga que apretar nada.
+ * No hay botón, a propósito: la hoja entra sola cada diez minutos —por
+ * fuera un reloj que corre aunque no haya nadie mirando, y aquí dentro
+ * otro que se ocupa de quien SÍ está mirando—, y un botón que hace lo
+ * que ya pasa solo no es un atajo, es una duda: obliga a preguntarse si
+ * hace falta apretarlo.
  */
 
 const CADA = 10 * 60 * 1000;
@@ -67,55 +67,35 @@ export default function EstadoSincronizacion({
   puedeEditar: boolean;
 }) {
   const router = useRouter();
-  const [corriendo, setCorriendo] = useState(false);
-  const [aviso, setAviso] = useState<{ mal: boolean; texto: string } | null>(null);
   const [sinAcceso, setSinAcceso] = useState<string | null>(null);
 
   // Con una referencia y no con estado: el reloj de abajo no tiene que
   // rearmarse cada vez que cambia algo de la pantalla.
   const ocupado = useRef(false);
 
-  const traer = useCallback(
-    async (automatica: boolean) => {
-      if (ocupado.current) return;
-      ocupado.current = true;
-      if (!automatica) {
-        setCorriendo(true);
-        setAviso(null);
-        setSinAcceso(null);
-      }
-      try {
-        const r = await fetch(
-          `/api/sincronizar${automatica ? "?auto=1" : ""}`,
-          { method: "POST" },
-        );
-        const j = await r.json();
-        if (r.status === 409 && j.correoRobot) {
-          if (!automatica) setSinAcceso(j.correoRobot);
-        } else if (!r.ok) {
-          throw new Error(j.error || j.mensaje || "No se pudo traer la hoja");
-        } else {
-          if (!automatica) setAviso({ mal: false, texto: j.mensaje });
-          // Solo se repinta si hubo algo que traer: refrescar la página
-          // entera para no cambiar nada es trabajo que se nota.
-          if (!j.sinCambios || !automatica) router.refresh();
-        }
-      } catch (e) {
-        // Un fallo de la automática no se le echa en cara a nadie: no
-        // ha pedido nada. Se vuelve a intentar a los diez minutos.
-        if (!automatica) {
-          setAviso({
-            mal: true,
-            texto: e instanceof Error ? e.message : "No se pudo traer la hoja",
-          });
-        }
-      } finally {
-        ocupado.current = false;
-        if (!automatica) setCorriendo(false);
-      }
-    },
-    [router],
-  );
+  /**
+   * Traer la hoja, en silencio.
+   *
+   * Nadie ha pedido esto: lo pide el reloj. Así que no enseña ni
+   * «trayendo» ni errores —si falla, se vuelve a intentar en diez
+   * minutos— y solo repinta la pantalla cuando de verdad llegó algo.
+   * Lo único que sí se dice es que la hoja no esté compartida, porque
+   * eso no se arregla esperando.
+   */
+  const traer = useCallback(async () => {
+    if (ocupado.current) return;
+    ocupado.current = true;
+    try {
+      const r = await fetch("/api/sincronizar?auto=1", { method: "POST" });
+      const j = await r.json();
+      if (r.status === 409 && j.correoRobot) setSinAcceso(j.correoRobot);
+      else if (r.ok && !j.sinCambios) router.refresh();
+    } catch {
+      // Se reintenta al siguiente turno del reloj.
+    } finally {
+      ocupado.current = false;
+    }
+  }, [router]);
 
   /**
    * El reloj de la pantalla.
@@ -131,7 +111,7 @@ export default function EstadoSincronizacion({
   useEffect(() => {
     const tocar = () => {
       if (document.visibilityState !== "visible") return;
-      if (puedeEditar) void traer(true);
+      if (puedeEditar) void traer();
       else router.refresh();
     };
 
@@ -200,18 +180,6 @@ export default function EstadoSincronizacion({
         </span>
       </div>
 
-      {puedeEditar ? (
-        <button
-          type="button"
-          className="accion accion-secundaria accion-suelta sinc-boton"
-          onClick={() => traer(false)}
-          disabled={corriendo}
-        >
-          <IcoDescarga className="w-4 h-4" />
-          {corriendo ? "Trayendo…" : "Traer la hoja ahora"}
-        </button>
-      ) : null}
-
       {sinAcceso || (!ultima && correoRobot) ? (
         <p className="sinc-nota">
           {sinAcceso ? (
@@ -223,17 +191,6 @@ export default function EstadoSincronizacion({
             <>Para que esto funcione, la hoja tiene que estar compartida con:</>
           )}{" "}
           <code className="sinc-correo">{sinAcceso ?? correoRobot}</code>
-        </p>
-      ) : null}
-
-      {aviso ? (
-        <p
-          className="sinc-nota"
-          style={{
-            color: aviso.mal ? "var(--color-critico)" : "var(--color-operativo)",
-          }}
-        >
-          {aviso.texto}
         </p>
       ) : null}
     </div>

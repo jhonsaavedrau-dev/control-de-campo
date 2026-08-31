@@ -18,11 +18,19 @@ import type { DiaGeneracion } from "@/lib/generacion";
  * diésel, GLP y kilovatios— y no estaban en el sistema: vivían en una
  * hoja de Google que alguien tenía que abrir. Ahora entran solas.
  *
- * El diésel y el GLP no se suman nunca en la misma cifra. No es una
- * cuestión de estilo: se miden en unidades distintas y se cobran en
- * unidades distintas —galones el uno, kilogramos el otro—, y un total
- * mezclado no significaría nada. Van con su color y su unidad de punta
- * a punta.
+ * Tres decisiones que dan forma a toda la pantalla:
+ *
+ * **El diésel y el GLP no se suman nunca en la misma cifra.** Se miden y
+ * se cobran en unidades distintas —galones el uno, kilogramos el otro—,
+ * y un total mezclado no significaría nada.
+ *
+ * **Los equipos van en fichas, no en una tabla.** Una tabla de siete
+ * columnas en un teléfono de 375 px o se sale por el lado o se aprieta
+ * hasta no leerse, y aquí no hay cien filas que comparar: son seis.
+ *
+ * **Las fichas se agrupan por combustible.** Así la pantalla dice sola
+ * por qué el GLP no trae cifra por máquina: el grupo entero comparte un
+ * medidor, y el total va donde de verdad está medido, en el grupo.
  */
 
 const VENTANAS = [
@@ -39,9 +47,10 @@ const cifra = (v: number | null | undefined, dec = 0) =>
         maximumFractionDigits: dec,
       });
 
+/** Miles abreviados. Sin espacio antes de la «k»: con él, parte de línea. */
 const corto = (v: number) =>
-  Math.abs(v) >= 1000
-    ? `${(v / 1000).toLocaleString("es-CO", { maximumFractionDigits: 1 })} k`
+  Math.abs(v) >= 10000
+    ? `${(v / 1000).toLocaleString("es-CO", { maximumFractionDigits: 0 })}k`
     : cifra(v);
 
 const dia = (iso: string) =>
@@ -54,6 +63,17 @@ export type DiaPlanta = {
   fecha: string;
   diesel_gln: number | null;
   nivel_tanque_gln: number | null;
+};
+
+/** Lo acumulado de un equipo en el periodo elegido. */
+type Acumulado = {
+  id: string;
+  combustible: string;
+  horas: number | null;
+  kwh: number | null;
+  consumo: number | null;
+  horometro: number | null;
+  dias: number;
 };
 
 export default function PanelGeneracion({
@@ -94,60 +114,83 @@ export default function PanelGeneracion({
     () => new Map(planta.map((d) => [d.fecha, d.diesel_gln])),
     [planta],
   );
-  const dieselTanque = useMemo(
-    () => porDia.reduce((n, d) => n + (tanque.get(d.fecha) ?? 0), 0),
+  const hayTanque = useMemo(
+    () => porDia.some((d) => tanque.get(d.fecha) != null),
     [porDia, tanque],
   );
 
-  /** Cada equipo con lo suyo, para la tabla y las barras. */
-  const porEquipo = useMemo(() => {
+  /**
+   * Cada equipo con lo suyo.
+   *
+   * Se distingue «cero» de «no se sabe»: el C15 no tiene contador de
+   * energía, y enseñar un 0 kWh junto a dos mil galones haría pensar que
+   * el motor gastó combustible sin generar nada. Solo hay cifra si algún
+   * día del periodo la trajo.
+   */
+  const porEquipo = useMemo<Acumulado[]>(() => {
     const mapa = new Map<
       string,
-      {
-        id: string;
-        combustible: string;
-        horas: number;
-        kwh: number;
-        consumo: number;
-        horometro: number | null;
-        ultima: string;
-      }
+      Acumulado & { nHoras: number; nKwh: number; nConsumo: number }
     >();
-    for (const d of [...enVentana].sort((a, b) => a.fecha.localeCompare(b.fecha))) {
-      const x = mapa.get(d.id_equipo) ?? {
-        id: d.id_equipo,
-        combustible: d.combustible,
-        horas: 0,
-        kwh: 0,
-        consumo: 0,
-        horometro: null,
-        ultima: "",
-      };
-      x.horas += d.horas_dia ?? 0;
-      x.kwh += d.kwh_dia ?? 0;
-      x.consumo += (d.combustible === "glp" ? d.glp_kg : d.diesel_gln) ?? 0;
-      if (d.horometro != null) {
-        x.horometro = d.horometro;
-        x.ultima = d.fecha;
+
+    for (const d of [...enVentana].sort((a, b) =>
+      a.fecha.localeCompare(b.fecha),
+    )) {
+      const x =
+        mapa.get(d.id_equipo) ??
+        {
+          id: d.id_equipo,
+          combustible: d.combustible,
+          horas: 0,
+          kwh: 0,
+          consumo: 0,
+          horometro: null,
+          dias: 0,
+          nHoras: 0,
+          nKwh: 0,
+          nConsumo: 0,
+        };
+
+      const consumo = d.combustible === "glp" ? d.glp_kg : d.diesel_gln;
+      if (d.horas_dia != null) {
+        x.horas = (x.horas ?? 0) + d.horas_dia;
+        x.nHoras++;
       }
+      if (d.kwh_dia != null) {
+        x.kwh = (x.kwh ?? 0) + d.kwh_dia;
+        x.nKwh++;
+      }
+      if (consumo != null) {
+        x.consumo = (x.consumo ?? 0) + consumo;
+        x.nConsumo++;
+      }
+      if (d.horometro != null) x.horometro = d.horometro;
+      x.dias++;
+
       mapa.set(d.id_equipo, x);
     }
-    return [...mapa.values()].sort((a, b) => b.kwh - a.kwh);
+
+    return [...mapa.values()]
+      .map((x) => ({
+        id: x.id,
+        combustible: x.combustible,
+        horometro: x.horometro,
+        dias: x.dias,
+        horas: x.nHoras ? x.horas : null,
+        kwh: x.nKwh ? x.kwh : null,
+        consumo: x.nConsumo ? x.consumo : null,
+      }))
+      .sort((a, b) => (b.kwh ?? 0) - (a.kwh ?? 0));
   }, [enVentana]);
 
   if (!dias.length) {
     return (
       <p className="text-[14.5px]" style={{ color: "var(--color-sin-info)" }}>
-        Todavía no hay días de generación. Trae la hoja para llenarlos.
+        Todavía no hay días de generación. La hoja se lee sola; si acabas de
+        conectarla, dale unos minutos.
       </p>
     );
   }
-
-  // El GLP no se mide equipo por equipo: los tres 3412 comparten un
-  // medidor. Lo suyo es el bloque, y el bloque sí da una cifra buena.
-  const bloqueGlp = porEquipo.filter((e) => e.combustible === "glp");
-  const glpKwh = bloqueGlp.reduce((n, e) => n + e.kwh, 0);
-  const glpRend = resumen.glpKg > 0 ? glpKwh / resumen.glpKg : null;
 
   const barras = porDia.map((d) => ({
     etiqueta: dia(d.fecha),
@@ -158,6 +201,11 @@ export default function PanelGeneracion({
     { clave: "glp", nombre: "Generado con GLP", color: "var(--serie-glp)" },
     { clave: "diesel", nombre: "Generado con diésel", color: "var(--serie-diesel)" },
   ];
+
+  const bloqueGlp = porEquipo.filter((e) => e.combustible === "glp");
+  const bloqueDiesel = porEquipo.filter((e) => e.combustible !== "glp");
+  const glpKwh = bloqueGlp.reduce((n, e) => n + (e.kwh ?? 0), 0);
+  const glpRend = resumen.glpKg > 0 ? glpKwh / resumen.glpKg : null;
 
   return (
     <>
@@ -176,15 +224,15 @@ export default function PanelGeneracion({
         ))}
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mt-3">
+      <div className="cifras">
         <Dato
           valor={corto(resumen.kwh)}
           unidad="kWh"
           etiqueta="Energía generada"
-          pie={`${resumen.dias} días · ${resumen.cierres} cierres`}
+          pie={`${resumen.dias} días con cierre`}
         />
         <Dato
-          valor={cifra(resumen.dieselGln)}
+          valor={corto(resumen.dieselGln)}
           unidad="gln"
           etiqueta="Diésel quemado"
           color="var(--serie-diesel)"
@@ -195,23 +243,17 @@ export default function PanelGeneracion({
           }
         />
         <Dato
-          valor={cifra(resumen.glpKg)}
+          valor={corto(resumen.glpKg)}
           unidad="kg"
           etiqueta="GLP consumido"
           color="var(--serie-glp)"
-          pie={
-            resumen.glpM3
-              ? `${cifra(resumen.glpM3)} m³ medidos`
-              : "sin lecturas"
-          }
+          pie={glpRend ? `${cifra(glpRend, 1)} kWh por kilo` : "sin rendimiento"}
         />
         <Dato
-          valor={cifra(resumen.horas)}
+          valor={corto(resumen.horas)}
           unidad="h"
           etiqueta="Horas operadas"
-          pie={
-            resumen.hasta ? `hasta el ${dia(resumen.hasta)}` : "sin horómetros"
-          }
+          pie={resumen.hasta ? `hasta el ${dia(resumen.hasta)}` : "sin horómetros"}
         />
       </div>
 
@@ -240,7 +282,7 @@ export default function PanelGeneracion({
           color="var(--serie-diesel)"
           icono={<IcoCombustible className="w-4 h-4" />}
           insignia={{
-            texto: `${cifra(resumen.dieselGln)} gln · ${cifra(resumen.glpKg)} kg`,
+            texto: `${corto(resumen.dieselGln)} gln · ${corto(resumen.glpKg)} kg`,
           }}
         >
           {/* Dos gráficas y no una con dos ejes: los galones y los kilos
@@ -252,9 +294,9 @@ export default function PanelGeneracion({
                 Diésel · galones
               </span>
               {/* Dos series en el MISMO eje, que las dos son galones: lo
-                  que dicen los contadores de los motores y lo que bajó
-                  el tanque. La segunda siempre sale por encima —el
-                  tanque también alimenta lo que no lleva contador— y esa
+                  que dicen los contadores de los motores y lo que bajó el
+                  tanque. La segunda siempre sale por encima —el tanque
+                  también alimenta lo que no lleva contador— y esa
                   distancia es justamente lo que interesa vigilar. */}
               <GraficaLinea
                 puntos={porDia.map((d) => ({
@@ -262,7 +304,7 @@ export default function PanelGeneracion({
                   valor: d.dieselGln || null,
                 }))}
                 puntosFondo={
-                  dieselTanque
+                  hayTanque
                     ? porDia.map((d) => ({
                         etiqueta: dia(d.fecha),
                         valor: tanque.get(d.fecha) ?? null,
@@ -305,10 +347,10 @@ export default function PanelGeneracion({
         >
           <BarrasHorizontales
             filas={porEquipo
-              .filter((e) => e.horas > 0)
+              .filter((e) => (e.horas ?? 0) > 0)
               .map((e) => ({
                 id: `${e.id} · ${nombreDe.get(e.id) ?? ""}`.trim(),
-                valor: e.horas,
+                valor: e.horas as number,
                 color: colorCombustible(e.combustible),
                 nota: ETIQUETA_COMBUSTIBLE[e.combustible] ?? "",
               }))}
@@ -317,141 +359,185 @@ export default function PanelGeneracion({
         </TarjetaGrafica>
       </div>
 
-      <h2 className="font-[family-name:var(--font-placa)] font-semibold text-[18px] mt-6 mb-1">
+      <h2 className="font-[family-name:var(--font-placa)] font-semibold text-[19px] mt-7 mb-1">
         Cada equipo
       </h2>
-      <p className="text-[13px] mb-2" style={{ color: "var(--color-tenue)" }}>
+      <p className="text-[13px] mb-3" style={{ color: "var(--color-tenue)" }}>
         Sumado sobre {periodo}. El horómetro es la última lectura, no una suma.
       </p>
 
-      <div className="marco-programa">
-        <div className="overflow-x-auto">
-          <table className="programa">
-            <thead>
-              <tr>
-                <th className="col-equipo">Equipo</th>
-                <th>Combustible</th>
-                <th>Horómetro</th>
-                <th>Horas</th>
-                <th>kWh</th>
-                <th>Consumo</th>
-                <th>Rendimiento</th>
-              </tr>
-            </thead>
-            <tbody>
-              {porEquipo.map((e) => (
-                <tr key={e.id}>
-                  <th className="col-equipo" scope="row">
-                    <span className="prg-id">{e.id}</span>
-                    <span className="prg-nombre">{nombreDe.get(e.id) ?? ""}</span>
-                  </th>
-                  <td>
-                    <span
-                      className="pastilla"
-                      style={{
-                        padding: "3px 9px",
-                        fontSize: "10.5px",
-                        color: colorCombustible(e.combustible),
-                        borderColor: colorCombustible(e.combustible),
-                      }}
-                    >
-                      {ETIQUETA_COMBUSTIBLE[e.combustible] ?? "—"}
-                    </span>
-                  </td>
-                  <td className="num">{cifra(e.horometro)}</td>
-                  <td className="num">{cifra(e.horas, 1)}</td>
-                  <td className="num">{cifra(e.kwh)}</td>
-                  {/* El GLP se mide para los tres 3412 juntos, no por
-                      equipo: poner aquí un número daría un kWh/kg por
-                      máquina que parece medido y sale de un reparto. */}
-                  <td className="num">
-                    {!consumoPorEquipo(e.combustible) ? (
-                      <span style={{ color: "var(--color-sin-info)" }}>
-                        medidor común
-                      </span>
-                    ) : e.consumo ? (
-                      `${cifra(e.consumo)} ${unidadConsumo(e.combustible)}`
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="num">
-                    {consumoPorEquipo(e.combustible) && e.consumo && e.kwh
-                      ? `${cifra(e.kwh / e.consumo, 1)} kWh/${unidadConsumo(e.combustible)}`
-                      : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+      <Grupo
+        titulo="Diésel"
+        color="var(--serie-diesel)"
+        nota="Cada motor lleva su propio contador."
+        equipos={bloqueDiesel}
+        nombreDe={nombreDe}
+      />
 
-            {/* El renglón que la tabla de arriba no puede dar: el GLP
-                junto, que es como está medido de verdad. */}
-            {bloqueGlp.length ? (
-              <tfoot>
-                <tr>
-                  <th className="col-equipo" scope="row">
-                    <span className="prg-id">GLP</span>
-                    <span className="prg-nombre">
-                      Los {bloqueGlp.length} CAT 3412 juntos
-                    </span>
-                  </th>
-                  <td>
-                    <span
-                      className="pastilla"
-                      style={{
-                        padding: "3px 9px",
-                        fontSize: "10.5px",
-                        color: "var(--serie-glp)",
-                        borderColor: "var(--serie-glp)",
-                      }}
-                    >
-                      Medidor común
-                    </span>
-                  </td>
-                  <td className="num">—</td>
-                  <td className="num">
-                    {cifra(bloqueGlp.reduce((n, e) => n + e.horas, 0), 1)}
-                  </td>
-                  <td className="num">{cifra(glpKwh)}</td>
-                  <td className="num">{cifra(resumen.glpKg)} kg</td>
-                  <td className="num">
-                    {glpRend ? `${cifra(glpRend, 1)} kWh/kg` : "—"}
-                  </td>
-                </tr>
-              </tfoot>
-            ) : null}
-          </table>
-        </div>
-      </div>
+      <Grupo
+        titulo="GLP"
+        color="var(--serie-glp)"
+        nota={`Los ${bloqueGlp.length} CAT 3412 comparten un solo medidor: el consumo es del grupo, no de cada máquina.`}
+        equipos={bloqueGlp}
+        nombreDe={nombreDe}
+        total={
+          resumen.glpKg > 0
+            ? [
+                { rotulo: "GLP del grupo", valor: `${cifra(resumen.glpKg)} kg` },
+                { rotulo: "Energía", valor: `${cifra(glpKwh)} kWh` },
+                {
+                  rotulo: "Rendimiento",
+                  valor: glpRend ? `${cifra(glpRend, 1)} kWh/kg` : "—",
+                },
+              ]
+            : undefined
+        }
+      />
 
-      <p className="text-[12.5px] mt-2.5" style={{ color: "var(--color-sin-info)" }}>
+      <p
+        className="text-[12.5px] mt-4 leading-relaxed"
+        style={{ color: "var(--color-sin-info)" }}
+      >
         Las cifras salen del cierre de las 24:00 de cada día en la hoja de la
         planta. El consumo es la diferencia del contador contra el cierre
         anterior, no lo que dice una casilla: así es como PBI lo calcula en su
         propia hoja de consolidados. El diésel del tanque va aparte y siempre
-        por encima: mide todo lo que sale de la planta, no solo lo que queman
-        los motores con contador.
-        {" "}
-        El GLP no aparece por equipo porque no se mide por equipo: los tres CAT
-        3412 comparten un medidor y el turno anota su lectura en la fila que le
-        toca. Junto, el bloque da{" "}
-        {glpRend ? `${cifra(glpRend, 1)} kWh/kg` : "su rendimiento"}, que es lo
-        que tiene que dar un motor de gas; repartido entre los tres saldría un
-        número por máquina que parece una medida y no lo es.
+        por encima, porque mide todo lo que sale de la planta y no solo lo que
+        queman los motores con contador.
         {resumen.conNota ? (
           <>
             {" "}
             {resumen.conNota === 1
               ? "Hay un día"
               : `Hay ${resumen.conNota} días`}{" "}
-            con algo que mirar —una lectura que faltó o un día que arrastra al
-            anterior—; están marcados en la tabla de días.
+            con algo que mirar —una lectura que faltó, o un día que arrastra al
+            anterior—: esos quedan sin cifra en vez de contarse como cero.
           </>
         ) : null}
       </p>
     </>
   );
 }
+
+/* ---------- Un grupo de equipos del mismo combustible ---------- */
+
+function Grupo({
+  titulo, color, nota, equipos, nombreDe, total,
+}: {
+  titulo: string;
+  color: string;
+  nota: string;
+  equipos: Acumulado[];
+  nombreDe: Map<string, string>;
+  /** El resumen del grupo, cuando la medida es del grupo y no del equipo. */
+  total?: { rotulo: string; valor: string }[];
+}) {
+  if (!equipos.length) return null;
+
+  return (
+    <section className="grupo-equipos">
+      <h3 className="grupo-titulo">
+        <span className="grupo-marca" style={{ background: color }} />
+        {titulo}
+        <span className="grupo-nota">{nota}</span>
+      </h3>
+
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        {equipos.map((e) => (
+          <FichaEquipo
+            key={e.id}
+            equipo={e}
+            nombre={nombreDe.get(e.id) ?? ""}
+            color={color}
+          />
+        ))}
+      </div>
+
+      {total ? (
+        <div className="grupo-total" style={{ borderColor: color }}>
+          {total.map((t) => (
+            <div key={t.rotulo}>
+              <span className="grupo-total-rotulo">{t.rotulo}</span>
+              <span className="grupo-total-valor">{t.valor}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function FichaEquipo({
+  equipo: e, nombre, color,
+}: {
+  equipo: Acumulado;
+  nombre: string;
+  color: string;
+}) {
+  const unidad = unidadConsumo(e.combustible);
+  const propio = consumoPorEquipo(e.combustible);
+  const rendimiento = propio && e.consumo && e.kwh ? e.kwh / e.consumo : null;
+  const sinNada = e.horas == null && e.kwh == null && e.consumo == null;
+
+  return (
+    <article className="ficha-equipo" data-vacia={sinNada ? "si" : undefined}>
+      <header>
+        <span className="ficha-id" style={{ color }}>
+          {e.id}
+        </span>
+        <span className="ficha-nombre">{nombre}</span>
+      </header>
+
+      {sinNada ? (
+        <p className="ficha-vacia">Sin cierres en el periodo.</p>
+      ) : (
+        <dl>
+          <Renglon rotulo="Horómetro" valor={cifra(e.horometro)} unidad="h" />
+          <Renglon rotulo="Operadas" valor={cifra(e.horas, 1)} unidad="h" />
+          <Renglon rotulo="Energía" valor={cifra(e.kwh)} unidad="kWh" />
+          <Renglon
+            rotulo="Consumo"
+            valor={propio ? cifra(e.consumo) : "medidor común"}
+            unidad={propio && e.consumo != null ? unidad : ""}
+            apagado={!propio}
+          />
+          <Renglon
+            rotulo="Rendimiento"
+            valor={rendimiento ? cifra(rendimiento, 1) : "—"}
+            unidad={rendimiento ? `kWh/${unidad}` : ""}
+            destacado
+          />
+        </dl>
+      )}
+    </article>
+  );
+}
+
+function Renglon({
+  rotulo, valor, unidad, apagado, destacado,
+}: {
+  rotulo: string;
+  valor: string;
+  unidad: string;
+  apagado?: boolean;
+  destacado?: boolean;
+}) {
+  return (
+    <div data-destacado={destacado ? "si" : undefined}>
+      <dt>{rotulo}</dt>
+      <dd style={apagado ? { color: "var(--color-sin-info)" } : undefined}>
+        {valor}
+        {/* La unidad solo acompaña a un número. Un «— kWh» dice que
+            faltan kilovatios; lo que falta es la lectura entera. */}
+        {unidad && valor !== "—" ? (
+          <span className="ficha-unidad">{unidad}</span>
+        ) : null}
+      </dd>
+    </div>
+  );
+}
+
+/* ---------- Las cuatro cifras de arriba ---------- */
 
 function Dato({
   valor, unidad, etiqueta, pie, color,
@@ -463,32 +549,13 @@ function Dato({
   color?: string;
 }) {
   return (
-    <div className="panel px-3 py-2.5">
-      <div className="flex items-baseline gap-1">
-        <span
-          className="font-[family-name:var(--font-mono)] text-[21px] leading-none tabular-nums"
-          style={color ? { color } : undefined}
-        >
-          {valor}
-        </span>
-        <span className="text-[11px]" style={{ color: "var(--color-tenue)" }}>
-          {unidad}
-        </span>
+    <div className="cifra">
+      <div className="cifra-valor" style={color ? { color } : undefined}>
+        {valor}
+        <span className="cifra-unidad">{unidad}</span>
       </div>
-      <div
-        className="text-[11.5px] mt-1.5 uppercase tracking-[0.04em]"
-        style={{ color: "var(--color-tenue)" }}
-      >
-        {etiqueta}
-      </div>
-      {pie ? (
-        <div
-          className="font-[family-name:var(--font-mono)] text-[10.5px] mt-0.5"
-          style={{ color: "var(--color-sin-info)" }}
-        >
-          {pie}
-        </div>
-      ) : null}
+      <div className="cifra-etiqueta">{etiqueta}</div>
+      {pie ? <div className="cifra-pie">{pie}</div> : null}
     </div>
   );
 }
