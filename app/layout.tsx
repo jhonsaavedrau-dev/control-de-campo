@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Roboto_Condensed, Source_Sans_3, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import Sincronizador from "@/components/Sincronizador";
+import RegistrarServicio from "@/components/RegistrarServicio";
 import { cookies } from "next/headers";
 import { COOKIE_TEMA, temaDeCookie } from "@/lib/tema";
 
@@ -47,6 +48,13 @@ export const metadata: Metadata = {
   title: "Control de Generación · PBI",
   description:
     "Sistema de Control de Campo de PBI. Fichas de equipos, controladores e intervenciones.",
+  // Instalado en un iPhone, sin esto se abre igual dentro del navegador:
+  // el manifiesto lo entiende Android, pero iOS sigue mirando aquí.
+  appleWebApp: {
+    capable: true,
+    title: "Generación",
+    statusBarStyle: "default",
+  },
 };
 
 export const viewport: Viewport = {
@@ -74,6 +82,7 @@ export default async function RootLayout({
       <body className="min-h-screen flex flex-col">
         {children}
         <Sincronizador />
+        <RegistrarServicio />
       </body>
     </html>
   );
