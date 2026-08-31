@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { IcoPersona, IcoReloj } from "@/components/Iconos";
 import {
-  enTurno, comoFalta, iniciales, horaDeColombia, DATOS_DE_EJEMPLO,
+  enTurno, comoFalta, iniciales, horaDeColombia,
+  FOTOS_GENERICAS,
 } from "@/lib/turnos";
 
 /**
@@ -146,8 +147,8 @@ function Rotulo() {
     >
       <IcoPersona className="w-3 h-3" />
       Operador de turno
-      {DATOS_DE_EJEMPLO ? (
-        <span style={{ color: "var(--color-sin-info)" }}>· datos de ejemplo</span>
+      {FOTOS_GENERICAS ? (
+        <span style={{ color: "var(--color-sin-info)" }}>· fotos provisionales</span>
       ) : null}
     </div>
   );

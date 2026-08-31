@@ -12,7 +12,8 @@
     "comprobar": "tsx scripts/comprobar-generacion.mjs",
     "unidades": "tsx scripts/revisar-unidades.mjs",
     "prueba": "vitest run",
-    "test": "vitest run"
+    "test": "vitest run",
+    "turnos": "node scripts/importar-turnos.mjs"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.3.1",

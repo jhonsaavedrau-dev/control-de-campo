@@ -1,3 +1,5 @@
+import { ROTACION, ORDEN_OPERADORES, ANIO } from "./rotacion-2026";
+
 /**
  * Quién está de turno ahora mismo.
  *
@@ -5,56 +7,92 @@
  * en ninguna parte: para saber a quién llamar por una alarma a las tres
  * de la mañana había que preguntar por WhatsApp.
  *
- * Aquí no se toca la red ni la base: son las reglas y los datos, y se
- * pueden leer y comprobar solas.
+ * El calendario sale del Excel «TURNOS 2026» que lleva la empresa, tal
+ * como está, con `scripts/importar-turnos.mjs`. Aquí no se recalcula ni
+ * se deduce el patrón de rotación: se lee lo que ellos escribieron. Si
+ * cambian un turno en la hoja, se vuelve a importar y ya.
  *
- * ────────────────────────────────────────────────────────────────
- * DATOS DE EJEMPLO — pendiente de cargar los reales
- * ────────────────────────────────────────────────────────────────
- * Los nombres, las fotos y los horarios de abajo son de muestra, para
- * poder ver el módulo funcionando. Lo que hay que sustituir está todo
- * en las tres constantes `TURNOS`, `OPERADORES` y `ASIGNACIONES`, y no
- * hay lógica mezclada con ellas a propósito: cambiarlas no obliga a
- * tocar nada más.
- *
- * Cuando lleguen los reales hay dos caminos, y el segundo no urge:
- *
- *  1. Escribirlos aquí. Si el rol cambia dos veces al año, esto sobra y
- *     es lo más barato de mantener.
- *  2. Si acaban cambiando cada semana, mover las tres constantes a una
- *     tabla de Supabase (`turnos`, `operadores`, `asignaciones`) y dejar
- *     estas funciones tal cual: no leen de ningún sitio, reciben los
- *     datos. Ese es el motivo de que estén separadas.
- *
- * Las fotos son una URL, no un archivo: hoy pueden ser
- * `/operadores/<archivo>.jpg` en `public/`, y mañana `/api/imagen/<id>`
- * si se guardan en Drive como ya se guardan las firmas. Sin foto no se
- * rompe nada — se dibujan las iniciales.
+ * Aquí no se toca la red ni la base: son las reglas, y se pueden leer y
+ * comprobar solas.
  */
+
+/* ---------- Lo que falta por saber ---------- */
 
 /**
- * ¿Los datos de abajo siguen siendo los de muestra?
+ * El nombre del tercer operador, que en el Excel no está.
  *
- * Mientras esté en `true`, el módulo lo dice en pantalla. Es para que
- * nadie lea «Nombre del operador» y se pregunte si es un fallo, y sobre
- * todo para que un dato de ejemplo no pueda pasar por real delante del
- * cliente.
+ * La hoja tiene tres columnas de turno por mes y solo dos llevan nombre
+ * —CAMILO y JAIME—. La tercera, la de la izquierda, va sin rotular en
+ * los doce meses. Sus turnos sí están completos: lo único que falta es
+ * cómo se llama.
  *
- * Al cargar los operadores de verdad se pone en `false` y el aviso
- * desaparece. Una línea, y es la única que hay que acordarse de tocar.
+ * No se inventa. Mientras esté así, la pantalla dice «Operador por
+ * confirmar» en vez de poner un nombre que podría no ser el suyo en una
+ * pantalla que mira el cliente.
  */
-export const DATOS_DE_EJEMPLO = true;
+export const FALTA_UN_NOMBRE = true;
+
+/**
+ * ¿Las fotos siguen siendo las genéricas?
+ *
+ * Mientras esté en `true` el módulo lo dice, para que una silueta no se
+ * lea como «no cargó la foto». Al poner las de verdad se pone en
+ * `false`.
+ */
+export const FOTOS_GENERICAS = true;
+
+/* ---------- Los datos ---------- */
 
 export type Operador = {
+  /** La llave con la que aparece en el calendario importado. */
   id: string;
   /** Nombre completo, como va en los documentos. */
   nombre: string;
   cargo: string;
-  /** URL de la foto. Vacío mientras no haya: salen las iniciales. */
+  /** URL de la foto. Se sustituye el archivo y no hace falta tocar esto. */
   foto: string;
-  /** Teléfono de contacto, si se quiere poder llamar desde la ficha. */
+  /** Teléfono de contacto. Vacío hasta que se carguen. */
   telefono: string;
 };
+
+/**
+ * Los tres operadores que cubren la planta.
+ *
+ * Los identificadores son los que usa el calendario importado, así que
+ * no se cambian a mano: salen del Excel. Lo que sí se rellena aquí es lo
+ * que el Excel no trae —el nombre completo, el cargo, la foto y el
+ * teléfono—.
+ *
+ * Las fotos son una URL, no un archivo incrustado: hoy apuntan a
+ * `public/operadores/`, y el día que las fotos se guarden en Drive como
+ * ya se guardan las firmas, basta con cambiarlas por `/api/imagen/<id>`.
+ */
+export const OPERADORES: Operador[] = [
+  {
+    id: "sinNombre",
+    nombre: "Operador por confirmar",
+    cargo: "Operador Mantenedor",
+    foto: "/operadores/generica-1.png",
+    telefono: "",
+  },
+  {
+    id: "CAMILO",
+    nombre: "Camilo",
+    cargo: "Operador Mantenedor",
+    foto: "/operadores/generica-2.png",
+    telefono: "",
+  },
+  {
+    id: "JAIME",
+    nombre: "Jaime",
+    cargo: "Operador Mantenedor",
+    foto: "/operadores/generica-3.png",
+    telefono: "",
+  },
+];
+
+/** Dónde trabaja este rol. La hoja es de una sola planta. */
+export const SEDE = "SD-001";
 
 export type Turno = {
   id: string;
@@ -63,51 +101,22 @@ export type Turno = {
   desde: string;
   /** Hora de salida. Puede ser MENOR que la de entrada: cruza la noche. */
   hasta: string;
+  /** La letra con la que el calendario importado lo escribe. */
+  letra: string;
 };
-
-export type Asignacion = {
-  id_turno: string;
-  id_operador: string;
-  id_sede: string;
-};
-
-/* ---------- Los datos ---------- */
 
 /**
  * Los dos turnos de doce horas.
  *
- * El de la noche cruza la medianoche y esa es la única parte de todo
- * esto que tiene trampa: `desde` (18:00) es MAYOR que `hasta` (06:00),
- * y una comparación ingenua deja la planta sin nadie de turno justo
- * entre las seis de la tarde y las seis de la mañana.
+ * OJO: **las horas no salen del Excel**. La hoja solo dice DIA, NOCHE o
+ * DESCANSO; nunca escribe a qué hora se entra. 06:00 y 18:00 es el
+ * relevo estándar de doce horas y es lo que se ha puesto, pero si en la
+ * planta el cambio es a las 07:00 hay que corregirlo aquí — es lo único
+ * de este archivo que es una suposición y no un dato.
  */
 export const TURNOS: Turno[] = [
-  { id: "T-DIA", nombre: "Turno día", desde: "06:00", hasta: "18:00" },
-  { id: "T-NOCHE", nombre: "Turno noche", desde: "18:00", hasta: "06:00" },
-];
-
-/** DATOS DE EJEMPLO. Sustituir por los operadores reales. */
-export const OPERADORES: Operador[] = [
-  {
-    id: "OP-001",
-    nombre: "Nombre del operador",
-    cargo: "Operador Mantenedor",
-    foto: "",
-    telefono: "",
-  },
-  {
-    id: "OP-002",
-    nombre: "Nombre del operador",
-    cargo: "Operador Mantenedor",
-    foto: "",
-    telefono: "",
-  },
-];
-
-/** DATOS DE EJEMPLO. Quién cubre cada turno, en cada sede. */
-export const ASIGNACIONES: Asignacion[] = [
-  { id_turno: "T-DIA", id_operador: "OP-001", id_sede: "SD-001" },
-  { id_turno: "T-NOCHE", id_operador: "OP-002", id_sede: "SD-001" },
+  { id: "T-DIA", nombre: "Turno día", desde: "06:00", hasta: "18:00", letra: "D" },
+  { id: "T-NOCHE", nombre: "Turno noche", desde: "18:00", hasta: "06:00", letra: "N" },
 ];
 
 /* ---------- Las reglas ---------- */
@@ -125,6 +134,9 @@ export const ZONA = "America/Bogota";
 
 const RELOJ = new Intl.DateTimeFormat("es-CO", {
   timeZone: ZONA,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
   hour: "2-digit",
   minute: "2-digit",
   // h23 y no hour12:false: con hour12 la medianoche sale como «24» en
@@ -132,11 +144,22 @@ const RELOJ = new Intl.DateTimeFormat("es-CO", {
   hourCycle: "h23",
 });
 
+function partes(momento: Date): Record<string, string> {
+  const r: Record<string, string> = {};
+  for (const p of RELOJ.formatToParts(momento)) r[p.type] = p.value;
+  return r;
+}
+
+/** El día de la planta, AAAA-MM-DD. */
+export function fechaDeColombia(momento: Date): string {
+  const p = partes(momento);
+  return `${p.year}-${p.month}-${p.day}`;
+}
+
 /** Minutos desde la medianoche de Colombia. */
 export function minutosDelDia(momento: Date): number {
-  const partes = RELOJ.formatToParts(momento);
-  const dame = (t: string) => Number(partes.find((p) => p.type === t)?.value ?? 0);
-  return dame("hour") * 60 + dame("minute");
+  const p = partes(momento);
+  return Number(p.hour) * 60 + Number(p.minute);
 }
 
 /** "18:00" -> 1080. */
@@ -171,6 +194,33 @@ export function minutosQueFaltan(turno: Turno, minutos: number): number {
   return faltan > 0 ? faltan : faltan + DIA;
 }
 
+/** El día anterior, en fechas de calendario. */
+function diaAntes(fecha: string): string {
+  const d = new Date(`${fecha}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Qué le tocaba a cada quien ese día, según el Excel.
+ *
+ * Devuelve null para un día que no está en el calendario —otro año, o
+ * una fecha que la hoja no trae—. Null es una respuesta: significa «no
+ * lo sé», y la pantalla lo dice en vez de inventárselo.
+ */
+export function turnosDelDia(fecha: string): Record<string, string> | null {
+  const grupos = ROTACION[fecha.slice(0, 7)];
+  if (!grupos) return null;
+  const dia = fecha.slice(8, 10);
+  const grupo = grupos.split(" ").find((g) => g.slice(0, 2) === dia);
+  if (!grupo) return null;
+
+  const codigo = grupo.slice(2);
+  const salida: Record<string, string> = {};
+  ORDEN_OPERADORES.forEach((id, i) => (salida[id] = codigo[i] ?? "-"));
+  return salida;
+}
+
 export type EnTurno = {
   turno: Turno;
   operador: Operador;
@@ -180,24 +230,50 @@ export type EnTurno = {
 };
 
 /**
- * Quién está de turno en este momento, en cada sede.
+ * Quién está de turno en este momento.
  *
- * Devuelve una lista porque el día que haya operador en las seis sedes
- * hay que enseñarlos todos. Con una sola asignación devuelve uno, y la
- * pantalla lo pinta igual de bien.
+ * La parte que no es obvia es de qué DÍA se lee la noche.
+ *
+ * Una noche apuntada el día 5 va de las 18:00 del 5 a las 06:00 del 6.
+ * Así que a las tres de la madrugada del 6, quien está trabajando es el
+ * que tiene NOCHE el día 5, no el día 6. Leerlo del día equivocado
+ * enseñaría a la persona que está durmiendo.
+ *
+ * No es una suposición: se comprobó contra el propio calendario. Con
+ * esta lectura no hay ni un solo caso en los 364 pares de días de 2026
+ * en que alguien encadene noche y día seguidos —24 horas de corrido—;
+ * con la otra hay 36.
  */
 export function enTurno(momento: Date): EnTurno[] {
   const minutos = minutosDelDia(momento);
+  const hoy = fechaDeColombia(momento);
 
-  return ASIGNACIONES.flatMap((a) => {
-    const turno = TURNOS.find((t) => t.id === a.id_turno);
-    const operador = OPERADORES.find((o) => o.id === a.id_operador);
-    // Una asignación que apunta a un turno o a alguien que ya no está no
-    // se inventa: se ignora, y quien mire vera que falta.
-    if (!turno || !operador) return [];
-    if (!turnoCorriendo(turno, minutos)) return [];
-    return [{ turno, operador, id_sede: a.id_sede, faltan: minutosQueFaltan(turno, minutos) }];
-  });
+  const salida: EnTurno[] = [];
+
+  for (const turno of TURNOS) {
+    if (!turnoCorriendo(turno, minutos)) continue;
+
+    // La noche de madrugada es la que empezó ayer.
+    const cruzaMedianoche = aMinutos(turno.desde) > aMinutos(turno.hasta);
+    const fecha =
+      cruzaMedianoche && minutos < aMinutos(turno.hasta) ? diaAntes(hoy) : hoy;
+
+    const delDia = turnosDelDia(fecha);
+    if (!delDia) continue;
+
+    const id = Object.keys(delDia).find((k) => delDia[k] === turno.letra);
+    const operador = OPERADORES.find((o) => o.id === id);
+    if (!operador) continue;
+
+    salida.push({
+      turno,
+      operador,
+      id_sede: SEDE,
+      faltan: minutosQueFaltan(turno, minutos),
+    });
+  }
+
+  return salida;
 }
 
 /* ---------- Cómo se escribe ---------- */
@@ -223,7 +299,11 @@ export function iniciales(nombre: string): string {
   return (trozos[0][0] + trozos[1][0]).toUpperCase();
 }
 
-/** La hora de Colombia en formato corto, para enseñarla. */
+/** La hora de Colombia, para enseñarla. */
 export function horaDeColombia(momento: Date): string {
-  return RELOJ.format(momento);
+  const p = partes(momento);
+  return `${p.hour}:${p.minute}`;
 }
+
+/** El año que cubre el calendario cargado. */
+export const ANIO_CALENDARIO = ANIO;

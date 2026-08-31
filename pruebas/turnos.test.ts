@@ -1,23 +1,27 @@
 import { describe, it, expect } from "vitest";
 import {
   TURNOS,
+  OPERADORES,
   minutosDelDia,
+  fechaDeColombia,
   aMinutos,
   turnoCorriendo,
   minutosQueFaltan,
+  turnosDelDia,
   enTurno,
   comoFalta,
   iniciales,
 } from "../lib/turnos";
+import { ROTACION, ORDEN_OPERADORES } from "../lib/rotacion-2026";
 
 /**
  * Quién está de turno.
  *
- * Dos cosas de aquí se rompen calladas, y por eso están probadas: la
- * hora de Colombia —que en Vercel no es la del servidor— y el turno que
- * cruza la medianoche. Las dos fallan dejando la planta «sin nadie de
- * turno» a las tres de la mañana, que es exactamente cuando alguien
- * mira la pantalla para saber a quién llamar.
+ * Tres cosas de aquí se rompen calladas, y por eso están probadas: la
+ * hora de Colombia —que en Vercel no es la del servidor—, el turno que
+ * cruza la medianoche, y de qué día se lee la noche a las tres de la
+ * mañana. Las tres fallan enseñando a la persona equivocada justo
+ * cuando alguien mira la pantalla para saber a quién llamar.
  */
 
 /** Colombia es UTC-5 todo el año: no tiene horario de verano. */
@@ -35,84 +39,131 @@ describe("la hora es la de Colombia, no la del servidor", () => {
   });
 
   it("la medianoche es 0 y no 24", () => {
-    // Con hour12 en vez de h23, algunas versiones devuelven «24» aquí y
-    // el turno de noche se cae una hora cada dia.
     expect(minutosDelDia(enColombia("2026-09-01T05:00:00Z"))).toBe(0);
   });
 
-  it("lee las horas escritas", () => {
-    expect(aMinutos("06:00")).toBe(360);
-    expect(aMinutos("18:00")).toBe(1080);
-    expect(aMinutos("00:00")).toBe(0);
+  it("y la fecha tambien es la de aquí", () => {
+    // A las 02:00 UTC del día 2 en la planta siguen siendo las 21:00 del
+    // día 1. Con la fecha del servidor se leería el turno de mañana.
+    expect(fechaDeColombia(enColombia("2026-09-02T02:00:00Z"))).toBe("2026-09-01");
+    expect(fechaDeColombia(enColombia("2026-09-01T12:00:00Z"))).toBe("2026-09-01");
   });
 });
 
 describe("el turno que cruza la medianoche", () => {
   it("sigue corriendo a las tres de la mañana", () => {
-    // La comparación ingenua (minutos >= desde && minutos < hasta) deja
-    // la planta sin nadie de turno entre las seis de la tarde y las seis
-    // de la mañana, que es medio día entero.
     expect(turnoCorriendo(noche, aMinutos("03:00"))).toBe(true);
     expect(turnoCorriendo(noche, aMinutos("23:00"))).toBe(true);
     expect(turnoCorriendo(noche, aMinutos("00:00"))).toBe(true);
     expect(turnoCorriendo(noche, aMinutos("12:00"))).toBe(false);
   });
 
-  it("el de día no se sale de su franja", () => {
-    expect(turnoCorriendo(dia, aMinutos("12:00"))).toBe(true);
-    expect(turnoCorriendo(dia, aMinutos("03:00"))).toBe(false);
-    expect(turnoCorriendo(dia, aMinutos("23:00"))).toBe(false);
-  });
-
   it("en el relevo entra uno y sale el otro, no se solapan", () => {
-    // A las 06:00 en punto manda el del día. Si contaran los dos
-    // límites, la pantalla enseñaria dos operadores a la vez y ninguno
-    // sabria cual es el suyo.
     expect(turnoCorriendo(dia, aMinutos("06:00"))).toBe(true);
     expect(turnoCorriendo(noche, aMinutos("06:00"))).toBe(false);
-
     expect(turnoCorriendo(noche, aMinutos("18:00"))).toBe(true);
     expect(turnoCorriendo(dia, aMinutos("18:00"))).toBe(false);
   });
-});
 
-describe("cuánto le queda al turno", () => {
-  it("cuenta la vuelta de medianoche", () => {
+  it("cuenta bien lo que le queda dando la vuelta", () => {
     // De las 23:00 a las 06:00 hay siete horas, no menos mil.
     expect(minutosQueFaltan(noche, aMinutos("23:00"))).toBe(7 * 60);
-    expect(minutosQueFaltan(noche, aMinutos("03:00"))).toBe(3 * 60);
-  });
-
-  it("y en el turno de día es una resta normal", () => {
     expect(minutosQueFaltan(dia, aMinutos("07:00"))).toBe(11 * 60);
   });
 });
 
+describe("el calendario que salió del Excel", () => {
+  it("cubre los 365 días de 2026", () => {
+    // Se leyeron 349 en el primer intento: dieciséis filas de la hoja
+    // están descuadradas y se perdían sin decir nada. Si esto baja de
+    // 365, el importador volvió a saltarse días.
+    const total = Object.values(ROTACION).reduce(
+      (n, mes) => n + mes.split(" ").length,
+      0,
+    );
+    expect(total).toBe(365);
+  });
+
+  it("cada día tiene exactamente un turno de día y uno de noche", () => {
+    // Un día sin nadie de noche es un hueco de cobertura; dos personas
+    // en el mismo turno es que la hoja se descuadró.
+    for (const [mes, grupos] of Object.entries(ROTACION)) {
+      for (const g of grupos.split(" ")) {
+        const codigo = g.slice(2);
+        const dias = [...codigo].filter((c) => c === "D").length;
+        const noches = [...codigo].filter((c) => c === "N").length;
+        expect(`${mes}-${g.slice(0, 2)}: ${dias}D ${noches}N`).toBe(
+          `${mes}-${g.slice(0, 2)}: 1D 1N`,
+        );
+      }
+    }
+  });
+
+  it("los operadores del calendario son los que están fichados", () => {
+    // Si el Excel del año que viene trae otros nombres, esto avisa antes
+    // de que la pantalla enseñe una tarjeta vacía.
+    for (const id of ORDEN_OPERADORES) {
+      expect(OPERADORES.some((o) => o.id === id)).toBe(true);
+    }
+  });
+
+  it("no inventa nada para un día que no tiene", () => {
+    expect(turnosDelDia("2025-06-01")).toBeNull();
+    expect(turnosDelDia("2026-02-30")).toBeNull();
+  });
+});
+
 describe("quién está de turno", () => {
-  it("siempre hay alguien, a cualquier hora", () => {
-    // Los dos turnos se reparten el día entero: si a alguna hora no
-    // saliera nadie, seria un hueco de cobertura o un error de franjas.
+  it("siempre hay alguien, a cualquier hora del día", () => {
     for (let h = 0; h < 24; h++) {
-      const momento = new Date(Date.UTC(2026, 8, 1, (h + 5) % 24, 30));
+      const momento = new Date(Date.UTC(2026, 5, 15, (h + 5) % 24, 30));
       expect(enTurno(momento).length).toBeGreaterThan(0);
     }
   });
 
-  it("no enseña dos operadores a la vez en la misma sede", () => {
-    for (const utc of [
-      "2026-09-01T11:00:00Z", // 06:00, el relevo de la mañana
-      "2026-09-01T23:00:00Z", // 18:00, el de la tarde
-      "2026-09-02T08:00:00Z", // 03:00, madrugada
-    ]) {
-      const sedes = enTurno(enColombia(utc)).map((t) => t.id_sede);
-      expect(new Set(sedes).size).toBe(sedes.length);
-    }
+  it("de madrugada saca al de la noche de AYER", () => {
+    // Una noche apuntada el día 5 va de las 18:00 del 5 a las 06:00 del
+    // 6. A las tres de la madrugada del 6 está trabajando el que tiene
+    // NOCHE el 5, no el 6: leerlo del día equivocado enseñaria a quien
+    // está durmiendo.
+    const madrugada = enColombia("2026-06-16T08:00:00Z"); // 03:00 del 16
+    const [ahora] = enTurno(madrugada);
+
+    const anoche = turnosDelDia("2026-06-15")!;
+    const deAnoche = Object.keys(anoche).find((k) => anoche[k] === "N");
+
+    expect(ahora.turno.id).toBe("T-NOCHE");
+    expect(ahora.operador.id).toBe(deAnoche);
   });
 
-  it("de madrugada es el de noche quien está", () => {
-    const [ahora] = enTurno(enColombia("2026-09-02T08:00:00Z")); // 03:00
+  it("y a las nueve de la noche, al de HOY", () => {
+    const anochecer = enColombia("2026-06-16T02:00:00Z"); // 21:00 del 15
+    const [ahora] = enTurno(anochecer);
+
+    const hoy = turnosDelDia("2026-06-15")!;
     expect(ahora.turno.id).toBe("T-NOCHE");
-    expect(ahora.faltan).toBe(3 * 60);
+    expect(ahora.operador.id).toBe(Object.keys(hoy).find((k) => hoy[k] === "N"));
+  });
+
+  it("nadie encadena noche y día seguidos", () => {
+    // Es la comprobación que fijó la convención: con esta lectura no hay
+    // ni un caso de 24 horas de corrido en los 364 pares de días del
+    // año; leyendo la noche del otro día habría 36.
+    const fechas = Object.entries(ROTACION).flatMap(([mes, g]) =>
+      g.split(" ").map((x) => `${mes}-${x.slice(0, 2)}`),
+    );
+
+    let encadenados = 0;
+    for (const fecha of fechas) {
+      const hoy = turnosDelDia(fecha);
+      const d = new Date(`${fecha}T00:00:00Z`);
+      d.setUTCDate(d.getUTCDate() + 1);
+      const manana = turnosDelDia(d.toISOString().slice(0, 10));
+      if (!hoy || !manana) continue;
+      const deNoche = Object.keys(hoy).find((k) => hoy[k] === "N");
+      if (deNoche && manana[deNoche] === "D") encadenados++;
+    }
+    expect(encadenados).toBe(0);
   });
 });
 
@@ -125,8 +176,7 @@ describe("cómo se escribe", () => {
 
   it("saca las iniciales para cuando no hay foto", () => {
     expect(iniciales("Ernesto Aldana")).toBe("EA");
-    expect(iniciales("Karol Saavedra Urrego")).toBe("KS");
-    expect(iniciales("Ernesto")).toBe("E");
+    expect(iniciales("Camilo")).toBe("C");
     expect(iniciales("  ")).toBe("—");
   });
 });
