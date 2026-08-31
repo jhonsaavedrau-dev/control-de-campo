@@ -1,14 +1,18 @@
-# Trae la hoja de la planta cada diez minutos.
+# Mantiene la hoja caliente de fondo, cada hora.
 #
-# Vercel tambien tiene un cron configurado (vercel.json), pero el plan
-# Hobby solo permite uno al dia. Este lo cubre: GitHub Actions deja
-# programar cada diez minutos y es gratis en un repositorio publico.
+# ESTO NO ES LA GARANTIA. Lo de "nunca mas de diez minutos" lo cumple la
+# propia pantalla, que trae la hoja al abrirse si hace falta. Aqui no se
+# promete la hora: GitHub trata las tareas programadas como "cuando
+# pueda" y con intervalos cortos se retrasa media hora sin avisar. Se
+# probo con */10 y en 33 minutos no disparo ni una vez.
 #
-# Ojo con una cosa: GitHub no garantiza la hora. Cuando sus maquinas van
-# cargadas, una tarea programada puede salir con retraso, y si el
-# repositorio se queda sesenta dias sin commits, GitHub la desactiva
-# sola. Por eso no es lo unico: el cron de Vercel es el suelo diario, y
-# la propia pantalla se refresca cada diez minutos mientras este abierta.
+# Entonces, para que sirve: para que quien abra la pagina despues de un
+# fin de semana se la encuentre ya cargada en vez de esperar trece
+# segundos. Una hora es un intervalo que GitHub si suele respetar, y
+# llegar tarde aqui no le cuesta nada a nadie.
+#
+# Si el repositorio pasa sesenta dias sin commits, GitHub la desactiva
+# sola. Tampoco pasa nada: la pantalla sigue trayendola.
 #
 # La corrida no descarga nada si la hoja no se ha tocado: primero
 # pregunta la fecha de modificacion, que es un dato suelto.
@@ -17,7 +21,7 @@ name: Sincronizar la hoja
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "0 * * * *"
   # Para poder dispararla a mano desde la pestana Actions.
   workflow_dispatch:
 
