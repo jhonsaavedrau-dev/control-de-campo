@@ -286,6 +286,18 @@ export type Intervencion = {
   observaciones_finales: string;
 
   // Correccion posterior. Un acta se puede corregir, pero se nota.
+  /**
+   * La cuenta desde la que se guardó el acta.
+   *
+   * Puede no ser `tecnico_nombre`, y a propósito: mientras el equipo
+   * aprende a usar el sistema, una sola persona registra las
+   * intervenciones de sus compañeros a nombre de ellos. El acta dice
+   * quién intervino; esto dice quién lo escribió.
+   *
+   * Vacío en las actas anteriores a la migración 16.
+   */
+  registrado_por: string;
+
   editada_en: string | null;
   editada_por: string;
   motivo_edicion: string;

@@ -260,6 +260,22 @@ export default async function ActaIntervencion({
             </tbody>
           </table>
 
+          {/* Quién la registró, cuando no es quien la firma.
+
+              Pasa a diario mientras el equipo aprende: una persona
+              digita las intervenciones de sus compañeros. No es una
+              irregularidad y por eso no se pinta como una alarma —pero
+              tiene que estar escrito, porque el acta va a auditoría y
+              «¿quién metió esto?» es una pregunta que se hace. */}
+          {i.registrado_por && i.registrado_por !== i.tecnico_nombre ? (
+            <p
+              className="text-[12px] mt-2 leading-relaxed"
+              style={{ color: "var(--color-tenue)" }}
+            >
+              Registrada en el sistema por <strong>{i.registrado_por}</strong>.
+            </p>
+          ) : null}
+
           {/* La corrección, si la hubo. Lo mismo que imprime el PDF. */}
           {i.editada_en ? (
             <p

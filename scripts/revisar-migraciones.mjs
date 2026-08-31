@@ -44,6 +44,7 @@ const COMPROBACIONES = [
   { n: "15a", que: "Generacion diaria", tabla: "generacion_diaria", columna: "kwh_dia" },
   { n: "15b", que: "Consumo de la planta", tabla: "consumo_planta", columna: "nivel_tanque_gln" },
   { n: "15c", que: "Diario de sincronizaciones", tabla: "sincronizaciones", columna: "cierres" },
+  { n: "16", que: "Quien registro el acta", tabla: "intervenciones", columna: "registrado_por" },
 ];
 
 const cabeceras = {

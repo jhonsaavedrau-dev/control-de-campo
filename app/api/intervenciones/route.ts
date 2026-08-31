@@ -4,6 +4,7 @@ import type { EntradaIntervencion } from "@/lib/db";
 import { archivarActa } from "@/lib/archivar";
 import { MAX_FOTOS_ACTA } from "@/lib/fotos";
 import type { FotoEntrante } from "@/lib/fotos";
+import { exigirSesion } from "@/lib/sesion";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -50,12 +51,39 @@ async function leerPeticion(
 }
 
 export async function POST(peticion: Request) {
+  // Registrar es lo que hace el técnico en campo: basta con haber
+  // entrado. Corregir un acta ya firmada sí es de supervisión, y eso
+  // se pide en el PATCH.
+  const permiso = await exigirSesion();
+  if (!permiso.ok) {
+    return NextResponse.json({ error: permiso.motivo }, { status: permiso.codigo });
+  }
+
   let datos: Record<string, unknown>;
   let fotos: FotoEntrante[];
   try {
     ({ datos, fotos } = await leerPeticion(peticion));
   } catch {
     return NextResponse.json({ error: "Datos ilegibles" }, { status: 400 });
+  }
+
+  // El nombre del técnico se escribe, y tiene que poder escribirse.
+  //
+  // Mientras el equipo aprende a usar el sistema, quien lidera el
+  // proyecto registra las intervenciones de sus compañeros a nombre de
+  // ellos. Obligar a que cada quien entre con su cuenta desde el primer
+  // día es la forma más rápida de que nadie lo use y se vuelva al papel.
+  //
+  // Lo que no puede pasar es que después no se sepa quién lo escribió:
+  // la firma digital del acta se busca por ese nombre, así que la cuenta
+  // desde la que se guarda queda anotada al lado. El acta dice quién
+  // intervino; `registrado_por` dice quién lo registró.
+  if (permiso.usuario) {
+    datos.registrado_por = permiso.usuario.nombre;
+    // Vacío, lo firma quien entró: es el caso normal del técnico.
+    if (!String(datos.tecnico_nombre ?? "").trim()) {
+      datos.tecnico_nombre = permiso.usuario.nombre;
+    }
   }
 
   const faltantes = OBLIGATORIOS.filter((c) => !String(datos[c] ?? "").trim());

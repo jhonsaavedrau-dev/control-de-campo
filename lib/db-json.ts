@@ -294,6 +294,8 @@ export async function crearIntervencion(
     responsable_cliente: datos.responsable_cliente ?? "",
     observaciones_finales: datos.observaciones_finales ?? "",
 
+    registrado_por: datos.registrado_por ?? "",
+
     editada_en: null,
     editada_por: "",
     motivo_edicion: "",

@@ -70,6 +70,12 @@ export default function FormularioIntervencion({
   const previa = edicion?.intervencion;
   const corrigiendo = Boolean(previa);
 
+  // Con quién se firma. Viene puesto —de la cuenta de quien entró, o
+  // del acta si se está corrigiendo— pero se puede cambiar: mientras el
+  // equipo aprende, una sola persona registra a nombre de sus
+  // compañeros. Quién lo escribió queda anotado aparte, en el servidor.
+  const nombreSugerido = previa?.tecnico_nombre || tecnicoSugerido;
+
   const [tipo, setTipo] = useState<TipoIntervencion | "">(
     previa?.tipo_intervencion ?? "",
   );
@@ -413,16 +419,26 @@ export default function FormularioIntervencion({
           />
         </Grupo>
       </div>
+      {/* Quién intervino. Viene puesto el de la cuenta, y se puede
+          cambiar: mientras el equipo aprende a usar el sistema, una
+          persona registra las intervenciones de sus compañeros.
+
+          Conviene saber qué hace este campo, porque no es solo un
+          rótulo: la firma digital del acta se busca POR ESTE NOMBRE. Si
+          quien se escribe aquí tiene firma cargada, el acta sale firmada
+          por él. Por eso la ayuda lo dice en vez de que se descubra al
+          ver el PDF. */}
       <Grupo
         etiqueta="Técnico responsable"
         obligatorio
         campo="tecnico_nombre"
         mal={faltante === "tecnico_nombre"}
+        ayuda="Quien hizo el trabajo. Si tiene firma cargada, el acta sale firmada con ella."
       >
         <input
           name="tecnico_nombre"
           required
-          defaultValue={previa?.tecnico_nombre || tecnicoSugerido}
+          defaultValue={nombreSugerido}
           className="entrada"
           placeholder="Nombre y apellido"
         />

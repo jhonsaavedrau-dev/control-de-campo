@@ -7,6 +7,7 @@ import { generarActaPdf, nombreArchivoActa } from "@/lib/pdf-acta";
 import { fotosArchivadas } from "@/lib/fotos";
 import { asegurarEstructuraEquipo } from "@/lib/estructura-drive";
 import { reemplazarArchivo } from "@/lib/drive";
+import { exigirSesion } from "@/lib/sesion";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -19,6 +20,14 @@ export async function POST(
   _peticion: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  // Rehace el PDF de un acta que ya existe y lo deja en su carpeta.
+  // No cambia ningún dato, así que lo puede reintentar quien la
+  // registró — que es justo quien está delante cuando Drive falla.
+  const permiso = await exigirSesion();
+  if (!permiso.ok) {
+    return NextResponse.json({ error: permiso.motivo }, { status: permiso.codigo });
+  }
+
   const { id } = await params;
   const registro = await obtenerIntervencion(decodeURIComponent(id).toUpperCase());
   if (!registro) {

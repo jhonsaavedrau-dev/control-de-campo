@@ -383,6 +383,9 @@ export async function crearIntervencion(
     recibido_por: datos.recibido_por ?? "",
     responsable_cliente: datos.responsable_cliente ?? "",
     observaciones_finales: datos.observaciones_finales ?? "",
+    // Si la base va por detrás de la migración 16, `sinColumnasAusentes`
+    // guarda el acta sin este campo en vez de perderla entera.
+    registrado_por: datos.registrado_por ?? "",
     carpeta_drive_id: "",
     carpeta_drive_url: "",
     pdf_drive_id: "",
