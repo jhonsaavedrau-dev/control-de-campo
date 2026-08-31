@@ -8,6 +8,7 @@ import {
   IcoUbicacion, IcoHerramienta,
 } from "@/components/Iconos";
 import { usuarioActual } from "@/lib/sesion";
+import TurnoActual from "@/components/TurnoActual";
 import {
   mantenimientoDe, soloPendientes, colorMantenimiento, frase,
 } from "@/lib/mantenimiento";
@@ -41,6 +42,13 @@ export default async function Inicio({
       mantenimiento: mantenimientoDe(e, preventivos[e.id_equipo] ?? []),
     })),
   );
+
+  // Los nombres de las sedes, para el modulo de turno: ensenar
+  // "SD-001" a secas obliga a traducirlo de cabeza cada vez.
+  const nombreDeSede: Record<string, string> = {};
+  for (const e of todos) {
+    if (e.sede?.id_sede) nombreDeSede[e.sede.id_sede] = e.sede.nombre ?? e.sede.id_sede;
+  }
 
   const equipos = busqueda
     ? generadores.filter((e) =>
@@ -123,6 +131,21 @@ export default async function Inicio({
               />
             </div>
           </div>
+
+          {/* --- Quien esta de turno ---
+
+              Va aqui y no mas abajo por lo que es: estado de la planta
+              ahora mismo, igual que los contadores de arriba. Lo de
+              debajo del buscador es trabajo por hacer, que es otra cosa.
+
+              Se esconde al buscar, como el resto de la portada: quien
+              escribe en el buscador quiere ver equipos, no contexto. */}
+          {!busqueda ? (
+            <TurnoActual
+              momentoServidor={new Date().toISOString()}
+              sedes={nombreDeSede}
+            />
+          ) : null}
 
           {/* --- Buscador --- */}
           <form className="flex gap-2 mb-7">

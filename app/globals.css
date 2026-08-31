@@ -1596,6 +1596,19 @@ a.bitacora-fila:hover { background: var(--color-realce); }
 
 /* La hoja del menu entra desde abajo en el celular. Un salto seco se
    lee como un error de pintado; el deslizamiento dice de donde vino. */
+/* El punto de «EN TURNO». Late despacio: la idea es «esto es de ahora
+   mismo», no llamar la atencion. Un parpadeo rapido en una pantalla que
+   se mira todo el dia cansa y acaba tapandose con el pulgar. */
+@keyframes latido {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.late { animation: latido 2.4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .late { animation: none; }
+}
+
 @keyframes hoja-sube {
   from { transform: translateY(100%); }
   to   { transform: translateY(0); }
