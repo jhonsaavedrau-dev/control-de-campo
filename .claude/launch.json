@@ -17,6 +17,14 @@
         "dev-sin-login.mjs"
       ],
       "port": 3100
+    },
+    {
+      "name": "control-campo-mirar",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "dev-mirar.mjs"
+      ],
+      "port": 3200
     }
   ]
 }

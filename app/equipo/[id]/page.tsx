@@ -12,11 +12,12 @@ import {
 } from "@/components/FichaEquipo";
 import {
   IcoHerramienta, IcoCodigoQR, IcoLapiz, IcoFlecha, IcoChip, IcoDocumento,
-  IcoRed, IcoLupa, IcoDisco, IcoTermometro,
+  IcoRed, IcoLupa, IcoDisco, IcoTermometro, IcoCarpeta,
 } from "@/components/Iconos";
 import PanelBackups from "@/components/PanelBackups";
 import AccionesHojaVida from "@/components/AccionesHojaVida";
 import PanelManuales from "@/components/PanelManuales";
+import ExploradorDrive from "@/components/ExploradorDrive";
 import {
   ETIQUETA_TIPO, ETIQUETA_ESTADO, ETIQUETA_SINCRONISMO, semaforo,
 } from "@/lib/tipos";
@@ -403,6 +404,21 @@ export default async function FichaEquipo({
                     idEquipo={e.id_equipo}
                     puedeAdjuntar={puedeEditarFicha}
                   />
+                </div>
+              </div>
+
+              {/* Todo lo del equipo que vive en Drive, en un solo sitio y
+                  con vuelta atrás. Los bloques de arriba siguen siendo
+                  los atajos de lo que se usa a diario —manuales y
+                  backups, con su botón de subir—; esto es para lo demás:
+                  las fotos, las actas y lo que alguien haya dejado ahí. */}
+              <div className="bloque no-imprimir">
+                <div className="bloque-cabeza">
+                  <IcoCarpeta />
+                  Carpeta en Drive
+                </div>
+                <div className="bloque-cuerpo">
+                  <ExploradorDrive idEquipo={e.id_equipo} />
                 </div>
               </div>
 

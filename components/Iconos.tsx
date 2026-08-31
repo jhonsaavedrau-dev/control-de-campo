@@ -120,6 +120,12 @@ export const IcoDocumento = ({ className = base }: P) => (
   </svg>
 );
 
+export const IcoCarpeta = ({ className = base }: P) => (
+  <svg className={className} viewBox="0 0 24 24" {...trazo}>
+    <path d="M3 7a2 2 0 0 1 2-2h3.5l2 2.5H19a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
+  </svg>
+);
+
 export const IcoCodigoQR = ({ className = base }: P) => (
   <svg className={className} viewBox="0 0 24 24" {...trazo}>
     <rect x="3" y="3" width="7" height="7" rx="1" />
