@@ -418,7 +418,7 @@ export default async function FichaEquipo({
                   Carpeta en Drive
                 </div>
                 <div className="bloque-cuerpo">
-                  <ExploradorDrive idEquipo={e.id_equipo} />
+                  <ExploradorDrive equipoInicial={e.id_equipo} />
                 </div>
               </div>
 

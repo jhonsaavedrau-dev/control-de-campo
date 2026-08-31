@@ -188,6 +188,41 @@ export async function estado(): Promise<EstadoDrive> {
   }
 }
 
+/**
+ * Cómo se llama la carpeta raíz, para poder enseñarla.
+ *
+ * Es el primer escalón de las migas del explorador: quien está dentro de
+ * 06_INTERVENCIONES tiene que ver de dónde cuelga, y «CONTROL
+ * GENERACION» dice más que un identificador de veinte letras.
+ *
+ * Para una unidad compartida, `files/{id}` devuelve «Drive» a secas y
+ * el nombre de verdad hay que pedirlo aparte. Es la misma vuelta que da
+ * `estado()`, pero sin las comprobaciones de escritura: aquí solo se
+ * está mirando.
+ */
+export async function nombreCarpetaRaiz(): Promise<string> {
+  const raiz = carpetaRaizId();
+  if (!raiz) return "";
+  try {
+    const info = await llamar<{ name: string; driveId?: string }>(
+      `${API}/files/${raiz}?fields=name,driveId&supportsAllDrives=true`,
+    );
+    if (info.driveId) {
+      try {
+        const unidad = await llamar<{ name: string }>(
+          `${API}/drives/${info.driveId}?fields=name`,
+        );
+        if (unidad.name) return unidad.name;
+      } catch {
+        // se queda con el nombre generico
+      }
+    }
+    return info.name;
+  } catch {
+    return "";
+  }
+}
+
 /* ---------- Carpetas ---------- */
 
 export async function buscarHijo(

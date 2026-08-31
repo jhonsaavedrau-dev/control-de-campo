@@ -93,15 +93,33 @@ export default function AccionesActa({
         Ver el acta en PDF
       </a>
 
+      {/* Dos cosas distintas que antes eran una sola mal llamada.
+
+          El enlace decia «Abrir en Drive · 06_INTERVENCIONES» pero abria
+          el PDF suelto —/file/d/<id>/view—, que es una pantalla sin
+          salida: no dice en que carpeta esta, no deja subir a la que lo
+          contiene, y en el telefono se la queda la aplicacion de Drive.
+
+          Ahora el enlace de Drive dice lo que hace, y al lado esta el
+          que de verdad se buscaba: ver DONDE quedo guardado, dentro del
+          sistema y pudiendo moverse desde ahi. */}
       {urlDrive ? (
-        <a
-          href={urlDrive}
-          target="_blank"
-          rel="noreferrer"
-          className="accion accion-secundaria"
-        >
-          Abrir en Drive · 06_INTERVENCIONES
-        </a>
+        <>
+          <Link
+            href={`/drive?equipo=${idEquipo}&sub=06_INTERVENCIONES`}
+            className="accion accion-secundaria"
+          >
+            Ver dónde quedó guardada
+          </Link>
+          <a
+            href={urlDrive}
+            target="_blank"
+            rel="noreferrer"
+            className="accion accion-secundaria"
+          >
+            Abrir el PDF en Drive
+          </a>
+        </>
       ) : (
         <button
           onClick={archivar}

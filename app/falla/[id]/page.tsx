@@ -125,14 +125,22 @@ export default async function Falla({
             Ver el reporte en PDF
           </a>
           {r.pdf_drive_url ? (
-            <a
-              href={r.pdf_drive_url}
-              target="_blank"
-              rel="noreferrer"
-              className="accion accion-secundaria"
-            >
-              Abrir en Drive · 06_INTERVENCIONES
-            </a>
+            <>
+              <Link
+                href={`/drive?equipo=${r.id_equipo}&sub=06_INTERVENCIONES`}
+                className="accion accion-secundaria"
+              >
+                Ver dónde quedó guardado
+              </Link>
+              <a
+                href={r.pdf_drive_url}
+                target="_blank"
+                rel="noreferrer"
+                className="accion accion-secundaria"
+              >
+                Abrir el PDF en Drive
+              </a>
+            </>
           ) : null}
           <Link
             href={`/indicadores?equipo=${r.id_equipo}&anio=${r.fecha_evento.slice(0, 4)}`}

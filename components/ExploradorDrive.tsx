@@ -4,21 +4,22 @@ import { useCallback, useEffect, useState } from "react";
 import { IcoCarpeta, IcoDocumento, IcoGaleria } from "@/components/Iconos";
 
 /**
- * La carpeta del equipo en Drive, pero por dentro de la aplicación.
+ * El Drive del proyecto, recorrido desde dentro de la aplicación.
  *
- * El problema que resuelve: cada cosa archivada era un enlace que
- * saltaba a Google Drive, y una vez allí no había vuelta atrás a las
- * carpetas hermanas. Se abría un acta y se acababa dentro de
- * 06_INTERVENCIONES; para ver una foto del mismo equipo tocaba salir de
- * Drive y volver a entrar por la ficha. En el teléfono es peor todavía,
- * porque el enlace se lo queda la aplicación de Drive y ya no se vuelve.
+ * El problema que resuelve: cada cosa archivada era un enlace que abría
+ * el PDF suelto en Google Drive —`/file/d/<id>/view`—, y esa es una
+ * pantalla sin salida. No dice en qué carpeta quedó el documento, no
+ * deja subir a la que lo contiene, y en el teléfono se la queda la
+ * aplicación de Drive y ya no se vuelve. Para ver otra cosa del mismo
+ * equipo había que salir de Drive y volver a entrar por la ficha.
  *
- * Aquí se sube y se baja sin salir: hay migas de pan y hay «atrás». El
- * enlace a Drive sigue estando al pie, para lo que aquí no se puede
- * hacer, pero deja de ser la única puerta.
+ * Aquí se sube y se baja sin salir, y se sube HASTA ARRIBA: de las actas
+ * de un equipo a su carpeta, de ahí a los demás equipos de la sede, y de
+ * ahí a la unidad compartida entera. Las migas de pan siempre enseñan
+ * dónde está uno, que era la otra mitad de lo que faltaba.
  *
- * Se carga al abrirlo, no al pintar la ficha: son llamadas a Drive y la
- * ficha tiene que abrir rápido delante de la máquina.
+ * El enlace a Drive sigue al pie, para lo que aquí no se puede hacer,
+ * pero deja de ser la única puerta.
  */
 
 type Archivo = {
@@ -32,6 +33,7 @@ type Archivo = {
 
 type Contenido = {
   sinCarpeta: boolean;
+  raiz: string;
   ruta: string[];
   urlCarpeta?: string;
   carpetas: { nombre: string }[];
@@ -44,16 +46,17 @@ type Contenido = {
  * Los nombres de Drive no se tocan —el sistema ubica cada carpeta por su
  * nombre exacto y renombrarlas dejaría huérfano lo guardado—, pero
  * «05_FOTOS» es un nombre de archivador, no de pantalla. Se enseñan los
- * dos: el legible manda y el técnico queda al lado, que es el que hay
+ * dos: manda el legible y el técnico queda al lado, que es el que hay
  * que buscar si algún día se entra a Drive directamente.
  */
 const NOMBRE_LEGIBLE: Record<string, string> = {
+  "01_EQUIPOS": "Equipos",
   "01_MANUALES": "Manuales",
   "03_CONTROLADOR": "Controlador",
   "04_BACKUPS": "Backups",
   "05_FOTOS": "Fotos",
   "06_INTERVENCIONES": "Actas y reportes",
-  "01_EQUIPOS": "Equipos",
+  "00_IDENTIDAD": "Identidad",
 };
 
 const peso = (bytes: number) => {
@@ -74,38 +77,61 @@ function cuando(iso: string): string {
   return d.getFullYear() === hoy.getFullYear() ? dia : `${dia}/${d.getFullYear()}`;
 }
 
-export default function ExploradorDrive({ idEquipo }: { idEquipo: string }) {
-  const [abierto, setAbierto] = useState(false);
+export default function ExploradorDrive({
+  /** Arranca en la carpeta de este equipo, en vez de en la raíz. */
+  equipoInicial,
+  /** Y dentro de ella, en esta subcarpeta. */
+  subInicial,
+  /** Si se abre solo o hay que pulsar. En la ficha, pulsando. */
+  abiertoDeEntrada = false,
+}: {
+  equipoInicial?: string;
+  subInicial?: string;
+  abiertoDeEntrada?: boolean;
+}) {
+  const [abierto, setAbierto] = useState(abiertoDeEntrada);
   const [ruta, setRuta] = useState<string[]>([]);
   const [contenido, setContenido] = useState<Contenido | null>(null);
   const [cargando, setCargando] = useState(false);
   const [problema, setProblema] = useState<string | null>(null);
 
+  /**
+   * `ruta` es siempre completa desde la raíz. El atajo de arrancar en un
+   * equipo se usa una sola vez, en la primera carga: el servidor
+   * responde con la ruta ya resuelta y a partir de ahí se navega igual
+   * que desde cualquier otro sitio.
+   */
   const traer = useCallback(
-    async (destino: string[]) => {
+    async (destino: string[] | null) => {
       setCargando(true);
       setProblema(null);
       try {
-        const r = await fetch(
-          `/api/equipo/${idEquipo}/drive?ruta=${encodeURIComponent(destino.join("/"))}`,
-        );
+        const params = new URLSearchParams();
+        if (destino === null && equipoInicial) {
+          params.set("equipo", equipoInicial);
+          if (subInicial) params.set("sub", subInicial);
+        } else {
+          params.set("ruta", (destino ?? []).join("/"));
+        }
+
+        const r = await fetch(`/api/drive/carpeta?${params}`);
         const j = await r.json();
         if (!r.ok) throw new Error(j.error ?? "No se pudo leer Drive");
         setContenido(j);
-        // La ruta buena es la que devuelve el servidor: si una carpeta
-        // se renombró en Drive, mandan sus nombres y no los nuestros.
-        setRuta(j.ruta ?? destino);
+        // La ruta buena es la que devuelve el servidor: trae los nombres
+        // tal como están escritos en Drive, con su guion o su guion bajo.
+        setRuta(j.ruta ?? []);
       } catch (e) {
         setProblema(e instanceof Error ? e.message : "No se pudo contactar al servidor");
       } finally {
         setCargando(false);
       }
     },
-    [idEquipo],
+    [equipoInicial, subInicial],
   );
 
   useEffect(() => {
-    if (abierto && !contenido && !problema) traer([]);
+    if (abierto && !contenido && !problema) traer(null);
   }, [abierto, contenido, problema, traer]);
 
   if (!abierto) {
@@ -125,21 +151,22 @@ export default function ExploradorDrive({ idEquipo }: { idEquipo: string }) {
 
   return (
     <>
-      {/* Las migas. El equipo siempre es el primer escalón: por muy
-          abajo que se esté, se vuelve a la carpeta del equipo de un
-          toque, que es lo que no se podía hacer en Drive. */}
+      {/* Las migas, con la unidad compartida como primer escalón. Por muy
+          abajo que se esté —dentro de las fotos de una intervención— se
+          sube a cualquier nivel de un toque, que es justo lo que no se
+          podía hacer aterrizando en Drive desde un enlace. */}
       <nav className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-3 text-[13px]">
         <button
           type="button"
           onClick={() => traer([])}
-          disabled={enRaiz}
+          disabled={enRaiz || cargando}
           className="font-[family-name:var(--font-mono)]"
           style={{
             color: enRaiz ? "var(--color-tenue)" : "var(--color-activo)",
             textDecoration: enRaiz ? "none" : "underline",
           }}
         >
-          {idEquipo}
+          {contenido?.raiz || "Drive"}
         </button>
         {ruta.map((tramo, i) => {
           const ultimo = i === ruta.length - 1;
@@ -149,7 +176,7 @@ export default function ExploradorDrive({ idEquipo }: { idEquipo: string }) {
               <button
                 type="button"
                 onClick={() => traer(ruta.slice(0, i + 1))}
-                disabled={ultimo}
+                disabled={ultimo || cargando}
                 style={{
                   color: ultimo ? "var(--color-tenue)" : "var(--color-activo)",
                   textDecoration: ultimo ? "none" : "underline",
@@ -166,9 +193,13 @@ export default function ExploradorDrive({ idEquipo }: { idEquipo: string }) {
         <button
           type="button"
           onClick={() => traer(ruta.slice(0, -1))}
+          disabled={cargando}
           className="accion accion-secundaria mb-3"
         >
-          ← Atrás
+          ← Subir a{" "}
+          {ruta.length === 1
+            ? contenido?.raiz || "la raíz"
+            : NOMBRE_LEGIBLE[ruta[ruta.length - 2]] ?? ruta[ruta.length - 2]}
         </button>
       ) : null}
 

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   IcoHerramienta, IcoCodigoQR, IcoPersona, IcoDocumento, IcoLlave, IcoDisco,
+  IcoCarpeta,
 } from "./Iconos";
 import Tema from "./Tema";
 import type { Tema as ValorTema } from "@/lib/tema";
@@ -70,6 +71,12 @@ const GRUPOS: { titulo: string; destinos: Destino[] }[] = [
         texto: "Códigos QR",
         nota: "Todos en una hoja, para pegar",
         icono: <IcoCodigoQR className="w-4 h-4" />,
+      },
+      {
+        href: "/drive",
+        texto: "El Drive",
+        nota: "Las carpetas del proyecto, sin salir de aquí",
+        icono: <IcoCarpeta className="w-4 h-4" />,
       },
     ],
   },

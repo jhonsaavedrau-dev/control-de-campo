@@ -204,6 +204,39 @@ export async function carpetaIntervenciones(
  * null si el equipo todavia no tiene carpeta, que es una respuesta
  * valida: no hay nada que leer.
  */
+/**
+ * La ruta de carpetas hasta un equipo, por sus NOMBRES.
+ *
+ * `ubicarCarpetasEquipo` devuelve identificadores, que es lo que hace
+ * falta para archivar. Esto devuelve los nombres —["SD_001_CAMPO_LA_PAZ",
+ * "01_EQUIPOS", "GE_001_CATERPILLAR_C18"]— que es lo que hace falta para
+ * ENSENAR donde esta uno y para poder subir un escalon.
+ *
+ * Los nombres reales se piden a Drive en vez de componerse aqui: la
+ * carpeta puede llamarse SD-001 o SD_001 segun quien la creo, y las
+ * migas tienen que decir lo que de verdad pone.
+ *
+ * Devuelve null si el equipo todavia no tiene carpeta.
+ */
+export async function rutaDeEquipo(
+  equipo: Equipo,
+  sede: Sede,
+): Promise<string[] | null> {
+  const raiz = carpetaRaizId();
+  if (!raiz) return null;
+
+  const carpetaSede = await buscarPorId(raiz, sede.id_sede);
+  if (!carpetaSede) return null;
+
+  const equipos = await buscarHijo(carpetaSede.id, "01_EQUIPOS");
+  if (!equipos) return null;
+
+  const carpetaEquipo = await buscarPorId(equipos.id, equipo.id_equipo);
+  if (!carpetaEquipo) return null;
+
+  return [carpetaSede.name, equipos.name, carpetaEquipo.name];
+}
+
 export async function ubicarCarpetasEquipo(
   equipo: Equipo,
   sede: Sede,
