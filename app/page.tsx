@@ -1,11 +1,17 @@
 import Link from "next/link";
-import { listarControladores, resumen } from "@/lib/db";
+import { listarEquipos, resumen, preventivosPorEquipo } from "@/lib/db";
 import { Encabezado, PieDePagina } from "@/components/Marco";
-import { Distintivo, tonoDeEstado, fecha } from "@/components/Piezas";
+import { Insignia, numero, fechaCorta } from "@/components/Piezas";
+import { semaforo, ETIQUETA_ESTADO, ETIQUETA_COMBUSTIBLE } from "@/lib/tipos";
 import {
-  IcoUbicacion, IcoEquipo, IcoChip, IcoLupa, IcoFlecha,
-  IcoReloj, IcoLlave, IcoCampana,
+  IcoRayo, IcoCombustible, IcoReloj, IcoChip, IcoFlecha, IcoLupa,
+  IcoUbicacion, IcoHerramienta,
 } from "@/components/Iconos";
+import { usuarioActual } from "@/lib/sesion";
+import TurnoActual from "@/components/TurnoActual";
+import {
+  mantenimientoDe, soloPendientes, colorMantenimiento, frase,
+} from "@/lib/mantenimiento";
 
 export default async function Inicio({
   searchParams,
@@ -14,158 +20,391 @@ export default async function Inicio({
 }) {
   const { q = "" } = await searchParams;
   const busqueda = q.trim().toLowerCase();
-  const [todos, r] = await Promise.all([listarControladores(), resumen()]);
+  const [todos, r, usuario, preventivos] = await Promise.all([
+    listarEquipos(),
+    resumen(),
+    usuarioActual(),
+    preventivosPorEquipo(),
+  ]);
 
-  const controladores = busqueda
-    ? todos.filter((c) =>
+  // Los activos de apoyo — tanque, power center, oficina — entran al
+  // programa de mantenimiento pero no a esta pantalla: aqui se mira el
+  // estado de la generacion, y un tanque no tiene estado que mirar.
+  const generadores = todos.filter(
+    (e) => (e.tipo_activo ?? "generador") === "generador",
+  );
+
+  // Lo que pide atención por horas, no por avería: sale antes que la
+  // lista de sedes porque es lo que hay que planear esta semana.
+  const pendientes = soloPendientes(
+    generadores.map((e) => ({
+      equipo: e,
+      mantenimiento: mantenimientoDe(e, preventivos[e.id_equipo] ?? []),
+    })),
+  );
+
+  // Los nombres de las sedes, para el modulo de turno: ensenar
+  // "SD-001" a secas obliga a traducirlo de cabeza cada vez.
+  const nombreDeSede: Record<string, string> = {};
+  for (const e of todos) {
+    if (e.sede?.id_sede) nombreDeSede[e.sede.id_sede] = e.sede.nombre ?? e.sede.id_sede;
+  }
+
+  const equipos = busqueda
+    ? generadores.filter((e) =>
         [
-          c.id, c.fabricante, c.modelo, c.serial, c.ip,
-          c.equipo?.id, c.equipo?.nombre, c.sede?.nombre, c.responsable,
+          e.id_equipo, e.nombre, e.tag, e.fabricante, e.modelo, e.serial,
+          e.motor, e.sede?.nombre, e.sede?.id_sede,
+          ...e.controladores.map((c) => c.id_controlador),
+          ...e.controladores.map((c) => c.modelo),
         ]
           .filter(Boolean)
           .join(" ")
           .toLowerCase()
           .includes(busqueda),
       )
-    : todos;
+    : generadores;
 
-  const hoy = new Date().toISOString().slice(0, 10);
+  // Agrupados por sede: así es como se piensa en los equipos en planta.
+  const porSede = new Map<string, typeof equipos>();
+  for (const e of equipos) {
+    const llave = e.sede?.id_sede ?? "sin-sede";
+    if (!porSede.has(llave)) porSede.set(llave, []);
+    porSede.get(llave)!.push(e);
+  }
 
   return (
     <>
       <Encabezado />
 
-      <main className="flex-1 max-w-[1040px] w-full mx-auto px-4 py-5 space-y-4">
-        <section className="tarjeta p-5">
-          <h1 className="text-[26px] font-extrabold text-marino-900 tracking-tight">
-            Sistema de Control de Campo
-          </h1>
-          <p className="text-[14px] text-[#475467] mt-1">
-            Equipos de generación, controladores e intervenciones.
-          </p>
+      <main className="flex-1 w-full lienzo-reticula">
+        <div className="max-w-[1100px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
+          {/* --- Cabecera: título y estado de la planta --- */}
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5 mb-7">
+            <div>
+              <div
+                className="font-[family-name:var(--font-mono)] text-[11.5px] tracking-[0.14em] uppercase"
+                style={{ color: "var(--color-sin-info)" }}
+              >
+                {/* La razon social completa no cabe en un telefono: se
+                    cortaba en "PETROLEUM BLENDING INTER…". PBI pidio la
+                    sigla, que es como se nombran ellos. El nombre entero
+                    sigue en el pie y en los documentos, que es donde
+                    tiene valor legal. */}
+                PBI SAS ESP
+              </div>
+              <h1 className="font-[family-name:var(--font-placa)] font-semibold text-[34px] sm:text-[40px] leading-none mt-1.5">
+                Control de Generación
+              </h1>
+              <p
+                className="text-[14.5px] mt-2"
+                style={{ color: "var(--color-tenue)" }}
+              >
+                {r.equipos} equipos de generación en {r.sedes} sedes ·{" "}
+                {r.controladores} controladores
+              </p>
+            </div>
 
-          <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <Indicador valor={r.sedes} etiqueta="Sedes" />
-            <Indicador valor={r.equipos} etiqueta="Equipos" />
-            <Indicador valor={r.controladores} etiqueta="Controladores" />
-            <Indicador valor={r.operativos} etiqueta="Operativos" tono="verde" />
-            <Indicador
-              valor={r.revisionVencida}
-              etiqueta="Revisión vencida"
-              tono={r.revisionVencida > 0 ? "ambar" : undefined}
-            />
-            <Indicador valor={r.intervenciones} etiqueta="Intervenciones" />
-          </div>
-
-          <form className="mt-4 flex gap-2">
-            <div className="relative flex-1">
-              <IcoLupa className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#98a2b3]" />
-              <input
-                name="q"
-                defaultValue={q}
-                placeholder="Buscar por controlador, equipo, sede, serial o IP…"
-                className="campo pl-9"
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 lg:w-[460px]">
+              <Contador
+                valor={r.operativos}
+                etiqueta="Operativos"
+                tono="operativo"
+              />
+              <Contador
+                valor={r.con_observaciones}
+                etiqueta="Con observaciones"
+                tono="pendiente"
+              />
+              <Contador
+                valor={r.fuera_de_servicio}
+                etiqueta="Fuera de servicio"
+                tono="critico"
+              />
+              {/* Sin este, los equipos que aun no tienen estado no salian
+                  en ningun sitio: la cabecera decia "15 equipos" y los
+                  contadores sumaban 5. */}
+              <Contador
+                valor={r.sin_informacion}
+                etiqueta="Sin información"
+                tono="sin-info"
               />
             </div>
-            <button className="bg-marino-800 hover:bg-marino-700 text-white rounded-lg px-5 text-[13px] font-bold transition-colors">
-              Buscar
+          </div>
+
+          {/* --- Quien esta de turno ---
+
+              Va aqui y no mas abajo por lo que es: estado de la planta
+              ahora mismo, igual que los contadores de arriba. Lo de
+              debajo del buscador es trabajo por hacer, que es otra cosa.
+
+              Se esconde al buscar, como el resto de la portada: quien
+              escribe en el buscador quiere ver equipos, no contexto. */}
+          {!busqueda ? (
+            <TurnoActual
+              momentoServidor={new Date().toISOString()}
+              sedes={nombreDeSede}
+            />
+          ) : null}
+
+          {/* --- Buscador --- */}
+          <form className="flex gap-2 mb-7">
+            <input
+              name="q"
+              defaultValue={q}
+              placeholder="Buscar equipo, TAG, sede, serial o controlador…"
+              className="entrada flex-1"
+            />
+            <button
+              className="rounded px-5 font-[family-name:var(--font-mono)] text-[12.5px] tracking-[0.08em] border transition-colors"
+              style={{
+                borderColor: "var(--color-borde)",
+                borderBottomColor: "var(--color-borde-fuerte)",
+                background: "var(--color-panel)",
+              }}
+            >
+              BUSCAR
             </button>
             {busqueda ? (
               <Link
                 href="/"
-                className="border border-[#d3dae6] rounded-lg px-4 flex items-center text-[13px] font-semibold text-marino-900 hover:bg-marino-50 transition-colors"
+                className="rounded px-4 flex items-center font-[family-name:var(--font-mono)] text-[12.5px] tracking-[0.08em] border"
+                style={{
+                  borderColor: "var(--color-borde)",
+                  background: "var(--color-panel)",
+                  color: "var(--color-tenue)",
+                }}
               >
-                Limpiar
+                LIMPIAR
               </Link>
             ) : null}
           </form>
 
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Link
-              href="/intervenciones"
-              className="inline-flex items-center gap-2 border border-[#d3dae6] rounded-lg px-3.5 py-2 text-[12.5px] font-semibold text-marino-900 hover:bg-marino-50 transition-colors"
-            >
-              <IcoLlave className="w-4 h-4" />
-              Historial de intervenciones
-            </Link>
-            <Link
-              href="/novedades"
-              className="inline-flex items-center gap-2 border border-[#d3dae6] rounded-lg px-3.5 py-2 text-[12.5px] font-semibold text-marino-900 hover:bg-marino-50 transition-colors"
-            >
-              <IcoCampana className="w-4 h-4" />
-              Novedades reportadas
-              {r.novedadesAbiertas > 0 ? (
-                <span className="bg-[#feecec] text-[#a52020] rounded-full px-2 py-0.5 text-[11px] font-bold">
-                  {r.novedadesAbiertas}
-                </span>
-              ) : null}
-            </Link>
-          </div>
-        </section>
-
-        <section className="grid gap-4 md:grid-cols-2">
-          {controladores.map((c) => {
-            const vencida = c.proximaRevision < hoy;
-            return (
-              <Link
-                key={c.id}
-                href={`/controlador/${c.id}`}
-                className="tarjeta p-4 hover:border-marino-600/40 hover:shadow-md transition-all group"
+          {/* --- Mantenimiento que pide atención --- */}
+          {!busqueda && pendientes.length ? (
+            <section className="mb-7">
+              <div
+                className="font-[family-name:var(--font-mono)] text-[11.5px] uppercase tracking-[0.1em] mb-2.5 flex items-center gap-1.5"
+                style={{ color: "var(--color-tenue)" }}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <IcoChip className="w-4 h-4 text-marino-600" />
-                      <span className="text-[20px] font-extrabold text-marino-900 tracking-tight">
-                        {c.id}
-                      </span>
-                    </div>
-                    <p className="text-[13px] text-[#475467] font-medium mt-1">
-                      {c.fabricante} • {c.modelo}
-                    </p>
-                  </div>
-                  <Distintivo tono={tonoDeEstado(c.estado)} punto>
-                    {c.estado}
-                  </Distintivo>
-                </div>
+                <IcoHerramienta className="w-3 h-3" />
+                Preventivo pendiente
+                <span style={{ color: "var(--color-sin-info)" }}>
+                  ({pendientes.length})
+                </span>
+              </div>
 
-                <div className="mt-3.5 pt-3.5 border-t border-[#f0f3f8] space-y-2">
-                  <Linea icono={<IcoUbicacion className="w-4 h-4" />}>
-                    {c.sede?.nombre ?? "—"}
-                  </Linea>
-                  <Linea icono={<IcoEquipo className="w-4 h-4" />}>
-                    {c.equipo?.id} · {c.equipo?.nombre}
-                  </Linea>
-                  <Linea icono={<IcoReloj className="w-4 h-4" />}>
-                    Próxima revisión: {fecha(c.proximaRevision)}
-                    {vencida ? (
-                      <span className="ml-2 text-[11px] font-bold text-[#a52020]">
-                        VENCIDA
-                      </span>
-                    ) : null}
-                  </Linea>
-                </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {pendientes.map(({ equipo, mantenimiento: m }) => {
+                  const color = colorMantenimiento(m.situacion);
+                  return (
+                    <Link
+                      key={equipo.id_equipo}
+                      href={`/equipo/${equipo.id_equipo}`}
+                      className="block rounded border px-3.5 py-3 transition-shadow hover:shadow-sm"
+                      style={{
+                        borderColor: "var(--color-borde)",
+                        borderLeft: `3px solid ${color}`,
+                        background: "var(--color-panel)",
+                      }}
+                    >
+                      <div className="flex items-baseline justify-between gap-3">
+                        <span className="font-[family-name:var(--font-mono)] text-[14.5px]">
+                          {equipo.id_equipo}
+                        </span>
+                        <span
+                          className="font-[family-name:var(--font-mono)] text-[11.5px] uppercase tracking-wide"
+                          style={{ color }}
+                        >
+                          {m.situacion === "vencido" ? "vencido" : "próximo"}
+                        </span>
+                      </div>
+                      <div
+                        className="text-[12.5px] mt-0.5 truncate"
+                        style={{ color: "var(--color-tenue)" }}
+                      >
+                        {equipo.sede?.nombre ?? ""}
+                      </div>
+                      <div
+                        className="h-1 rounded-full mt-2 overflow-hidden"
+                        style={{ background: "var(--color-hundido)" }}
+                      >
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${Math.min(100, Math.round((m.avance ?? 0) * 100))}%`,
+                            background: color,
+                          }}
+                        />
+                      </div>
+                      <div className="text-[12.5px] mt-1.5" style={{ color }}>
+                        {frase(m)}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          ) : null}
 
-                <div className="mt-3.5 pt-3 border-t border-[#f0f3f8] flex items-center justify-between">
-                  <span className="text-[12px] text-[#667085]">
-                    {c.totalIntervenciones}{" "}
-                    {c.totalIntervenciones === 1 ? "intervención" : "intervenciones"}
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-marino-600 group-hover:gap-2.5 transition-all">
-                    Abrir ficha
-                    <IcoFlecha className="w-3.5 h-3.5" />
-                  </span>
-                </div>
+          {/* --- Equipos por sede --- */}
+          {[...porSede.entries()].map(([idSede, lista]) => (
+            <section key={idSede} className="mb-8">
+              <CabeceraSede
+                idSede={lista[0]?.sede?.id_sede ?? ""}
+                nombre={lista[0]?.sede?.nombre ?? ""}
+                ubicacion={lista[0]?.sede?.ubicacion ?? ""}
+                equipos={lista}
+              />
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {lista.map((e) => {
+                  const tono = semaforo(e.estado);
+                  const color =
+                    tono === "sin-info"
+                      ? "var(--color-sin-info)"
+                      : `var(--color-${tono})`;
+                  return (
+                    <Link
+                      key={e.id_equipo}
+                      href={`/equipo/${e.id_equipo}`}
+                      className="panel group relative overflow-hidden transition-all hover:border-[color:var(--color-borde-fuerte)]"
+                    >
+                      {/* Cabecera oscura: el ID se lee de lejos */}
+                      <div
+                        className="relative px-4 py-3 overflow-hidden"
+                        style={{ background: "var(--color-marino)" }}
+                      >
+                        <span
+                          className="absolute left-0 top-0 bottom-0 w-[4px]"
+                          style={{ background: color }}
+                        />
+                        <div className="flex items-start justify-between gap-2 pl-1.5">
+                          <div className="min-w-0">
+                            <div className="font-[family-name:var(--font-placa)] font-semibold text-[27px] leading-none text-white">
+                              {e.id_equipo}
+                            </div>
+                            <div className="font-[family-name:var(--font-mono)] text-[11.5px] mt-1 truncate text-white/55">
+                              {e.nombre ? `${e.nombre} · ` : ""}
+                              {e.fabricante} {e.modelo}
+                            </div>
+                          </div>
+                          <span
+                            className="font-[family-name:var(--font-mono)] text-[10.5px] uppercase tracking-[0.08em] px-1.5 py-1 rounded shrink-0"
+                            style={{
+                              background: color,
+                              color: tono === "pendiente" ? "#2a1a02" : "#fff",
+                            }}
+                          >
+                            {ETIQUETA_ESTADO[e.estado]}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Medidores */}
+                      <div
+                        className="grid grid-cols-3 gap-px"
+                        style={{ background: "var(--color-borde-suave)" }}
+                      >
+                        <Celda
+                          icono={<IcoRayo className="w-2.5 h-2.5" />}
+                          etiqueta="Potencia"
+                          valor={numero(e.potencia_nominal_kw, " kW")}
+                        />
+                        <Celda
+                          icono={<IcoCombustible className="w-2.5 h-2.5" />}
+                          etiqueta="Combustible"
+                          valor={
+                            e.combustible ? ETIQUETA_COMBUSTIBLE[e.combustible] : ""
+                          }
+                        />
+                        <Celda
+                          icono={<IcoReloj className="w-2.5 h-2.5" />}
+                          etiqueta="Horómetro"
+                          valor={numero(e.horometro_actual, " h")}
+                        />
+                      </div>
+
+                      {/* Pie: controlador y última visita */}
+                      <div
+                        className="flex items-center justify-between px-4 py-2.5 text-[11.5px]"
+                        style={{
+                          background: "var(--color-realce)",
+                          color: "var(--color-sin-info)",
+                        }}
+                      >
+                        <span className="font-[family-name:var(--font-mono)] flex items-center gap-1.5 min-w-0">
+                          {e.controladores[0] ? (
+                            <>
+                              <IcoChip className="w-3 h-3 shrink-0" />
+                              <span className="truncate">
+                                {e.controladores[0].id_controlador}
+                              </span>
+                            </>
+                          ) : (
+                            <span>sin controlador</span>
+                          )}
+                        </span>
+                        <span className="font-[family-name:var(--font-mono)] flex items-center gap-1.5 shrink-0">
+                          {e.ultima_intervencion
+                            ? fechaCorta(e.ultima_intervencion.fecha)
+                            : "sin historial"}
+                          <IcoFlecha
+                            className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform"
+                            // el color señala que la tarjeta abre algo
+                          />
+                        </span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+
+          {equipos.length === 0 ? (
+            <div
+              className="panel py-14 text-center"
+              style={{ color: "var(--color-sin-info)" }}
+            >
+              <p className="text-[15.5px]">
+                Ningún equipo coincide con «{q}».
+              </p>
+            </div>
+          ) : null}
+
+          {/* --- Pie de navegación ---
+              Solo queda el historial. Lo demas se subio al menu de la
+              cabecera: aqui abajo, tras quince equipos, no lo veia nadie. */}
+          <div
+            className="flex items-center justify-between gap-4 pt-5 mt-2"
+            style={{ borderTop: "1px solid var(--color-borde)" }}
+          >
+            {/* Con relleno propio: como texto suelto medía 19 px de alto
+                y con el dedo se falla mas de lo que se acierta.
+                Y sin actas no se ofrece ir a verlas: "ver las 0
+                intervenciones registradas" es un enlace a una pantalla
+                vacia. */}
+            {r.intervenciones ? (
+              <Link
+                href="/intervenciones"
+                className="inline-flex items-center min-h-[44px] -mx-2 px-2 rounded font-[family-name:var(--font-mono)] text-[12.5px] tracking-wide"
+                style={{ color: "var(--color-activo)" }}
+              >
+                {r.intervenciones === 1
+                  ? "Ver la intervención registrada →"
+                  : `Ver las ${r.intervenciones} intervenciones registradas →`}
               </Link>
-            );
-          })}
-        </section>
-
-        {controladores.length === 0 ? (
-          <p className="text-center text-[14px] text-[#98a2b3] py-10">
-            No se encontró ningún controlador que coincida con «{q}».
-          </p>
-        ) : null}
+            ) : (
+              <span
+                className="inline-flex items-center min-h-[44px] font-[family-name:var(--font-mono)] text-[12.5px] tracking-wide"
+                style={{ color: "var(--color-sin-info)" }}
+              >
+                Todavía no hay intervenciones registradas
+              </span>
+            )}
+          </div>
+        </div>
       </main>
 
       <PieDePagina />
@@ -173,30 +412,146 @@ export default async function Inicio({
   );
 }
 
-function Indicador({
-  valor, etiqueta, tono,
+function CabeceraSede({
+  idSede, nombre, ubicacion, equipos,
 }: {
-  valor: number; etiqueta: string; tono?: "verde" | "ambar";
+  idSede: string;
+  nombre: string;
+  ubicacion: string;
+  equipos: { estado: string }[];
 }) {
-  const color =
-    tono === "verde" ? "text-[#12703a]" : tono === "ambar" ? "text-[#9a6400]" : "text-marino-900";
+  // El resumen de estados de esta sede, no del total: es lo que se
+  // quiere saber al mirar un campo concreto.
+  const cuenta = (t: string) =>
+    equipos.filter((e) => semaforo(e.estado as never) === t).length;
+  const grupos = [
+    { tono: "operativo", n: cuenta("operativo") },
+    { tono: "pendiente", n: cuenta("pendiente") },
+    { tono: "critico", n: cuenta("critico") },
+    { tono: "sin-info", n: cuenta("sin-info") },
+  ].filter((g) => g.n > 0);
+
   return (
-    <div className="bg-[#f7f9fc] border border-[#e9edf4] rounded-lg px-3 py-2.5">
-      <div className={`text-[24px] font-extrabold leading-none ${color}`}>{valor}</div>
-      <div className="text-[11.5px] text-[#667085] font-medium mt-1">{etiqueta}</div>
+    <div
+      className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-3 pl-3 pr-3.5 py-2.5 rounded"
+      style={{
+        background: "var(--color-panel)",
+        border: "1px solid var(--color-borde)",
+        borderLeft: "4px solid var(--color-marino)",
+      }}
+    >
+      <span
+        className="font-[family-name:var(--font-mono)] text-[12.5px] font-medium tracking-[0.06em] px-2 py-1 rounded shrink-0"
+        style={{
+          background: "var(--color-marino)",
+          color: "var(--color-amarillo)",
+        }}
+      >
+        {idSede}
+      </span>
+
+      <span className="font-[family-name:var(--font-placa)] font-semibold text-[19px] leading-none">
+        {nombre}
+      </span>
+
+      {ubicacion ? (
+        <span
+          className="hidden sm:flex items-center gap-1.5 text-[12.5px]"
+          style={{ color: "var(--color-sin-info)" }}
+        >
+          <IcoUbicacion className="w-3.5 h-3.5" />
+          {ubicacion}
+        </span>
+      ) : null}
+
+      <span className="flex items-center gap-2 ml-auto shrink-0">
+        {grupos.map((g) => (
+          <span
+            key={g.tono}
+            className="flex items-center gap-1.5 font-[family-name:var(--font-mono)] text-[12.5px] tabular-nums"
+            style={{ color: "var(--color-tenue)" }}
+            title={g.tono}
+          >
+            <span
+              className="w-2 h-2 rounded-full"
+              style={{
+                background:
+                  g.tono === "sin-info"
+                    ? "var(--color-sin-info)"
+                    : `var(--color-${g.tono})`,
+              }}
+            />
+            {g.n}
+          </span>
+        ))}
+        <span
+          className="font-[family-name:var(--font-mono)] text-[11.5px] uppercase tracking-[0.08em] pl-2"
+          style={{
+            color: "var(--color-sin-info)",
+            borderLeft: "1px solid var(--color-borde-suave)",
+          }}
+        >
+          {equipos.length} {equipos.length === 1 ? "equipo" : "equipos"}
+        </span>
+      </span>
     </div>
   );
 }
 
-function Linea({
-  icono, children,
+function Contador({
+  valor,
+  etiqueta,
+  tono,
 }: {
-  icono: React.ReactNode; children: React.ReactNode;
+  valor: number;
+  etiqueta: string;
+  tono: "operativo" | "pendiente" | "critico" | "sin-info";
+}) {
+  const color = `var(--color-${tono})`;
+  return (
+    <div
+      className="panel px-3 py-2.5"
+      style={{ borderLeft: `3px solid ${color}` }}
+    >
+      <div
+        className="font-[family-name:var(--font-mono)] text-[26px] leading-none tabular-nums"
+        style={{ color }}
+      >
+        {valor}
+      </div>
+      <div
+        className="text-[11.5px] mt-1.5 leading-tight uppercase tracking-[0.04em]"
+        style={{ color: "var(--color-tenue)" }}
+      >
+        {etiqueta}
+      </div>
+    </div>
+  );
+}
+
+function Celda({
+  etiqueta, valor, icono,
+}: {
+  etiqueta: string; valor: string; icono?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-2 text-[13px] text-[#344054]">
-      <span className="text-[#98a2b3] shrink-0">{icono}</span>
-      <span className="truncate">{children}</span>
+    <div
+      className="px-2.5 py-2"
+      style={{ background: "var(--color-campo)" }}
+    >
+      <div
+        className="flex items-center gap-1 text-[10.5px] uppercase tracking-[0.06em] font-medium"
+        style={{ color: "var(--color-sin-info)" }}
+      >
+        {icono}
+        {etiqueta}
+      </div>
+      <div
+        className="font-[family-name:var(--font-mono)] text-[13.5px] mt-0.5 tabular-nums truncate"
+        style={{ color: valor ? "var(--color-tinta)" : "var(--color-sin-info)" }}
+      >
+        {valor || "—"}
+      </div>
     </div>
   );
 }

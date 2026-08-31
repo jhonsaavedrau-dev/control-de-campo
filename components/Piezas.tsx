@@ -1,84 +1,126 @@
 import type { ReactNode } from "react";
+import {
+  ETIQUETA_ESTADO, ETIQUETA_RESULTADO, ABREVIATURA_RESULTADO,
+  semaforo, semaforoResultado,
+} from "@/lib/tipos";
+import type { EstadoEquipo, ResultadoIntervencion } from "@/lib/tipos";
 
-export function Dato({
-  icono,
+/** Rótulo de sección con la línea que continúa hasta el borde. */
+export function Rotulo({ children }: { children: ReactNode }) {
+  return <div className="rotulo">{children}</div>;
+}
+
+/** Rejilla de datos técnicos: valores en monoespaciada, como una lectura. */
+export function Datos({
+  children,
+  columnas = 2,
+}: {
+  children: ReactNode;
+  columnas?: 1 | 2;
+}) {
+  return <div className={columnas === 1 ? "datos datos-1" : "datos"}>{children}</div>;
+}
+
+export function Campo({
   etiqueta,
   children,
 }: {
-  icono?: ReactNode;
   etiqueta: string;
   children: ReactNode;
 }) {
+  const vacio =
+    children === null || children === undefined || children === "" || children === "—";
   return (
-    <div className="flex items-center justify-between gap-3 py-[7px]">
-      <div className="flex items-center gap-2 min-w-0">
-        {icono ? <span className="text-[#98a2b3] shrink-0">{icono}</span> : null}
-        <span className="etiqueta truncate">{etiqueta}:</span>
+    <div className="dato">
+      <div className="dato-etiqueta">{etiqueta}</div>
+      <div
+        className="dato-valor"
+        style={vacio ? { color: "var(--color-sin-info)" } : undefined}
+      >
+        {vacio ? "—" : children}
       </div>
-      <span className="valor">{children || "—"}</span>
     </div>
   );
 }
 
-const TONOS: Record<string, string> = {
-  verde: "bg-[#e7f8ee] text-[#12703a] border-[#b7e6c9]",
-  ambar: "bg-[#fff5e0] text-[#9a6400] border-[#ffe0a3]",
-  rojo: "bg-[#feecec] text-[#a52020] border-[#f8c9c9]",
-  gris: "bg-[#f1f3f7] text-[#475467] border-[#dfe4ee]",
-  azul: "bg-[#e8effc] text-[#1a3d8f] border-[#c3d4f5]",
-};
+/** LED de estado: el mismo lenguaje visual del controlador físico. */
+export function Led({ estado }: { estado: EstadoEquipo }) {
+  const s = semaforo(estado);
+  const color = {
+    operativo: "var(--color-operativo)",
+    pendiente: "var(--color-pendiente)",
+    critico: "var(--color-critico)",
+    "sin-info": "var(--color-sin-info)",
+  }[s];
 
-export function tonoDeEstado(valor: string) {
-  const v = (valor || "").toUpperCase();
-  if (["OPERATIVO", "EXITOSO", "VIGENTE", "CERRADA"].includes(v)) return "verde";
-  if (["EN REVISIÓN", "PARCIAL", "DESACTUALIZADO", "ABIERTA", "MEDIA"].includes(v))
-    return "ambar";
-  if (["FUERA DE SERVICIO", "FALLIDO", "CRÍTICA", "ALTA"].includes(v)) return "rojo";
-  return "gris";
-}
-
-export function Distintivo({
-  children,
-  tono = "gris",
-  punto = false,
-  grande = false,
-}: {
-  children: ReactNode;
-  tono?: string;
-  punto?: boolean;
-  grande?: boolean;
-}) {
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full border font-bold ${
-        TONOS[tono] ?? TONOS.gris
-      } ${grande ? "px-4 py-1.5 text-[13px]" : "px-2.5 py-1 text-[11px]"}`}
-    >
-      {punto ? (
-        <span className="w-2 h-2 rounded-full bg-current opacity-80" />
-      ) : null}
-      {children}
-    </span>
+    <div className="flex items-center gap-1.5 shrink-0 pt-1">
+      <span
+        className="w-[7px] h-[7px] rounded-full shrink-0"
+        style={{ background: color }}
+      />
+      <span className="font-[family-name:var(--font-mono)] text-[12.5px]">
+        {ETIQUETA_ESTADO[estado]}
+      </span>
+    </div>
   );
 }
 
-export function fecha(iso: string) {
-  if (!iso) return "—";
-  const d = new Date(iso.length === 10 ? `${iso}T00:00:00` : iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString("es-CO", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+export function Insignia({
+  tono,
+  children,
+}: {
+  tono: "operativo" | "pendiente" | "critico" | "sin-info";
+  children: ReactNode;
+}) {
+  const clase =
+    tono === "sin-info" ? "insignia" : `insignia insignia-${tono}`;
+  return <span className={clase}>{children}</span>;
 }
 
-export function hora(iso: string) {
-  if (!iso || iso.length <= 10) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return d
-    .toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", hour12: true })
-    .replace("a. m.", "a.m.")
-    .replace("p. m.", "p.m.");
+export function InsigniaResultado({
+  resultado,
+}: {
+  resultado: ResultadoIntervencion | null;
+}) {
+  if (!resultado) return <Insignia tono="sin-info">—</Insignia>;
+  return (
+    <Insignia tono={semaforoResultado(resultado)}>
+      {ABREVIATURA_RESULTADO[resultado]}
+    </Insignia>
+  );
 }
+
+export function claseBordePlaca(estado: EstadoEquipo) {
+  const s = semaforo(estado);
+  return s === "sin-info" ? "placa" : `placa placa-${s}`;
+}
+
+/* ---------- Formato ---------- */
+
+const MESES = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
+
+/** "14 AGO" — el formato compacto de la bitácora. */
+export function fechaCorta(iso: string) {
+  if (!iso) return "—";
+  const [a, m, d] = iso.split("-").map(Number);
+  if (!a || !m || !d) return iso;
+  return `${String(d).padStart(2, "0")} ${MESES[m - 1]}`;
+}
+
+export function fechaLarga(iso: string) {
+  if (!iso) return "—";
+  const [a, m, d] = iso.split("-").map(Number);
+  if (!a || !m || !d) return iso;
+  return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${a}`;
+}
+
+/** Números con espacio como separador de miles: 14 208.3 */
+export function numero(valor: number | null, sufijo = "") {
+  if (valor === null || valor === undefined) return "";
+  const [entero, decimal] = String(valor).split(".");
+  const conEspacios = entero.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return `${conEspacios}${decimal ? `.${decimal}` : ""}${sufijo}`;
+}
+
+export { ETIQUETA_ESTADO, ETIQUETA_RESULTADO };

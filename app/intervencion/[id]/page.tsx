@@ -1,9 +1,24 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { obtenerIntervencion } from "@/lib/db";
 import { Encabezado, PieDePagina } from "@/components/Marco";
-import { Distintivo, tonoDeEstado, fecha, hora } from "@/components/Piezas";
-import { IcoVolver, IcoDocumento } from "@/components/Iconos";
+import { fechaLarga, numero } from "@/components/Piezas";
+import { ETIQUETA_TIPO } from "@/lib/tipos";
+import AccionesActa from "@/components/AccionesActa";
+import { firmaDeTecnico } from "@/lib/firmas";
+import { usuarioActual, puedeEditar, esAdministrador, loginConfigurado } from "@/lib/sesion";
+import type {
+  TipoIntervencion, EstadoEquipo, ResultadoIntervencion, TipoCombustible,
+  IntervencionFoto,
+} from "@/lib/tipos";
+
+/**
+ * Acta de intervención — réplica del formato oficial
+ * `Formato_Intervencion_PBI.docx` (8 secciones, con sus casillas).
+ * Lo que se imprime tiene que poder compararse hoja contra hoja con el
+ * formato en papel que la empresa ya usa.
+ */
 
 export default async function ActaIntervencion({
   params,
@@ -14,172 +29,307 @@ export default async function ActaIntervencion({
   const registro = await obtenerIntervencion(decodeURIComponent(id).toUpperCase());
   if (!registro) notFound();
 
-  const { intervencion: i, controlador: c, equipo: e, sede: s } = registro;
+  const { intervencion: i, equipo: e, sede: s, controlador: c, fotos } = registro;
+
+  // La misma firma que va en el PDF: lo que se ve en pantalla y lo que
+  // queda archivado tienen que ser el mismo documento.
+  const [firma, usuario] = await Promise.all([
+    firmaDeTecnico(i.tecnico_nombre),
+    usuarioActual(),
+  ]);
 
   return (
     <>
-      <Encabezado imprimible />
+      <Encabezado atras={{ href: `/equipo/${i.id_equipo}`, texto: i.id_equipo }} />
 
-      <main className="flex-1 max-w-[860px] w-full mx-auto px-4 py-5 space-y-4">
-        <div className="no-imprimir">
-          <Link
-            href={`/controlador/${i.controladorId}`}
-            className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-marino-600 hover:underline"
-          >
-            <IcoVolver className="w-4 h-4" />
-            Volver a la ficha de {i.controladorId}
-          </Link>
-        </div>
+      <main className="flex-1 w-full max-w-[820px] mx-auto px-3 py-4 sm:px-4 sm:py-5">
+        <div className="acta">
+          {/* Encabezado del formato */}
+          <table className="tabla">
+            <tbody>
+              <tr>
+                <td className="celda w-[64px] sm:w-[110px] text-center align-middle">
+                  <Image
+                    src="/logo-pbi.png"
+                    alt="PBI"
+                    width={90}
+                    height={45}
+                    className="mx-auto h-auto w-[52px] sm:w-[90px]"
+                    priority
+                  />
+                </td>
+                <td className="celda text-center align-middle">
+                  {/* El titulo se encoge antes que salirse: en pantallas
+                      muy estrechas no cabe de una pieza y el recuadro de
+                      un documento no puede reventar. */}
+                  <div className="font-[family-name:var(--font-placa)] font-semibold text-[12px] sm:text-[15px] tracking-wide hyphens-auto">
+                    FORMATO DE INTERVENCIÓN DE EQUIPO
+                  </div>
+                </td>
+                <td className="celda w-[104px] sm:w-[180px] text-[10.5px] sm:text-[11.5px] leading-relaxed align-middle">
+                  <div>Código: ______________</div>
+                  <div>Versión: ______________</div>
+                  <div>Fecha: {fechaLarga(i.fecha)}</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
-        <div className="bg-[#e7f8ee] border border-[#b7e6c9] text-[#12703a] rounded-lg px-4 py-3 text-[13px] no-imprimir">
-          Intervención registrada con el consecutivo <strong>{i.id}</strong>. Usa el
-          botón <strong>Imprimir</strong> de arriba y elige «Guardar como PDF» para
-          obtener el acta.
-        </div>
+          <Seccion n="1" titulo="DATOS DE LA INTERVENCIÓN" />
+          <table className="tabla">
+            <tbody>
+              <Fila campo="ID / No. intervención" dato={i.id_intervencion} mono />
+              <Fila campo="Cliente" dato={s?.cliente} />
+              <Fila campo="Ubicación" dato={[s?.nombre, s?.ubicacion].filter(Boolean).join(" · ")} />
+              <Fila campo="Equipo / TAG" dato={[e?.id_equipo, e?.nombre].filter(Boolean).join(" · ")} mono />
+              <Fila campo="Fecha" dato={`${fechaLarga(i.fecha)}   ${i.hora}`} />
+              <Fila campo="Técnico responsable" dato={i.tecnico_nombre} />
+              <Fila campo="Cargo" dato={i.tecnico_cargo} />
+              <tr>
+                <td className="celda etiqueta">Tipo de intervención</td>
+                <td className="celda">
+                  <Casillas
+                    opciones={
+                      [
+                        ["preventiva", "Preventiva"],
+                        ["correctiva", "Correctiva"],
+                        ["diagnostico", "Diagnóstico"],
+                        ["inspeccion", "Inspección"],
+                        ["otra", "Otra"],
+                      ] as [TipoIntervencion, string][]
+                    }
+                    valor={i.tipo_intervencion}
+                  />
+                </td>
+              </tr>
+              <Fila campo="Orden de servicio" dato={i.orden_servicio} />
+              <Fila campo="Permiso de trabajo" dato={i.permiso_trabajo} />
+            </tbody>
+          </table>
 
-        <section className="tarjeta">
-          {/* Encabezado tipo formato corporativo */}
-          <div className="border-b-2 border-marino-900 grid grid-cols-[auto_minmax(0,1fr)_auto]">
-            <div className="bg-marino-900 px-5 py-4 flex items-center">
-              <svg viewBox="0 0 40 44" className="w-8 h-9" aria-hidden="true">
-                <path d="M22 0 4 24h11L9 44 36 17H23L34 0Z" fill="#ffc629" />
-                <path d="M14 0 0 20h7L3 34 18 16H9L17 0Z" fill="#ffc629" opacity="0.55" />
-              </svg>
-              <div className="ml-2 leading-none">
-                <div className="text-white font-extrabold text-lg">PBI</div>
-                <div className="text-[6.5px] text-white/70 font-semibold tracking-[0.14em] mt-0.5">
-                  GENERACIÓN DE ENERGÍA
-                </div>
-              </div>
-            </div>
-            <div className="px-5 py-4 text-center flex flex-col justify-center">
-              <div className="text-[15px] font-extrabold text-marino-900 tracking-wide">
-                SOLICITUD Y/O ORDEN DE SERVICIO
-              </div>
-              <div className="text-[11px] text-[#667085] mt-1">
-                Acta de intervención · Sistema de Control de Campo
-              </div>
-            </div>
-            <div className="px-5 py-4 text-[10.5px] text-[#475467] border-l border-[#e9edf4] flex flex-col justify-center gap-1">
-              <div>
-                Código: <strong className="text-marino-900">FOR-MTO-06</strong>
-              </div>
-              <div>
-                Versión: <strong className="text-marino-900">04</strong>
-              </div>
-              <div>
-                Registro: <strong className="text-marino-900">{i.id}</strong>
-              </div>
-            </div>
-          </div>
+          <Seccion n="2" titulo="EQUIPO" />
+          <table className="tabla">
+            <tbody>
+              <tr>
+                <td className="celda etiqueta">Tipo de equipo</td>
+                <td className="celda">
+                  <Casillas
+                    opciones={[
+                      ["grupo", "Grupo electrógeno"],
+                      ["controlador", "Controlador"],
+                    ]}
+                    valor="grupo"
+                  />
+                </td>
+              </tr>
+              <Fila campo="Fabricante" dato={i.fabricante_equipo} />
+              <Fila campo="Modelo" dato={i.modelo_equipo} />
+              <Fila campo="Número de serie" dato={i.serial_equipo} mono />
+              <Fila campo="Horas de operación" dato={numero(i.horometro, " h")} mono />
+            </tbody>
+          </table>
 
-          <Bloque titulo="1. SOLICITUD">
-            <Rejilla>
-              <Celda etiqueta="Fecha">
-                {fecha(i.fecha)} {hora(i.fecha)}
-              </Celda>
-              <Celda etiqueta="Dependencia que solicita">
-                <PorDefinir />
-              </Celda>
-              <Celda etiqueta="Nombre del solicitante">
-                <PorDefinir />
-              </Celda>
-              <Celda etiqueta="Orden de servicio">
-                <PorDefinir />
-              </Celda>
-              <Celda etiqueta="Permiso de trabajo">
-                <PorDefinir />
-              </Celda>
-              <Celda etiqueta="Power Center">
-                <PorDefinir />
-              </Celda>
-              <Celda etiqueta="Tipo de servicio">{i.tipo}</Celda>
-              <Celda etiqueta="Nombre del equipo a intervenir">
-                {e?.id} · {e?.nombre}
-              </Celda>
-              <Celda etiqueta="Horómetro aprox.">{i.horometro || "—"}</Celda>
-            </Rejilla>
-          </Bloque>
+          <Seccion n="3" titulo="INTERVENCIÓN" />
+          <table className="tabla">
+            <tbody>
+              <Fila campo="Motivo" dato={i.motivo} alto />
+              <Fila campo="Estado inicial" dato={i.estado_inicial} alto />
+              {i.diagnostico ? (
+                <Fila campo="Diagnóstico" dato={i.diagnostico} alto />
+              ) : null}
+              {i.causa_falla ? (
+                <Fila campo="Causa de la falla" dato={i.causa_falla} alto />
+              ) : null}
+              {i.repuestos ? (
+                <Fila campo="Repuestos utilizados" dato={i.repuestos} alto />
+              ) : null}
+              {i.checklist?.length ? (
+                <Fila
+                  campo="Tareas ejecutadas"
+                  dato={i.checklist.join(" · ")}
+                  alto
+                />
+              ) : null}
+              <Fila campo="Actividades realizadas" dato={i.actividades_realizadas} alto />
+              <tr>
+                <td className="celda etiqueta">Estado final</td>
+                <td className="celda">
+                  <Casillas
+                    opciones={
+                      [
+                        ["operativo", "Operativo"],
+                        ["operativo_con_observaciones", "Operativo con observaciones"],
+                        ["fuera_de_servicio", "Fuera de servicio"],
+                        ["pendiente", "Pendiente"],
+                      ] as [EstadoEquipo, string][]
+                    }
+                    valor={i.estado_final}
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
-          <Bloque titulo="2. EQUIPO Y CONTROLADOR">
-            <Rejilla>
-              <Celda etiqueta="Sede">{s?.nombre ?? "—"}</Celda>
-              <Celda etiqueta="Equipo">
-                {e ? `${e.fabricante} ${e.modelo} · ${e.potenciaNominal}` : "—"}
-              </Celda>
-              <Celda etiqueta="Serial equipo">{e?.serial ?? "—"}</Celda>
-              <Celda etiqueta="Controlador">{c?.id ?? "—"}</Celda>
-              <Celda etiqueta="Referencia controlador">
-                {c ? `${c.fabricante} ${c.modelo}` : "—"}
-              </Celda>
-              <Celda etiqueta="Serial controlador">{c?.serial ?? "—"}</Celda>
-            </Rejilla>
-          </Bloque>
+          <Seccion n="4" titulo="GRUPO ELECTRÓGENO" />
+          <table className="tabla">
+            <tbody>
+              <Fila campo="Motor" dato={i.motor_obs || e?.motor} />
+              <Fila campo="Alternador" dato={i.alternador_obs || e?.alternador} />
+              <tr>
+                <td className="celda etiqueta">Combustible</td>
+                <td className="celda">
+                  <Casillas
+                    opciones={
+                      [
+                        ["diesel", "Diésel"],
+                        ["glp", "GLP"],
+                        ["gas", "Gas"],
+                        ["otro", "Otro"],
+                      ] as [TipoCombustible, string][]
+                    }
+                    valor={i.combustible}
+                  />
+                </td>
+              </tr>
+              <Fila campo="Potencia" dato={numero(i.potencia_kw, " kW")} mono />
+              <Fila campo="Horas" dato={numero(i.horas_operacion, " h")} mono />
+              <Fila campo="Estado / observaciones" dato={i.estado_equipo_obs} alto />
+            </tbody>
+          </table>
 
-          <Bloque titulo="3. DESCRIPCIÓN DE LA ACTIVIDAD REQUERIDA">
-            <Parrafo>{i.trabajoRealizado}</Parrafo>
-          </Bloque>
+          <Seccion n="5" titulo="CONTROLADOR" />
+          <table className="tabla">
+            <tbody>
+              <Fila campo="Marca" dato={i.marca_controlador} />
+              <Fila campo="Modelo" dato={i.modelo_controlador} />
+              <Fila campo="Número de serie" dato={i.serial_controlador} mono />
+              <Fila campo="Firmware" dato={i.firmware_controlador} mono />
+              <Fila campo="Alarmas / eventos" dato={i.alarmas_eventos} alto />
+              <Fila campo="Parámetros modificados" dato={i.parametros_modificados} alto />
+              <Fila campo="Configuración realizada" dato={i.configuracion_realizada} alto />
+              <Fila campo="Observaciones" dato={i.observaciones_controlador} alto />
+            </tbody>
+          </table>
 
-          <Bloque titulo="4. MANTENIMIENTO">
-            <Rejilla>
-              <Celda etiqueta="Persona que desarrolló la actividad">{i.tecnico}</Celda>
-              <Celda etiqueta="Persona que recibió">
-                <PorDefinir />
-              </Celda>
-              <Celda etiqueta="Repuestos utilizados">
-                <PorDefinir />
-              </Celda>
-              <Celda etiqueta="Horas hombre utilizadas">
-                <PorDefinir />
-              </Celda>
-              <Celda etiqueta="Tipo de mano de obra">
-                <PorDefinir />
-              </Celda>
-              <Celda etiqueta="¿Se realizó backup?">{i.backup}</Celda>
-            </Rejilla>
+          <Seccion n="6" titulo="RESULTADO Y RECOMENDACIONES" />
+          <table className="tabla">
+            <tbody>
+              <tr>
+                <td className="celda etiqueta">Resultado</td>
+                <td className="celda">
+                  <Casillas
+                    opciones={
+                      [
+                        ["satisfactorio", "Satisfactorio"],
+                        ["satisfactorio_con_observaciones", "Satisfactorio con observaciones"],
+                        ["no_satisfactorio", "No satisfactorio"],
+                      ] as [ResultadoIntervencion, string][]
+                    }
+                    valor={i.resultado}
+                  />
+                </td>
+              </tr>
+              <Fila campo="Recomendaciones" dato={i.recomendaciones} alto />
+              <Fila campo="Pendientes" dato={i.pendientes} alto />
+            </tbody>
+          </table>
 
-            <div className="mt-4 space-y-3">
-              <div>
-                <Rotulo>Actividades realizadas</Rotulo>
-                <Parrafo>{i.trabajoRealizado}</Parrafo>
-              </div>
-              <div>
-                <Rotulo>Novedad encontrada</Rotulo>
-                <Parrafo>{i.novedad || "Sin novedades"}</Parrafo>
-              </div>
-              <div>
-                <Rotulo>Observaciones</Rotulo>
-                <Parrafo>{i.observaciones || "—"}</Parrafo>
-              </div>
-              <div className="flex items-center gap-3 pt-1">
-                <Rotulo>Resultado</Rotulo>
-                <Distintivo tono={tonoDeEstado(i.resultado)}>{i.resultado}</Distintivo>
-              </div>
-            </div>
-          </Bloque>
+          <Seccion n="7" titulo="EVIDENCIA FOTOGRÁFICA" />
+          <Evidencia fotos={fotos} />
 
-          <Bloque titulo="5. CIERRE" ultimo>
-            <Rejilla>
-              <Celda etiqueta="Fecha de cierre">{fecha(i.fecha)}</Celda>
-              <Celda etiqueta="Consecutivo">{i.id}</Celda>
-            </Rejilla>
-            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-8">
-              <Firma rotulo="Ejecutó la actividad" nombre={i.tecnico} />
-              <Firma rotulo="Recibió a satisfacción" nombre="" />
-            </div>
-          </Bloque>
-        </section>
+          <Seccion n="8" titulo="CIERRE" />
+          {/* Una sola firma: PBI quito la columna del cliente. Quien
+              recibe ya queda escrito en la seccion 6. */}
+          <table className="tabla">
+            <tbody>
+              <tr>
+                <td className="celda text-center font-semibold text-[12.5px]">
+                  TÉCNICO RESPONSABLE
+                </td>
+              </tr>
+              <tr>
+                <td className="celda">
+                  <Firma
+                    nombre={i.tecnico_nombre}
+                    cargo={i.tecnico_cargo}
+                    fecha={fechaLarga(i.fecha)}
+                    firma={firma}
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
-        <div className="tarjeta p-4 no-imprimir">
-          <div className="flex items-start gap-3">
-            <IcoDocumento className="w-5 h-5 text-[#98a2b3] mt-0.5 shrink-0" />
-            <p className="text-[12.5px] text-[#475467] leading-relaxed">
-              Las casillas marcadas como <em>Por definir</em> son las del formato
-              FOR-MTO-06 que todavía no sabemos de dónde se alimentan (Power Center,
-              orden de servicio, permiso de trabajo, repuestos, horas hombre, mano de
-              obra y quién recibe). En cuanto me pases el Excel del formato y me digas
-              qué va en cada una, el acta queda idéntica a la oficial.
+          {/* Quién la registró, cuando no es quien la firma.
+
+              Pasa a diario mientras el equipo aprende: una persona
+              digita las intervenciones de sus compañeros. No es una
+              irregularidad y por eso no se pinta como una alarma —pero
+              tiene que estar escrito, porque el acta va a auditoría y
+              «¿quién metió esto?» es una pregunta que se hace. */}
+          {i.registrado_por && i.registrado_por !== i.tecnico_nombre ? (
+            <p
+              className="text-[12px] mt-2 leading-relaxed"
+              style={{ color: "var(--color-tenue)" }}
+            >
+              Registrada en el sistema por <strong>{i.registrado_por}</strong>.
             </p>
+          ) : null}
+
+          {/* La corrección, si la hubo. Lo mismo que imprime el PDF. */}
+          {i.editada_en ? (
+            <p
+              className="text-[12px] mt-2 leading-relaxed border px-2.5 py-2"
+              style={{ borderColor: "#000" }}
+            >
+              <strong>Acta corregida</strong> el {fechaHoraLarga(i.editada_en)}{" "}
+              por {i.editada_por || "—"}
+              {i.motivo_edicion ? ` · ${i.motivo_edicion}` : ""}
+            </p>
+          ) : null}
+
+          {i.observaciones_finales ? (
+            <p className="text-[12.5px] mt-2 leading-relaxed">
+              <strong>Observaciones finales:</strong> {i.observaciones_finales}
+            </p>
+          ) : null}
+        </div>
+
+        <AccionesActa
+          idIntervencion={i.id_intervencion}
+          urlDrive={i.pdf_drive_url}
+          puedeCorregir={!loginConfigurado() || puedeEditar(usuario)}
+          puedeBorrar={!loginConfigurado() || esAdministrador(usuario)}
+          idEquipo={i.id_equipo}
+        />
+
+        <div
+          className="no-imprimir mt-4 border rounded px-4 py-3"
+          style={{ borderColor: "var(--color-borde)", background: "var(--color-panel)" }}
+        >
+          <p className="text-[13.5px] leading-relaxed" style={{ color: "var(--color-tenue)" }}>
+            Este documento replica <strong>Formato_Intervencion_PBI</strong> con
+            sus 8 secciones y sus casillas. El PDF se genera solo al guardar la
+            intervención y se archiva en <code>06_INTERVENCIONES</code> del
+            equipo. Si el archivado falla, el acta queda guardada en este equipo
+            y se puede reintentar con el botón de arriba.
+          </p>
+          <div className="flex gap-4 mt-2">
+            <Link
+              href={`/intervenciones?equipo=${i.id_equipo}`}
+              className="font-[family-name:var(--font-mono)] text-[12.5px]"
+              style={{ color: "var(--color-activo)" }}
+            >
+              Historial del equipo →
+            </Link>
+            {c ? (
+              <span
+                className="font-[family-name:var(--font-mono)] text-[12.5px]"
+                style={{ color: "var(--color-sin-info)" }}
+              >
+                Controlador {c.id_controlador}
+              </span>
+            ) : null}
           </div>
         </div>
       </main>
@@ -189,75 +339,172 @@ export default async function ActaIntervencion({
   );
 }
 
-function Bloque({
-  titulo, children, ultimo,
+/* ---------- Piezas del formato ---------- */
+
+function Seccion({ n, titulo }: { n: string; titulo: string }) {
+  return (
+    <div className="seccion-acta">
+      {n}. {titulo}
+    </div>
+  );
+}
+
+function Fila({
+  campo, dato, mono, alto,
 }: {
-  titulo: string; children: React.ReactNode; ultimo?: boolean;
+  campo: string; dato?: string | null; mono?: boolean; alto?: boolean;
+}) {
+  const vacio = !dato || String(dato).trim() === "";
+  return (
+    <tr>
+      <td className="celda etiqueta">{campo}</td>
+      <td
+        className={`celda ${mono ? "font-[family-name:var(--font-mono)]" : ""} ${
+          alto ? "align-top py-2.5" : ""
+        }`}
+        style={vacio ? { color: "var(--color-sin-info)" } : undefined}
+      >
+        {vacio ? "—" : dato}
+      </td>
+    </tr>
+  );
+}
+
+function Casillas<T extends string>({
+  opciones, valor,
+}: {
+  opciones: [T, string][]; valor: T | null | undefined;
 }) {
   return (
-    <section className={ultimo ? "" : "border-b border-[#e9edf4]"}>
-      <h2 className="bg-[#f7f9fc] border-b border-[#e9edf4] px-5 py-2 text-[11.5px] font-extrabold tracking-wide text-marino-900">
-        {titulo}
-      </h2>
-      <div className="px-5 py-4">{children}</div>
-    </section>
+    <span className="flex flex-wrap gap-x-4 gap-y-1">
+      {opciones.map(([v, etiqueta]) => (
+        // Sin nowrap: "Satisfactorio con observaciones" no cabe de una
+        // pieza en un telefono y se salia del recuadro. Lo unico que no
+        // debe partirse es la casilla de su primera palabra, y de eso se
+        // encarga el espacio duro.
+        <span key={v}>
+          <span className="casilla">{v === valor ? "☑" : "☐"}</span>
+          {" "}
+          {etiqueta}
+        </span>
+      ))}
+    </span>
   );
 }
 
-function Rejilla({ children }: { children: React.ReactNode }) {
+/**
+ * Las fotos que el técnico tomó en campo.
+ *
+ * Se sirven por el proxy propio (`/api/imagen`) porque un enlace de Drive
+ * es una página, no un archivo. En parejas, como el formato en papel, y
+ * cada una abre el original en Drive por si hay que verla en detalle.
+ */
+function Evidencia({ fotos }: { fotos: IntervencionFoto[] }) {
+  if (!fotos.length) {
+    return (
+      <table className="tabla">
+        <tbody>
+          <tr>
+            {[0, 1].map((n) => (
+              <td
+                key={n}
+                className="celda h-[150px] w-1/2 text-center align-middle text-[12.5px]"
+                style={{ color: "var(--color-sin-info)" }}
+              >
+                FOTO / EVIDENCIA
+              </td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
+    );
+  }
+
+  const parejas: IntervencionFoto[][] = [];
+  for (let n = 0; n < fotos.length; n += 2) parejas.push(fotos.slice(n, n + 2));
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3">
-      {children}
-    </div>
+    <table className="tabla">
+      <tbody>
+        {parejas.map((pareja, fila) => (
+          <tr key={fila}>
+            {pareja.map((f, col) => (
+              <td key={f.id} className="celda w-1/2 align-top p-1.5">
+                <a
+                  href={f.drive_url || "#"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/api/imagen/${f.drive_file_id}?w=900`}
+                    alt={`Evidencia ${fila * 2 + col + 1}`}
+                    className="w-full h-[170px] object-cover rounded-sm"
+                    style={{ background: "var(--color-campo)" }}
+                  />
+                </a>
+                <div
+                  className="font-[family-name:var(--font-mono)] text-[10.5px] mt-1 truncate"
+                  style={{ color: "var(--color-sin-info)" }}
+                >
+                  {f.nombre_archivo}
+                </div>
+              </td>
+            ))}
+            {pareja.length === 1 ? <td className="celda w-1/2" /> : null}
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
-function Celda({
-  etiqueta, children,
+/** Fecha y hora de una marca de tiempo, para el pie de la corrección. */
+function fechaHoraLarga(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${dd}/${mm}/${d.getFullYear()} a las ${hh}:${mi}`;
+}
+
+function Firma({
+  nombre,
+  cargo,
+  fecha,
+  firma,
 }: {
-  etiqueta: string; children: React.ReactNode;
+  nombre: string;
+  cargo: string;
+  fecha: string;
+  /** La firma digital, ya en data URL, si su dueño tiene una cargada. */
+  firma?: string | null;
 }) {
   return (
-    <div className="border-b border-dotted border-[#d3dae6] pb-1.5">
-      <div className="text-[10.5px] text-[#667085] font-semibold uppercase tracking-wide">
-        {etiqueta}
-      </div>
-      <div className="text-[13px] font-semibold text-marino-900 mt-0.5">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function Rotulo({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="text-[10.5px] text-[#667085] font-semibold uppercase tracking-wide mb-1">
-      {children}
-    </div>
-  );
-}
-
-function Parrafo({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[13px] text-[#1d2939] leading-relaxed border border-[#eef1f6] rounded-md px-3 py-2 bg-[#fcfdff] min-h-[42px]">
-      {children}
-    </p>
-  );
-}
-
-function PorDefinir() {
-  return <span className="text-[#b4bcca] font-normal italic">Por definir</span>;
-}
-
-function Firma({ rotulo, nombre }: { rotulo: string; nombre: string }) {
-  return (
-    <div>
-      <div className="h-12" />
-      <div className="border-t border-marino-900" />
-      <div className="text-[11px] text-[#667085] mt-1.5">{rotulo}</div>
-      <div className="text-[13px] font-semibold text-marino-900">
-        {nombre || " "}
-      </div>
+    <div className="text-[11.5px] leading-[2.1]">
+      {firma ? (
+        <>
+          {/* Se apoya sobre la raya, igual que en el PDF */}
+          <div className="h-[34px] flex items-end">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={firma}
+              alt={`Firma de ${nombre}`}
+              className="h-[32px] w-auto max-w-[170px] object-contain object-left"
+            />
+          </div>
+          <div style={{ borderBottom: "1px solid currentColor" }} />
+          <div className="text-[10.5px] leading-[1.6]">Firmado digitalmente</div>
+        </>
+      ) : (
+        <div>Firma: ______________________________</div>
+      )}
+      <div>Nombre: {nombre || "____________________________"}</div>
+      <div>Cargo: {cargo || "____________________________"}</div>
+      <div>Fecha: {fecha || "____ / ____ / ______"}</div>
     </div>
   );
 }

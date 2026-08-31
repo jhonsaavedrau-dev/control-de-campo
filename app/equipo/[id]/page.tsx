@@ -1,0 +1,492 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import {
+  obtenerFichaEquipo, equiposConSede, lecturasDe, instalacionesDe,
+} from "@/lib/db";
+import { ritmoDiario } from "@/lib/horometro";
+import { Encabezado, PieDePagina } from "@/components/Marco";
+import { InsigniaResultado, fechaCorta } from "@/components/Piezas";
+import {
+  Bloque, BloqueMedidores, BloqueControlador, BloqueEquipo,
+  BloqueFotos, BloqueDocumentos, BloqueMantenimiento, EnlaceSede,
+} from "@/components/FichaEquipo";
+import {
+  IcoHerramienta, IcoCodigoQR, IcoLapiz, IcoFlecha, IcoChip, IcoDocumento,
+  IcoRed, IcoLupa, IcoDisco, IcoTermometro, IcoCarpeta,
+} from "@/components/Iconos";
+import PanelBackups from "@/components/PanelBackups";
+import AccionesHojaVida from "@/components/AccionesHojaVida";
+import PanelManuales from "@/components/PanelManuales";
+import ExploradorDrive from "@/components/ExploradorDrive";
+import {
+  ETIQUETA_TIPO, ETIQUETA_ESTADO, ETIQUETA_SINCRONISMO, semaforo,
+} from "@/lib/tipos";
+import { usuarioActual, puedeEditar } from "@/lib/sesion";
+
+export default async function FichaEquipo({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const [ficha, usuario, pares] = await Promise.all([
+    obtenerFichaEquipo(decodeURIComponent(id).toUpperCase()),
+    usuarioActual(),
+    equiposConSede(),
+  ]);
+
+  // El ritmo real de operación, para poder decir cuándo cae el
+  // preventivo y no solo cuántas horas faltan. Si falta la migración 11
+  // no pasa nada: se sigue mostrando en horas.
+  let ritmo: { horasPorDia: number } | null = null;
+  try {
+    ritmo = ritmoDiario(await lecturasDe(decodeURIComponent(id).toUpperCase()));
+  } catch {
+    ritmo = null;
+  }
+
+  // Solo cuántos hay puestos, para el botón. El detalle vive en su
+  // propia página: la ficha ya es larga.
+  let instalaciones: Awaited<ReturnType<typeof instalacionesDe>> = [];
+  try {
+    instalaciones = await instalacionesDe(decodeURIComponent(id).toUpperCase());
+  } catch {
+    instalaciones = [];
+  }
+  if (!ficha) notFound();
+  const puedeEditarFicha = puedeEditar(usuario);
+
+  const { equipo: e, sede: s, controlador: c, intervenciones, documentos } = ficha;
+  const tono = semaforo(e.estado);
+
+  // Los que sincronizan con este: misma sede y mismo grupo. Es una
+  // lista sin jerarquia, asi que basta con compartir el nombre.
+  const asociados = e.grupo_sincronismo
+    ? pares
+        .filter(
+          (x) =>
+            x.equipo.id_sede === e.id_sede &&
+            x.equipo.grupo_sincronismo === e.grupo_sincronismo &&
+            x.equipo.id_equipo !== e.id_equipo,
+        )
+        .map((x) => x.equipo)
+        .sort((a, b) => a.id_equipo.localeCompare(b.id_equipo))
+    : [];
+
+  return (
+    <>
+      <Encabezado />
+
+      <main className="flex-1 w-full lienzo-reticula">
+        <div className="max-w-[1180px] mx-auto px-3 sm:px-6 py-4 sm:py-7">
+          {/* ── Placa del equipo ────────────────────────────── */}
+          <div className="bloque mb-4">
+            <div
+              className="relative overflow-hidden px-4 sm:px-6 py-5"
+              style={{ background: "var(--color-marino)" }}
+            >
+              {/* Franja diagonal: el guiño de marca */}
+              <div className="absolute right-0 top-0 bottom-0 w-16 opacity-[0.13] marca-diagonal" />
+
+              <div className="relative flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="mb-2.5">
+                    <span
+                      className="inline-flex items-center gap-1.5 font-[family-name:var(--font-mono)] text-[10.5px] uppercase tracking-[0.12em] px-2 py-1 rounded"
+                      style={{
+                        background: "rgba(255,255,255,0.1)",
+                        color: "var(--color-amarillo)",
+                      }}
+                    >
+                      {s?.id_sede} · {s?.nombre}
+                    </span>
+                  </div>
+                  <h1
+                    className="font-[family-name:var(--font-placa)] font-semibold text-[46px] sm:text-[58px] leading-[0.9] text-white"
+                    style={{ letterSpacing: "-0.015em" }}
+                  >
+                    {e.id_equipo}
+                  </h1>
+                  <p className="font-[family-name:var(--font-mono)] text-[13.5px] mt-2 text-white/60">
+                    {e.nombre ? `${e.nombre} — ` : ""}
+                    {e.fabricante} {e.modelo}
+                    {c ? (
+                      <>
+                        {" · "}
+                        <span style={{ color: "var(--color-cian)" }}>
+                          {c.id_controlador}
+                        </span>
+                      </>
+                    ) : null}
+                  </p>
+                </div>
+
+                <div className={`testigo testigo-${tono} shrink-0`}>
+                  <span
+                    className="testigo-punto"
+                    style={{ background: "currentColor" }}
+                  />
+                  {ETIQUETA_ESTADO[e.estado]}
+                </div>
+              </div>
+            </div>
+
+            {/* Medidores, pegados a la placa */}
+            <div
+              className="px-3 sm:px-4 py-3"
+              style={{
+                background: "var(--color-hundido)",
+                borderTop: "3px solid var(--color-amarillo)",
+              }}
+            >
+              <BloqueMedidores equipo={e} />
+            </div>
+          </div>
+
+          {/* ── Cuerpo ──────────────────────────────────────── */}
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_340px]">
+            <div className="flex flex-col gap-4 min-w-0">
+              {c ? (
+                <BloqueControlador controlador={c} />
+              ) : puedeEditarFicha ? (
+                <Link
+                  href={`/nuevo?que=controlador&equipo=${e.id_equipo}`}
+                  className="bloque px-3.5 py-3 text-[13.5px] no-imprimir"
+                  style={{
+                    color: "var(--color-activo)",
+                    borderLeft: "3px solid var(--color-borde)",
+                  }}
+                >
+                  <IcoChip className="w-3.5 h-3.5 inline-block mr-1.5 align-[-2px]" />
+                  Este equipo no tiene controlador registrado. Añadirlo →
+                </Link>
+              ) : null}
+              <BloqueFotos
+                equipo={e}
+                controlador={c}
+                puedeEditar={puedeEditarFicha}
+              />
+            </div>
+
+            <div className="flex flex-col gap-4 min-w-0">
+              <BloqueMantenimiento
+                equipo={e}
+                intervenciones={intervenciones}
+                puedeEditar={puedeEditarFicha}
+                ritmo={ritmo}
+              />
+
+              <BloqueEquipo equipo={e} />
+
+              {/* Sincronismo: como opera y con cuales va en paralelo.
+                  Dos equipos que sincronizan se comportan igual, y sin
+                  esto no habia forma de saber cuales van juntos. */}
+              {(e.sincronismo && e.sincronismo !== "individual") ||
+              e.grupo_sincronismo ? (
+                <div className="bloque">
+                  <div className="bloque-cabeza">
+                    <IcoRed />
+                    Sincronismo
+                    {e.grupo_sincronismo ? (
+                      <span className="cuenta">{e.grupo_sincronismo}</span>
+                    ) : null}
+                  </div>
+                  <div className="bloque-cuerpo">
+                    <div className="text-[14px]">
+                      {ETIQUETA_SINCRONISMO[e.sincronismo] ?? "Individual"}
+                    </div>
+                    {asociados.length ? (
+                      <>
+                        <div
+                          className="font-[family-name:var(--font-mono)] text-[10.5px] uppercase tracking-[0.1em] mt-3 mb-1.5"
+                          style={{ color: "var(--color-tenue)" }}
+                        >
+                          Asociados en este campo
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {asociados.map((a) => (
+                            <Link
+                              key={a.id_equipo}
+                              href={`/equipo/${a.id_equipo}`}
+                              className="pastilla"
+                            >
+                              {a.id_equipo}
+                            </Link>
+                          ))}
+                        </div>
+                      </>
+                    ) : e.grupo_sincronismo ? (
+                      <p
+                        className="text-[13px] mt-2"
+                        style={{ color: "var(--color-sin-info)" }}
+                      >
+                        Ningún otro equipo de esta sede tiene el grupo «
+                        {e.grupo_sincronismo}».
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
+              {e.observaciones ? (
+                <div
+                  className="panel-hondo px-3.5 py-3 text-[13.5px] leading-relaxed"
+                  style={{
+                    color: "var(--color-tenue)",
+                    borderLeft: "3px solid var(--color-pendiente)",
+                  }}
+                >
+                  {e.observaciones}
+                </div>
+              ) : null}
+
+              <BloqueDocumentos documentos={documentos} />
+            </div>
+
+            <div className="flex flex-col gap-4 min-w-0">
+              {/* Acciones arriba: es lo que el técnico viene a hacer */}
+              <div className="flex flex-col gap-2 no-imprimir">
+                <Link
+                  href={`/intervencion/nueva?equipo=${e.id_equipo}`}
+                  className="accion accion-registrar"
+                >
+                  <IcoHerramienta className="w-4 h-4" />
+                  Registrar intervención
+                </Link>
+                <div className="grid grid-cols-2 gap-2">
+                  <Link
+                    href={`/equipo/${e.id_equipo}/qr`}
+                    className="accion accion-secundaria"
+                    style={{ fontSize: "12.5px", padding: "11px 10px" }}
+                  >
+                    <IcoCodigoQR className="w-4 h-4" />
+                    Código QR
+                  </Link>
+                  {puedeEditarFicha ? (
+                    <Link
+                      href={`/equipo/${e.id_equipo}/editar`}
+                      className="accion accion-secundaria"
+                      style={{ fontSize: "12.5px", padding: "11px 10px" }}
+                    >
+                      <IcoLapiz className="w-4 h-4" />
+                      Editar
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* Los tres atajos a pantallas propias. Con placa de color
+                  y con la cuenta de lo que hay al otro lado: un boton
+                  gris no distingue "guardar" de "ir a otro sitio", y sin
+                  la cuenta hay que entrar para saber si hay algo. */}
+              <div className="flex flex-col gap-2">
+                <Atajo
+                  href={`/equipo/${e.id_equipo}/consumibles`}
+                  color="var(--color-activo)"
+                  icono={<IcoDisco className="w-[19px] h-[19px]" />}
+                  titulo="Consumibles"
+                  nota="Qué le pusieron y cuánto le queda"
+                  cuenta={instalaciones.length || null}
+                />
+                <Atajo
+                  href={`/operacion?equipo=${e.id_equipo}`}
+                  color="var(--color-marino)"
+                  icono={<IcoTermometro className="w-[19px] h-[19px]" />}
+                  titulo="Operación"
+                  nota="El registro hora a hora"
+                />
+                <Atajo
+                  href={`/equipo/${e.id_equipo}/trazabilidad`}
+                  color="var(--color-naranja-hondo)"
+                  icono={<IcoLupa className="w-[19px] h-[19px]" />}
+                  titulo="Trazabilidad"
+                  nota="Cómo se ha comportado el equipo"
+                />
+              </div>
+
+              <Bloque
+                titulo="Intervenciones"
+                icono={<IcoHerramienta />}
+                cuenta={String(intervenciones.length)}
+                sinRelleno
+              >
+                {intervenciones.length ? (
+                  <div>
+                    {intervenciones.slice(0, 6).map((i) => (
+                      <Link
+                        key={i.id_intervencion}
+                        href={`/intervencion/${i.id_intervencion}`}
+                        className="campo-fila"
+                        style={{ alignItems: "flex-start" }}
+                      >
+                        <span
+                          className="font-[family-name:var(--font-mono)] text-[11.5px] font-medium shrink-0 px-1.5 py-0.5 rounded"
+                          style={{
+                            background: "var(--color-hundido)",
+                            color: "var(--color-tenue)",
+                          }}
+                        >
+                          {fechaCorta(i.fecha)}
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-[13.5px] font-medium leading-snug line-clamp-2">
+                            {i.actividades_realizadas}
+                          </span>
+                          <span
+                            className="block font-[family-name:var(--font-mono)] text-[11.5px] mt-1"
+                            style={{ color: "var(--color-sin-info)" }}
+                          >
+                            {ETIQUETA_TIPO[i.tipo_intervencion]} ·{" "}
+                            {i.tecnico_nombre}
+                          </span>
+                        </span>
+                        <InsigniaResultado resultado={i.resultado} />
+                      </Link>
+                    ))}
+                    {intervenciones.length > 6 ? (
+                      <Link
+                        href={`/intervenciones?equipo=${e.id_equipo}`}
+                        className="campo-fila justify-center"
+                        style={{ color: "var(--color-activo)" }}
+                      >
+                        <span className="font-[family-name:var(--font-mono)] text-[11.5px] uppercase tracking-wide">
+                          Ver las {intervenciones.length}
+                        </span>
+                        <IcoFlecha className="w-3.5 h-3.5" />
+                      </Link>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="bloque-cuerpo text-center py-6">
+                    <IcoHerramienta
+                      className="w-7 h-7 mx-auto mb-2"
+                      // el vacío también comunica: aún no hay historia
+                    />
+                    <p
+                      className="text-[13.5px]"
+                      style={{ color: "var(--color-tenue)" }}
+                    >
+                      Sin intervenciones registradas
+                    </p>
+                    <p
+                      className="text-[12.5px] mt-1"
+                      style={{ color: "var(--color-sin-info)" }}
+                    >
+                      La primera abre su historial
+                    </p>
+                  </div>
+                )}
+              </Bloque>
+
+              {c ? (
+                <div className="bloque no-imprimir">
+                  <div className="bloque-cabeza">
+                    <IcoChip />
+                    Backups
+                  </div>
+                  <div className="bloque-cuerpo">
+                    <PanelBackups
+                      idEquipo={e.id_equipo}
+                      idControlador={c.id_controlador}
+                    />
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="bloque no-imprimir">
+                <div className="bloque-cabeza">
+                  <IcoDocumento />
+                  Manuales
+                  <span className="cuenta">01_MANUALES</span>
+                </div>
+                <div className="bloque-cuerpo">
+                  <PanelManuales
+                    idEquipo={e.id_equipo}
+                    puedeAdjuntar={puedeEditarFicha}
+                  />
+                </div>
+              </div>
+
+              {/* Todo lo del equipo que vive en Drive, en un solo sitio y
+                  con vuelta atrás. Los bloques de arriba siguen siendo
+                  los atajos de lo que se usa a diario —manuales y
+                  backups, con su botón de subir—; esto es para lo demás:
+                  las fotos, las actas y lo que alguien haya dejado ahí. */}
+              <div className="bloque no-imprimir">
+                <div className="bloque-cabeza">
+                  <IcoCarpeta />
+                  Carpeta en Drive
+                </div>
+                <div className="bloque-cuerpo">
+                  <ExploradorDrive equipoInicial={e.id_equipo} />
+                </div>
+              </div>
+
+              <div className="bloque no-imprimir">
+                <div className="bloque-cabeza">
+                  <IcoHerramienta />
+                  Hoja de vida
+                  <span className="cuenta">FOR-MTO-16</span>
+                </div>
+                <div className="bloque-cuerpo">
+                  <AccionesHojaVida
+                    idEquipo={e.id_equipo}
+                    totalIntervenciones={intervenciones.length}
+                    puedeArchivar={puedeEditarFicha}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            className="mt-5 pt-4 flex flex-wrap items-center justify-between gap-3"
+            style={{ borderTop: "1px solid var(--color-borde)" }}
+          >
+            <EnlaceSede
+              idSede={s?.id_sede}
+              nombre={s?.nombre}
+              cliente={s?.cliente}
+            />
+            {e.actualizado_por ? (
+              <span
+                className="font-[family-name:var(--font-mono)] text-[11.5px] uppercase tracking-wide"
+                style={{ color: "var(--color-sin-info)" }}
+              >
+                Ficha actualizada por {e.actualizado_por}
+              </span>
+            ) : null}
+          </div>
+        </div>
+      </main>
+
+      <PieDePagina />
+    </>
+  );
+}
+
+/** Un enlace a una pantalla entera, con su color y su cuenta. */
+function Atajo({
+  href, color, icono, titulo, nota, cuenta,
+}: {
+  href: string;
+  color: string;
+  icono: React.ReactNode;
+  titulo: string;
+  nota: string;
+  cuenta?: number | null;
+}) {
+  return (
+    <Link href={href} className="atajo no-imprimir">
+      <span className="atajo-placa" style={{ background: color }}>
+        {icono}
+      </span>
+      <span className="atajo-texto">
+        <span className="atajo-titulo">{titulo}</span>
+        <span className="atajo-nota">{nota}</span>
+      </span>
+      {cuenta ? <span className="atajo-cuenta">{cuenta}</span> : null}
+      <IcoFlecha className="w-4 h-4 atajo-flecha" />
+    </Link>
+  );
+}

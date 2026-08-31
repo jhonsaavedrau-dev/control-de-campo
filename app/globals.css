@@ -1,19 +1,109 @@
 @import "tailwindcss";
 
+/* ============================================================
+   SISTEMA DE CONTROL DE CAMPO — PBI
+   Petroleum Blending International SAS ESP
+
+   Dirección: panel de instrumentos. El técnico ya sabe leer un
+   tablero, así que la pantalla se comporta como uno: etiquetas
+   condensadas, valores en monoespaciada, estado como testigo de
+   color, superficies con relieve en vez de sombras difusas.
+
+   Alto contraste porque se usa al sol. Nada de degradados de
+   adorno ni sombras suaves de tarjeta flotante.
+   ============================================================ */
+
 @theme {
-  --color-marino-900: #0d1a3a;
-  --color-marino-800: #122252;
-  --color-marino-700: #172c63;
-  --color-marino-600: #1e3a7b;
-  --color-marino-50: #eef2fb;
+  /* --- Superficies, de abajo hacia arriba --- */
+  --color-lienzo: #eceef1;      /* el fondo de la página */
+  --color-hundido: #e3e6ea;     /* zonas que reciben contenido */
+  --color-panel: #ffffff;       /* la superficie de trabajo */
+  --color-campo: #f5f7f8;       /* dentro de un panel: inputs, celdas */
+  --color-realce: #fafbfc;
 
-  --color-amarillo: #ffc629;
-  --color-amarillo-600: #e0a800;
+  /* --- Filos --- */
+  --color-borde: #cfd5dc;
+  --color-borde-suave: #e2e6ea;
+  --color-borde-fuerte: #aab3bd;
 
-  --color-lienzo: #eef1f6;
+  /* --- Tinta --- */
+  --color-tinta: #0f1419;
+  --color-tenue: #55606d;
+  --color-sin-info: #8b95a1;
 
-  --font-sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial,
-    sans-serif;
+  /* --- Instrumentación --- */
+  --color-activo: #0f8a7e;
+  --color-activo-hondo: #0a6b61;
+  --color-accion: #f89521;
+  --color-accion-hondo: #c9761a;
+
+  /* --- Testigos de estado --- */
+  --color-operativo: #2e9e5b;
+  --color-pendiente: #b5720c;
+  --color-critico: #d2302f;
+
+  /* --- Identidad PBI ---
+     Medidos de su propia web (pbi.com.co), no elegidos a ojo: el azul
+     #0D3D61 es el fondo de casi toda la pagina, el naranja #F89521 el
+     acento, y el cian #19B1E7 el secundario. Antes habia un marino
+     inventado que no era el de ellos. */
+  --color-marino: #0d3d61;
+  --color-marino-alto: #16537f;
+  --color-marino-hondo: #082b45;
+  --color-naranja: #f89521;
+  --color-naranja-hondo: #c9761a;
+  --color-amarillo: #eec00a;
+  --color-cian: #19b1e7;
+
+  /* --- Series de las graficas ---
+     Validados contra la superficie: el cian de marca (#29a9e0) da 2,7
+     de contraste sobre blanco y no sirve para un trazo. */
+  --serie-disponibilidad: #0f8a7e;
+  --serie-confiabilidad: #1b6fb5;
+
+  /* --- Diesel y GLP ---
+     Van casi siempre juntos en la misma grafica, asi que el par se
+     eligio por separacion, no por gusto: ambar contra azul da 20 de
+     diferencia incluso para quien no distingue el rojo del verde, que
+     es el caso que rompe cualquier pareja de verde y rojo. */
+  --serie-diesel: #b45309;
+  --serie-glp: #0369a1;
+
+  /* --- Tinta de los testigos de estado ---
+     Van sobre su propio fondo tintado, no sobre el panel, asi que
+     necesitan su propio color: el verde que se lee sobre menta clara
+     desaparece sobre verde oscuro. */
+  --tinta-operativo: #1c7a44;
+  --tinta-pendiente: #8f5a09;
+  --tinta-critico:   #a52322;
+
+  /* --- Consola de aviso ---
+     La barra que sale cuando no hay señal. Va oscura aunque la
+     pantalla este en claro: es la unica cosa que tiene que verse
+     desde lejos con el telefono en la mano y guantes puestos. */
+  --color-consola: #1b2536;
+  --color-consola-borde: #33415c;
+  --color-consola-tinta: #eef3fa;
+
+  /* --- Relieve ---
+     Tres escalones y no mas. El sistema nacio sin sombras a proposito
+     —se usa al sol— pero sin ningun relieve todo queda al mismo nivel y
+     no se distingue lo que es superficie de lo que es contenido. Son
+     sombras cortas y frias, teñidas del azul de marca en vez de negro:
+     un gris neutro sobre un lienzo azulado se ve sucio. */
+  --sombra-1: 0 1px 2px rgba(13, 61, 97, 0.06),
+              0 1px 1px rgba(13, 61, 97, 0.04);
+  --sombra-2: 0 1px 2px rgba(13, 61, 97, 0.06),
+              0 4px 10px -2px rgba(13, 61, 97, 0.08);
+  --sombra-3: 0 2px 4px rgba(13, 61, 97, 0.07),
+              0 12px 24px -6px rgba(13, 61, 97, 0.12);
+
+  /* Las lineas de la reticula del fondo. */
+  --color-reticula: rgba(13, 61, 97, 0.035);
+
+  --font-placa: var(--fuente-placa), "Roboto Condensed", sans-serif;
+  --font-sans: var(--fuente-cuerpo), "Source Sans 3", system-ui, sans-serif;
+  --font-mono: var(--fuente-mono), "IBM Plex Mono", ui-monospace, monospace;
 }
 
 html {
@@ -22,72 +112,2410 @@ html {
 
 body {
   font-family: var(--font-sans);
-  color: #111827;
+  color: var(--color-tinta);
+  background: var(--color-lienzo);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Interlineado algo mas suelto de lo habitual: las notas y avisos de
+     este sistema se leen a un brazo de distancia, con el telefono en la
+     mano y la otra ocupada. */
+  line-height: 1.5;
+  text-wrap: pretty;
 }
 
-/* Etiqueta gris / valor oscuro: el patrón de datos de la ficha. */
-.etiqueta {
-  color: #667085;
-  font-size: 0.8125rem;
+/* Numeros de ancho fijo en todo lo que sea un dato: un horometro que
+   baila de ancho al actualizarse parece un error de la maquina. */
+.font-\[family-name\:var\(--font-mono\)\],
+.dato-valor,
+.equipo-id {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "zero" 1;
+}
+
+/* Los titulos de placa van apretados: es una chapa metalica, no un
+   parrafo. Sin esto Barlow deja huecos entre letras a tamaño grande. */
+h1, h2, .equipo-id, .adhesivo-id {
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+/* Nada por debajo de esto: es el suelo de lectura en campo. */
+@media (max-width: 640px) {
+  body { font-size: 15px; }
+}
+
+/* Una retícula muy tenue: da suelo a la página sin llamar la atención.
+   Es lo que separa "fondo gris" de "superficie de trabajo". */
+.lienzo-reticula {
+  background-image:
+    linear-gradient(to right, var(--color-reticula) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-reticula) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* ============================================================
+   PANEL — la superficie de trabajo
+   El relieve viene de un filo inferior más oscuro, como un panel
+   atornillado, no de una sombra difusa.
+   ============================================================ */
+
+.panel {
+  background: var(--color-panel);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 8px;
+  box-shadow: var(--sombra-1);
+}
+
+/* Un panel que se puede tocar se levanta al pasar por encima. Solo los
+   que llevan enlace: si todo reacciona, reaccionar deja de significar
+   nada. */
+a.panel,
+button.panel {
+  transition: box-shadow 160ms ease, border-color 160ms ease,
+              transform 160ms ease;
+}
+a.panel:hover,
+button.panel:hover {
+  border-color: var(--color-borde);
+  box-shadow: var(--sombra-2);
+  transform: translateY(-1px);
+}
+
+.panel-hondo {
+  background: var(--color-campo);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 7px;
+  box-shadow: inset 0 1px 2px rgba(13, 61, 97, 0.04);
+}
+
+/* ============================================================
+   PLACA DE EQUIPO — el encabezado que el técnico reconoce
+   ============================================================ */
+
+.placa {
+  position: relative;
+  background: var(--color-panel);
+  border-bottom: 1px solid var(--color-borde);
+  padding: 18px 20px 16px;
+  overflow: hidden;
+}
+.placa::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--color-sin-info);
+}
+.placa-operativo::before { background: var(--color-operativo); }
+.placa-pendiente::before { background: var(--color-pendiente); }
+.placa-critico::before   { background: var(--color-critico); }
+
+.ruta {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: var(--color-sin-info);
+  text-transform: uppercase;
+  margin-bottom: 9px;
+}
+
+.equipo-id {
+  font-family: var(--font-placa);
+  font-weight: 600;
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: -0.005em;
+}
+
+.equipo-sub {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-tenue);
+  margin-top: 5px;
+}
+
+/* ============================================================
+   RÓTULO DE SECCIÓN
+   ============================================================ */
+
+.rotulo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-sin-info);
+  margin: 26px 0 10px;
+}
+.rotulo:first-child { margin-top: 0; }
+.rotulo::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-borde-suave);
+}
+
+/* ============================================================
+   REJILLA DE DATOS — lectura de instrumento
+   ============================================================ */
+
+.datos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--color-borde-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.datos-1 { grid-template-columns: 1fr; }
+
+@media (min-width: 900px) {
+  .datos-amplia { grid-template-columns: repeat(3, 1fr); }
+}
+
+.dato {
+  background: var(--color-panel);
+  padding: 9px 12px;
+  min-width: 0;
+}
+.dato-etiqueta {
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-sin-info);
+  margin-bottom: 3px;
+}
+.dato-valor {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.35;
+  word-break: break-word;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   TESTIGOS DE ESTADO
+   ============================================================ */
+
+.insignia {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  padding: 2px 7px 2px 8px;
+  border-left: 2px solid var(--color-sin-info);
+  color: var(--color-sin-info);
+  background: color-mix(in srgb, var(--color-sin-info) 8%, transparent);
+  white-space: nowrap;
+}
+.insignia-operativo {
+  color: var(--color-operativo);
+  border-left-color: var(--color-operativo);
+  background: color-mix(in srgb, var(--color-operativo) 9%, transparent);
+}
+.insignia-pendiente {
+  color: var(--color-pendiente);
+  border-left-color: var(--color-pendiente);
+  background: color-mix(in srgb, var(--color-pendiente) 9%, transparent);
+}
+.insignia-critico {
+  color: var(--color-critico);
+  border-left-color: var(--color-critico);
+  background: color-mix(in srgb, var(--color-critico) 9%, transparent);
+}
+
+/* ============================================================
+   ACCIONES
+   El relieve inferior las hace pulsables sin recurrir a sombras.
+   ============================================================ */
+
+.accion {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  border: 1px solid var(--color-accion-hondo);
+  border-radius: 8px;
+  padding: 12px 18px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-accion) 92%, #fff) 0%,
+    var(--color-accion) 100%
+  );
+  color: #2a1a05;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 14.5px;
+  letter-spacing: 0.005em;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: var(--sombra-1),
+              inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: box-shadow 160ms ease, transform 90ms ease, filter 160ms ease;
+}
+/* Un brillo que cruza al pasar por encima. Es el unico adorno del
+   sistema y esta aqui a proposito: el boton de registrar es la accion
+   que mas se repite en el dia, y merece responder. */
+.accion::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.28) 50%,
+    transparent 70%
+  );
+  transform: translateX(-100%);
+  transition: transform 620ms ease;
+  pointer-events: none;
+}
+.accion:hover::after { transform: translateX(100%); }
+.accion:hover { filter: brightness(1.03); box-shadow: var(--sombra-2); }
+.accion:active { transform: translateY(1px); box-shadow: var(--sombra-1); }
+.accion:focus-visible {
+  outline: none;
+  box-shadow: var(--sombra-1),
+              0 0 0 3px color-mix(in srgb, var(--color-accion) 40%, transparent);
+}
+.accion svg { flex-shrink: 0; }
+.accion:disabled { opacity: 0.5; cursor: default; transform: none; }
+
+.accion-secundaria {
+  background: var(--color-panel);
+  border-color: var(--color-borde);
+  color: var(--color-tinta);
+  font-weight: 600;
+  box-shadow: var(--sombra-1);
+}
+.accion-secundaria::after { display: none; }
+.accion-secundaria:hover {
+  background: var(--color-realce);
+  border-color: var(--color-borde-fuerte);
+  filter: none;
+}
+.accion-secundaria:focus-visible {
+  box-shadow: var(--sombra-1),
+              0 0 0 3px color-mix(in srgb, var(--color-activo) 25%, transparent);
+}
+
+/* El que borra. Va aparte y no como estilo suelto en cada sitio: una
+   accion que no se puede deshacer tiene que verse igual en toda la
+   aplicacion. */
+.accion-peligro {
+  background: var(--color-panel);
+  border-color: color-mix(in srgb, var(--color-critico) 45%, var(--color-borde));
+  color: var(--color-critico);
+  font-weight: 600;
+  box-shadow: var(--sombra-1);
+}
+.accion-peligro::after { display: none; }
+.accion-peligro:hover {
+  background: color-mix(in srgb, var(--color-critico) 8%, var(--color-panel));
+  border-color: var(--color-critico);
+  filter: none;
+}
+
+/* Cuando ya se confirmo: relleno, para que no se pulse por inercia. */
+.accion-peligro-firme {
+  background: var(--color-critico);
+  border-color: var(--color-critico);
+  color: #fff;
+}
+.accion-peligro-firme::after { display: none; }
+.accion-peligro-firme:hover {
+  background: color-mix(in srgb, var(--color-critico) 88%, #000);
+}
+
+/* En una fila, no ocupando el ancho entero. */
+.accion-suelta { width: auto; }
+
+/* ============================================================
+   FORMULARIO
+   ============================================================ */
+
+.entrada {
+  width: 100%;
+  background: var(--color-campo);
+  border: 1px solid var(--color-borde);
+  border-radius: 4px;
+  padding: 10px 12px;
+  font-family: var(--font-sans);
+  font-size: 14.5px;
+  color: var(--color-tinta);
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.entrada:hover { border-color: var(--color-borde-fuerte); }
+
+/* El campo que falta. Se pinta el grupo entero —rotulo, control y
+   ayuda— porque en una hoja larga un borde rojo solo se confunde con
+   el foco. */
+[data-falta="si"] .entrada,
+[data-falta="si"] .pastilla {
+  border-color: var(--color-critico);
+  background: color-mix(in srgb, var(--color-critico) 5%, var(--color-panel));
+}
+[data-falta="si"] .entrada:focus {
+  border-color: var(--color-critico);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-critico) 20%, transparent);
+}
+.entrada:focus {
+  outline: none;
+  background: var(--color-panel);
+  border-color: var(--color-activo);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-activo) 16%, transparent);
+}
+textarea.entrada { min-height: 68px; resize: vertical; line-height: 1.5; }
+
+.entrada-rotulo {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-tenue);
+  margin-bottom: 6px;
+}
+.req { color: var(--color-accion-hondo); }
+
+.pastilla {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 9px 11px;
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 999px;
+  color: var(--color-tenue);
+  background: var(--color-panel);
+  cursor: pointer;
+  text-align: center;
+  box-shadow: var(--sombra-1);
+  transition: color 140ms ease, border-color 140ms ease,
+              background 140ms ease, box-shadow 140ms ease;
+}
+.pastilla:hover {
+  border-color: var(--color-borde-fuerte);
+  color: var(--color-tinta);
+}
+.pastilla-activa {
+  border-color: var(--color-activo);
+  color: var(--color-activo);
+  background: color-mix(in srgb, var(--color-activo) 7%, transparent);
   font-weight: 500;
 }
-.valor {
-  color: #0d1a3a;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  text-align: right;
+
+/* ============================================================
+   BITÁCORA — filas de historial
+   ============================================================ */
+
+.bitacora {
+  border: 1px solid var(--color-borde);
+  border-bottom-color: var(--color-borde-fuerte);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.bitacora-fila {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 12px 14px;
+  background: var(--color-panel);
+  border-bottom: 1px solid var(--color-borde-suave);
+  transition: background 100ms ease;
+}
+.bitacora-fila:last-child { border-bottom: none; }
+a.bitacora-fila:hover { background: var(--color-realce); }
+.bitacora-fecha {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--color-tenue);
+  width: 54px;
+  flex-shrink: 0;
 }
 
-.tarjeta {
+/* ============================================================
+   IMPRESIÓN
+   ============================================================ */
+
+@media print {
+  .no-imprimir { display: none !important; }
+  html, body { background: #fff; }
+  .lienzo-reticula { background-image: none; }
+}
+
+/* ============================================================
+   ACTA — réplica del formato oficial, en blanco y negro
+   ============================================================ */
+
+.acta {
   background: #fff;
-  border: 1px solid #e3e8f0;
+  border: 1px solid #000;
+  padding: 14px;
+  color: #000;
+}
+.acta .tabla { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.acta .celda {
+  /* Explicito a proposito: una casilla de un documento tiene que crecer
+     con lo que lleva dentro, pase lo que pase en el resto de la hoja.
+     Una regla global de una sola palabra —`.celda`, la del programa— le
+     metia display:grid y alto fijo, y la firma y las fotos se salian del
+     recuadro pintandose encima de lo de abajo. */
+  display: table-cell;
+  height: auto;
+  border: 1px solid #000;
+  padding: 5px 8px;
+  font-size: 11.5px;
+  vertical-align: middle;
+  word-break: break-word;
+}
+/* El rotulo se encoge con la pantalla. Estaba clavado en 190px: en un
+   telefono el acta mide 336 y el dato se quedaba con 146, asi que el
+   formato "salia corrido". Al imprimir vuelve a los 190 del papel. */
+.acta .etiqueta {
+  width: clamp(84px, 26%, 190px);
+  font-weight: 600;
+  background: #f2f2f2;
+}
+@media (max-width: 560px) {
+  .acta { padding: 8px; }
+  .acta .celda { padding: 4px 6px; font-size: 11px; }
+}
+
+.seccion-acta {
+  background: #000;
+  color: #fff;
+  font-family: var(--font-placa);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  padding: 4px 8px;
+  margin-top: 10px;
+}
+.casilla { font-size: 13px; line-height: 1; }
+
+@media print {
+  @page { size: A4; margin: 12mm; }
+  .acta { border: none; padding: 0; }
+  .seccion-acta,
+  .acta .etiqueta {
+    width: 190px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  main { max-width: none !important; padding: 0 !important; }
+}
+
+/* ============================================================
+   GRAFICAS — un solo sistema para todas
+   ============================================================ */
+
+.gr {
+  background: var(--color-panel);
+  border: 1px solid var(--color-borde-suave);
   border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(13, 26, 58, 0.05);
+  box-shadow: var(--sombra-2);
+  overflow: hidden;
+  margin: 0;
+}
+
+.gr-cabeza {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px 10px;
+  border-bottom: 1px solid var(--color-borde-suave);
+  /* Una veladura hacia el fondo: separa la cabecera del lienzo sin
+     meter otra linea. */
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-hundido) 55%, transparent),
+    transparent
+  );
+}
+
+.gr-icono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: var(--sombra-1);
+}
+
+/* Cuando no hay icono, un filo del color de la serie: la tarjeta tiene
+   que decir de que color es su dato antes de mirar la linea. */
+.gr-filo {
+  width: 4px;
+  height: 22px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.gr-titulo {
+  font-family: var(--font-placa);
+  font-weight: 600;
+  font-size: 15.5px;
+  letter-spacing: 0.01em;
+  color: var(--color-tinta);
+}
+
+.gr-insignia {
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--color-hundido);
+}
+
+.gr-nota {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-sin-info);
+  text-align: right;
+}
+.gr-insignia + .gr-nota { margin-left: 0; }
+.gr-titulo + .gr-nota { margin-left: auto; }
+
+.gr-cuerpo { padding: 13px 14px 12px; }
+
+/* --- El lienzo --- */
+
+.gr-rejilla { stroke: var(--color-borde-suave); stroke-width: 1; }
+.gr-eje {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  fill: var(--color-sin-info);
+}
+
+/* El pie dice el valor donde esta el cursor. Ocupa siempre la misma
+   altura, para que la tarjeta no de saltos al pasar por encima. */
+.gr-pie {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 22px;
+  margin-top: 6px;
+  padding-top: 7px;
+  border-top: 1px solid var(--color-borde-suave);
+  font-size: 12.5px;
+  color: var(--color-tenue);
+}
+.gr-pie strong { color: var(--color-tinta); font-weight: 600; }
+.gr-pie-valor {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-tinta);
+}
+.gr-punto {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+/* --- Barras --- */
+
+.gr-carril {
+  height: 13px;
+  border-radius: 4px;
+  background: var(--color-hundido);
+  overflow: hidden;
+}
+.gr-barra {
+  height: 100%;
+  border-radius: 4px;
+  transition: filter 140ms ease, opacity 140ms ease, width 320ms ease;
+}
+.gr-barra:hover { filter: brightness(1.1); }
+
+.gr-clave {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.gr-cifra {
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-tenue);
+}
+.gr-cifra strong { color: var(--color-tinta); }
+
+.gr-escala {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 9px;
+  padding-top: 7px;
+  border-top: 1px solid var(--color-borde-suave);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--color-sin-info);
+}
+
+/* --- Sin datos --- */
+
+.gr-vacio {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 22px 4px;
+  font-size: 13.5px;
+  color: var(--color-sin-info);
+}
+.gr-vacio-marca {
+  width: 26px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--color-borde);
+  flex-shrink: 0;
+}
+
+/* --- Leyenda --- */
+
+.gr-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 14px;
+  margin-top: 11px;
+  padding-top: 9px;
+  border-top: 1px solid var(--color-borde-suave);
+}
+.gr-leyenda span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--color-tenue);
+}
+.gr-leyenda i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   MENU — el boton y su hoja
+   ============================================================ */
+
+/* El boton del menu no es un icono suelto: lleva el nombre al lado y
+   se ve como algo que se pulsa. Una hamburguesa sola obliga a probar
+   para saber que hace. */
+.boton-menu {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 38px;
+  padding: 0 13px 0 11px;
+  border: 1px solid rgba(13, 61, 97, 0.2);
+  border-radius: 9px;
+  background: var(--color-panel);
+  color: var(--color-marino);
+  font-family: var(--font-placa);
+  font-weight: 600;
+  font-size: 13.5px;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  box-shadow: var(--sombra-1);
+  transition: background 150ms ease, border-color 150ms ease,
+              box-shadow 150ms ease;
+}
+.boton-menu:hover {
+  background: color-mix(in srgb, var(--color-marino) 5%, var(--color-panel));
+  border-color: rgba(13, 61, 97, 0.36);
+  box-shadow: var(--sombra-2);
+}
+.boton-menu:focus-visible {
+  outline: 2px solid var(--color-activo);
+  outline-offset: 2px;
+}
+
+/* Las tres rayas se convierten en aspa al abrir. */
+.boton-menu-rayas {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 16px;
+  height: 12px;
+}
+.boton-menu-rayas i {
+  display: block;
+  height: 1.8px;
+  border-radius: 2px;
+  background: currentColor;
+  transition: transform 220ms cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 160ms ease;
+}
+.boton-menu-rayas i:nth-child(1) { width: 16px; }
+.boton-menu-rayas i:nth-child(2) { width: 12px; }
+.boton-menu-rayas i:nth-child(3) { width: 16px; }
+
+.boton-menu[aria-expanded="true"] .boton-menu-rayas i:nth-child(1) {
+  transform: translateY(5.8px) rotate(45deg);
+}
+.boton-menu[aria-expanded="true"] .boton-menu-rayas i:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+.boton-menu[aria-expanded="true"] .boton-menu-rayas i:nth-child(3) {
+  width: 16px;
+  transform: translateY(-5.8px) rotate(-45deg);
+}
+
+/* --- La hoja --- */
+
+.menu-grupo {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-sin-info);
+  padding: 14px 10px 7px;
+}
+
+.menu-enlace {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 10px;
+  border-radius: 9px;
+  transition: background 140ms ease;
+}
+.menu-enlace:hover { background: var(--color-campo); }
+
+/* El sitio donde uno esta: filo de color y fondo, no solo negrita. */
+.menu-enlace[data-aqui="si"] {
+  background: color-mix(in srgb, var(--color-activo) 8%, transparent);
+  box-shadow: inset 3px 0 0 var(--color-activo);
+}
+
+.menu-icono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  background: var(--color-hundido);
+  color: var(--color-marino);
+}
+.menu-enlace[data-aqui="si"] .menu-icono {
+  background: var(--color-activo);
+  color: #fff;
+}
+
+.menu-texto { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
+.menu-titulo {
+  font-family: var(--font-placa);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--color-tinta);
+}
+.menu-nota {
+  font-size: 12.5px;
+  line-height: 1.3;
+  color: var(--color-tenue);
+}
+
+/* ============================================================
+   ATAJO — un boton que lleva a una pantalla entera
+   ============================================================ */
+
+/* Un enlace que abre otra pagina no es un boton de formulario: lleva
+   su icono en una placa de color, dice a donde va y muestra la cuenta
+   de lo que hay al otro lado. Un `accion-secundaria` gris no distingue
+   "guardar" de "ir a otro sitio". */
+.atajo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 10px;
+  background: var(--color-panel);
+  box-shadow: var(--sombra-1);
+  transition: box-shadow 160ms ease, border-color 160ms ease,
+              transform 160ms ease;
+}
+.atajo:hover {
+  border-color: var(--color-borde);
+  box-shadow: var(--sombra-2);
+  transform: translateY(-1px);
+}
+.atajo:active { transform: none; box-shadow: var(--sombra-1); }
+
+.atajo-placa {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.atajo-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+.atajo-titulo {
+  font-family: var(--font-placa);
+  font-weight: 600;
+  font-size: 15.5px;
+  color: var(--color-tinta);
+}
+.atajo-nota {
+  font-size: 12.5px;
+  color: var(--color-tenue);
+}
+
+.atajo-cuenta {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--color-hundido);
+  color: var(--color-tenue);
+}
+
+.atajo-flecha {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--color-sin-info);
+}
+.atajo-cuenta + .atajo-flecha { margin-left: 8px; }
+
+/* ============================================================
+   BARRA DE FILTROS — sede, equipo y año en una linea
+   ============================================================ */
+
+.barra-filtros {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 8px;
+  padding: 9px 11px;
+  margin-bottom: 16px;
+  background: var(--color-panel);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 10px;
+  box-shadow: var(--sombra-2);
+}
+
+.filtro {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 150px;
+}
+
+.filtro-rotulo {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--color-sin-info);
+  padding-left: 2px;
+}
+
+/* La flecha se dibuja aqui: la nativa cambia en cada navegador y
+   rompe la linea. */
+.filtro-select {
+  width: 100%;
+  appearance: none;
+  padding: 7px 28px 7px 10px;
+  border: 1px solid var(--color-borde);
+  border-radius: 7px;
+  background-color: var(--color-campo);
+  background-image: linear-gradient(45deg, transparent 50%, var(--color-tenue) 50%),
+                    linear-gradient(135deg, var(--color-tenue) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-tinta);
+  cursor: pointer;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+.filtro-select:hover { border-color: var(--color-borde-fuerte); }
+.filtro-select:focus-visible {
+  outline: none;
+  border-color: var(--color-activo);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-activo) 18%, transparent);
+}
+
+@media print { .barra-filtros { display: none; } }
+
+/* ============================================================
+   PESTAÑAS — las secciones del dia a dia
+   ============================================================ */
+
+.barra-pestanas {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.barra-pestanas::-webkit-scrollbar { display: none; }
+
+.pestana {
+  position: relative;
+  flex-shrink: 0;
+  padding: 12px 13px 10px;
+  font-family: var(--font-placa);
+  font-weight: 600;
+  font-size: 14.5px;
+  letter-spacing: 0.01em;
+  color: var(--color-tenue);
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: color 140ms ease, border-color 140ms ease;
+}
+.pestana:hover { color: var(--color-tinta); }
+
+/* La activa se marca con el naranja de PBI y no solo con el peso: en
+   una barra que se desplaza, un texto un poco mas oscuro no se
+   distingue de los vecinos. */
+.pestana[data-activa="si"] {
+  color: var(--color-marino);
+  border-bottom-color: var(--color-naranja);
+}
+.pestana:focus-visible {
+  outline: 2px solid var(--color-activo);
+  outline-offset: -3px;
+  border-radius: 3px;
+}
+
+/* ============================================================
+   PANELES CON CABECERA
+   Cada bloque se anuncia con una etiqueta oscura y su icono en
+   amarillo, como los rótulos de un tablero. Es lo que hace que
+   la página deje de ser una lista de cajas blancas iguales.
+   ============================================================ */
+
+.bloque {
+  background: var(--color-panel);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 9px;
+  overflow: hidden;
+  box-shadow: var(--sombra-1);
+}
+
+.bloque-cabeza {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 14px;
+  /* El azul de PBI, con una caida hacia el tono hondo: plano se ve
+     impreso, con la caida se ve como una pieza. */
+  background: linear-gradient(
+    180deg,
+    var(--color-marino-alto) 0%,
+    var(--color-marino) 60%,
+    var(--color-marino-hondo) 100%
+  );
+  color: #fff;
+  font-family: var(--font-placa);
+  font-weight: 600;
+  font-size: 13.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+/* El filo naranja: es lo que hace que la cabeza se lea como cabecera y
+   no como una barra suelta. Es el acento de la marca, y solo aparece
+   aqui — un acento repetido en todo deja de serlo. */
+.bloque-cabeza::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--color-naranja);
+}
+.bloque-cabeza svg { color: var(--color-naranja); }
+.bloque-cabeza .cuenta {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Variantes: el color de la cabeza dice de qué habla el bloque.
+   Los tonos son fijos y no siguen al tema: en oscuro el verde de
+   instrumentacion se aclara —para que un dato en verde se lea sobre
+   fondo oscuro— y ahi el texto blanco encima se quedaba en 3,0 de
+   contraste. Una cabecera es texto blanco sobre color, asi que el color
+   tiene que ser hondo siempre. */
+.bloque-cabeza-activo {
+  background: linear-gradient(180deg, #0d7d71 0%, #0a6b61 60%, #075048 100%);
+}
+.bloque-cabeza-activo::after { background: #4fd6c6; }
+.bloque-cabeza-activo svg { color: #7fe6da; }
+
+.bloque-cabeza-critico {
+  background: linear-gradient(180deg, #a52826 0%, #8f1f1e 60%, #6d1817 100%);
+}
+.bloque-cabeza-critico::after { background: #ff8a88; }
+.bloque-cabeza-critico svg { color: #ffb3b2; }
+
+.bloque-cuerpo { padding: 14px 15px; }
+
+/* ============================================================
+   DISPLAY — el valor que se lee de lejos
+   ============================================================ */
+
+.display {
+  background: linear-gradient(
+    180deg,
+    var(--color-campo) 0%,
+    var(--color-hundido) 100%
+  );
+  border: 1px solid var(--color-borde);
+  border-radius: 5px;
+  padding: 10px 12px;
+}
+.display-etiqueta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-sin-info);
+}
+.display-valor {
+  font-family: var(--font-mono);
+  font-size: 21px;
+  font-weight: 500;
+  line-height: 1.1;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.display-unidad {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--color-tenue);
+  margin-left: 2px;
+}
+
+/* ============================================================
+   FILA DE DATO — con su icono, para encontrar el campo sin leer
+   ============================================================ */
+
+.campo-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 11px;
+  background: var(--color-panel);
+  border-bottom: 1px solid var(--color-borde-suave);
+}
+.campo-fila:last-child { border-bottom: none; }
+.campo-fila:nth-child(even) { background: var(--color-realce); }
+.campo-fila svg { color: var(--color-sin-info); flex-shrink: 0; }
+
+.campo-nombre {
+  font-size: 11.5px;
+  color: var(--color-tenue);
+  flex-shrink: 0;
+  width: 118px;
+}
+.campo-dato {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  margin-left: auto;
+  text-align: right;
+  word-break: break-word;
+  font-variant-numeric: tabular-nums;
+}
+.campo-dato-vacio { color: var(--color-sin-info); }
+
+/* Datos que son secretos operativos: se marcan, no se esconden */
+.campo-fila-clave {
+  background: color-mix(in srgb, var(--color-accion) 9%, transparent) !important;
+  border-left: 2px solid var(--color-accion);
+}
+.campo-fila-clave .campo-dato {
+  font-weight: 500;
+  color: var(--color-accion-hondo);
+}
+
+/* ============================================================
+   BARRA DE CARGA — la zona eficiente contra la nominal
+   ============================================================ */
+
+.barra {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--color-hundido);
+  overflow: hidden;
+  margin-top: 7px;
+}
+.barra-relleno {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--color-activo);
+}
+
+/* ============================================================
+   TESTIGO GRANDE — el estado del equipo, visible de lejos
+   ============================================================ */
+
+.testigo {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px 6px 10px;
+  border-radius: 4px;
+  font-family: var(--font-placa);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid;
+}
+.testigo-punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 22%, transparent);
+}
+.testigo-operativo {
+  color: var(--tinta-operativo);
+  /* Contra el panel y no contra #fff: mezclado con blanco fijo, en modo
+     oscuro salia una insignia menta clara sobre pagina oscura. */
+  background: color-mix(in srgb, var(--color-operativo) 13%, var(--color-panel));
+  border-color: color-mix(in srgb, var(--color-operativo) 40%, transparent);
+}
+.testigo-pendiente {
+  color: var(--tinta-pendiente);
+  background: color-mix(in srgb, var(--color-pendiente) 14%, var(--color-panel));
+  border-color: color-mix(in srgb, var(--color-pendiente) 40%, transparent);
+}
+.testigo-critico {
+  color: var(--tinta-critico);
+  background: color-mix(in srgb, var(--color-critico) 12%, var(--color-panel));
+  border-color: color-mix(in srgb, var(--color-critico) 38%, transparent);
+}
+.testigo-sin-info {
+  color: var(--color-tenue);
+  background: var(--color-hundido);
+  border-color: var(--color-borde);
+}
+
+/* ============================================================
+   ACCIONES POR INTENCIÓN
+   Registrar no puede verse igual que consultar.
+   ============================================================ */
+
+.accion-registrar {
+  background: #2e9e5b;
+  border-color: #1f7442;
+  color: #fff;
+}
+.accion-registrar:hover { background: #35b268; }
+
+.accion-consultar {
+  background: var(--color-marino);
+  border-color: var(--color-marino-hondo);
+  color: #fff;
+}
+.accion-consultar:hover { background: var(--color-marino-alto); }
+
+/* La franja diagonal del encabezado: guiño a la marca */
+.marca-diagonal {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--color-amarillo) 0 7px,
+    color-mix(in srgb, var(--color-amarillo) 55%, var(--color-marino)) 7px 14px
+  );
+}
+
+/* ============================================================
+   HOJA DE CÓDIGOS QR — quince adhesivos para cortar
+   ============================================================ */
+
+.rejilla-qr {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px;
+}
+
+.adhesivo {
+  background: #fff;
+  /* Punteada: es por donde se corta con la tijera. */
+  border: 1px dashed var(--color-borde-fuerte);
+  border-radius: 6px;
   overflow: hidden;
 }
 
-.tarjeta-titulo {
-  background: var(--color-marino-800);
-  color: #fff;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  padding: 0.75rem 1rem;
+.adhesivo-cabeza {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 7px;
+  padding: 7px 9px;
+  background: var(--color-marino);
 }
 
-.campo {
-  display: block;
-  width: 100%;
-  border: 1px solid #d3dae6;
-  border-radius: 8px;
-  padding: 0.6rem 0.75rem;
-  font-size: 0.9rem;
-  background: #fff;
-  color: #0d1a3a;
-}
-.campo:focus {
-  outline: 2px solid var(--color-marino-600);
-  outline-offset: -1px;
-  border-color: transparent;
-}
-.campo-etiqueta {
-  display: block;
-  font-size: 0.8125rem;
+.adhesivo-cuerpo { padding: 11px 10px 12px; text-align: center; }
+
+.adhesivo-id {
+  font-family: var(--font-placa);
   font-weight: 600;
-  color: #344054;
-  margin-bottom: 0.35rem;
+  font-size: 25px;
+  line-height: 1;
+  color: var(--color-marino);
+}
+
+.adhesivo-sub {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  margin-top: 4px;
+  color: #5b6572;
+}
+
+.adhesivo-qr {
+  width: 128px;
+  height: 128px;
+  margin: 9px auto;
+}
+.adhesivo-qr > svg { width: 100%; height: 100%; }
+
+.adhesivo-sede {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: #5b6572;
+}
+
+.adhesivo-pie {
+  font-size: 8.5px;
+  margin-top: 5px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--color-marino);
 }
 
 @media print {
-  .no-imprimir {
-    display: none !important;
+  /* Márgenes cortos: caben más adhesivos por hoja y se desperdicia
+     menos papel adhesivo, que es lo caro. */
+  @page { size: A4; margin: 8mm; }
+
+  .hoja-qr { max-width: none !important; padding: 0 !important; }
+
+  .rejilla-qr {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
   }
-  html,
-  body {
-    background: #fff;
+
+  /* Que ningún adhesivo quede partido entre dos hojas: cortado por la
+     mitad no sirve, y el papel adhesivo no se reimprime barato. */
+  .adhesivo {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border-color: #9aa4b1;
   }
+
+  /* Sin esto la cabecera azul sale en blanco y el adhesivo pierde la
+     marca, que es medio motivo de pegarlo. */
+  .adhesivo-cabeza {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* ============================================================
+   MODO OSCURO — el mismo tablero, de noche
+
+   Los generadores se revisan de madrugada y en cuartos sin
+   ventana. La pantalla clara al maximo sirve al sol; a las tres
+   de la manana deslumbra y borra la vision nocturna.
+
+   No es "invertir los colores": el fondo se va al azul marino de
+   la marca y los testigos suben de brillo, porque un verde que
+   se lee sobre blanco se apaga sobre oscuro.
+
+   Tres estados: claro forzado, oscuro forzado, y lo que diga el
+   telefono. Por eso los mismos valores aparecen dos veces — una
+   para la preferencia del sistema y otra para el interruptor.
+   ============================================================ */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) {
+    color-scheme: dark;
+
+    --color-lienzo: #0a1120;
+    --color-hundido: #101a2c;
+    --color-panel: #151f33;
+    --color-campo: #1b2740;
+    --color-realce: #202d49;
+
+    --color-borde: #2b3a55;
+    --color-borde-suave: #223049;
+    --color-borde-fuerte: #405475;
+
+    --color-tinta: #e7edf6;
+    --color-tenue: #a2b3c9;
+    --color-sin-info: #7f91aa;
+
+    --color-activo: #2ec8b3;
+    --color-activo-hondo: #24a696;
+    --color-accion: #f2a93f;
+    --color-accion-hondo: #d98d1e;
+
+    --color-operativo: #45c97a;
+    --color-pendiente: #e5a744;
+    --color-critico: #f4626a;
+
+    --color-marino: #0e3350;
+    --color-marino-alto: #17527f;
+    --color-marino-hondo: #072134;
+    --color-naranja: #f8a742;
+    --color-naranja-hondo: #d98a24;
+
+    /* Sobre fondo oscuro una sombra clara no existe: aqui el relieve lo
+       da la propia sombra negra, mas cerrada y mas profunda. */
+    --sombra-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --sombra-2: 0 2px 4px rgba(0, 0, 0, 0.4), 0 6px 14px -3px rgba(0, 0, 0, 0.45);
+    --sombra-3: 0 4px 8px rgba(0, 0, 0, 0.45), 0 16px 32px -8px rgba(0, 0, 0, 0.55);
+
+    --color-reticula: rgba(190, 214, 255, 0.045);
+
+    --serie-disponibilidad: #2ec8b3;
+    --serie-confiabilidad: #5ac8f2;
+    --serie-diesel: #e39028;
+    --serie-glp: #3fb4e4;
+    --tinta-operativo: #6fe0a2;
+    --tinta-pendiente: #f5c67a;
+    --tinta-critico:   #ff9d99;
+    --color-consola: #26334a;
+    --color-consola-borde: #4a5d80;
+    --color-consola-tinta: #f2f6fb;
+  }
+}
+
+:root[data-tema="oscuro"] {
+  color-scheme: dark;
+
+  --color-lienzo: #0a1120;
+  --color-hundido: #101a2c;
+  --color-panel: #151f33;
+  --color-campo: #1b2740;
+  --color-realce: #202d49;
+
+  --color-borde: #2b3a55;
+  --color-borde-suave: #223049;
+  --color-borde-fuerte: #405475;
+
+  --color-tinta: #e7edf6;
+  --color-tenue: #a2b3c9;
+  --color-sin-info: #7f91aa;
+
+  --color-activo: #2ec8b3;
+  --color-activo-hondo: #24a696;
+  --color-accion: #f2a93f;
+  --color-accion-hondo: #d98d1e;
+
+  --color-operativo: #45c97a;
+  --color-pendiente: #e5a744;
+  --color-critico: #f4626a;
+
+  --color-marino: #0e3350;
+  --color-marino-alto: #17527f;
+  --color-marino-hondo: #072134;
+  --color-naranja: #f8a742;
+  --color-naranja-hondo: #d98a24;
+
+  --sombra-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --sombra-2: 0 2px 4px rgba(0, 0, 0, 0.4), 0 6px 14px -3px rgba(0, 0, 0, 0.45);
+  --sombra-3: 0 4px 8px rgba(0, 0, 0, 0.45), 0 16px 32px -8px rgba(0, 0, 0, 0.55);
+
+  --color-reticula: rgba(190, 214, 255, 0.045);
+
+    --serie-disponibilidad: #2ec8b3;
+    --serie-confiabilidad: #5ac8f2;
+    --serie-diesel: #e39028;
+    --serie-glp: #3fb4e4;
+    --tinta-operativo: #6fe0a2;
+    --tinta-pendiente: #f5c67a;
+    --tinta-critico:   #ff9d99;
+    --color-consola: #26334a;
+    --color-consola-borde: #4a5d80;
+    --color-consola-tinta: #f2f6fb;
+}
+
+/* El acta y los adhesivos son papel: se imprimen o se pegan, asi
+   que no siguen el tema de la pantalla. Se quedan en blanco. */
+:root[data-tema="oscuro"] .acta,
+:root[data-tema="oscuro"] .adhesivo {
+  background: #fff;
+}
+
+@media print {
+  /* Imprimir en oscuro gastaria un cartucho por hoja. */
+  :root { color-scheme: light; }
+}
+
+/* La hoja del menu entra desde abajo en el celular. Un salto seco se
+   lee como un error de pintado; el deslizamiento dice de donde vino. */
+/* El punto de «EN TURNO». Late despacio: la idea es «esto es de ahora
+   mismo», no llamar la atencion. Un parpadeo rapido en una pantalla que
+   se mira todo el dia cansa y acaba tapandose con el pulgar. */
+@keyframes latido {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.late { animation: latido 2.4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .late { animation: none; }
+}
+
+@keyframes hoja-sube {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes hoja-cae {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hoja-menu { animation: hoja-sube 0.18s ease-out; }
+@media (min-width: 640px) {
+  .hoja-menu { animation: hoja-cae 0.13s ease-out; }
+}
+/* Quien pidio menos movimiento en su telefono no lo pidio a medias. */
+@media (prefers-reduced-motion: reduce) {
+  .hoja-menu { animation: none; }
+}
+
+/* ============================================================
+   PASO A PASO — la guia del tecnico
+   ============================================================ */
+
+.pasos {
+  position: relative;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* El hilo vertical que une los pasos: dice "esto va en orden" sin
+   tener que escribirlo. Se corta antes del ultimo numero para no
+   sobresalir por debajo. */
+.pasos::before {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 26px;
+  bottom: 26px;
+  width: 2px;
+  background: var(--color-borde);
+}
+
+.paso {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  padding-bottom: 20px;
+}
+.paso:last-child { padding-bottom: 0; }
+
+.paso-numero {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  background: var(--color-marino);
+  border: 2px solid var(--color-lienzo);
+}
+
+.paso-cuerpo { min-width: 0; padding-top: 3px; }
+
+.paso-titulo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 15.5px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.paso-icono { color: var(--color-activo); flex-shrink: 0; }
+
+.paso-texto {
+  font-size: 14.5px;
+  line-height: 1.55;
+  margin-top: 5px;
+  color: var(--color-tenue);
+}
+
+/* El detalle que solo se descubre usandolo, marcado aparte para que
+   no se pierda dentro del parrafo. */
+.paso-ojo {
+  font-size: 13.5px;
+  line-height: 1.5;
+  margin-top: 7px;
+  padding-left: 10px;
+  border-left: 2px solid var(--color-accion);
+  color: var(--color-sin-info);
+}
+
+@media (max-width: 640px) {
+  .paso { gap: 12px; }
+  .paso-numero { width: 28px; height: 28px; font-size: 12px; }
+  .pasos::before { left: 13px; }
+}
+
+/* ============================================================
+   CELULAR — blancos de toque y respiro
+
+   Esto se usa de pie frente a una maquina, con una mano, a veces
+   con guantes. Un boton de 30 px se falla; 44 es el minimo que
+   acierta un pulgar sin mirar.
+   ============================================================ */
+
+@media (max-width: 640px) {
+  .accion,
+  .accion-secundaria {
+    min-height: 48px;
+    font-size: 15px;
+  }
+
+  .entrada {
+    min-height: 46px;
+    /* 16px o mas: por debajo de eso Safari hace zoom al enfocar el
+       campo y descuadra la pantalla entera. */
+    font-size: 16px;
+    padding: 11px 12px;
+  }
+
+  .pastilla {
+    /* 44 y no 42: es el minimo que acierta un pulgar sin mirar, y estas
+       son las pestañas por las que se navega el formulario entero. */
+    min-height: 44px;
+    font-size: 12.5px;
+    padding: 10px 12px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* Un poco mas de aire entre filas: con el dedo hay que poder tocar
+     una sin rozar la de al lado. */
+  .bitacora-fila { padding-top: 13px; padding-bottom: 13px; }
+
+  /* Un <summary> es solo texto y mide lo que la linea: sin relleno
+     propio, «Mas filtros» quedaba en 17 px de alto. */
+  summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  .rotulo { margin-top: 26px; }
+}
+
+/* Nada que se pueda tocar por debajo del tamaño de un dedo. */
+@media (pointer: coarse) {
+  a.accion,
+  a.accion-secundaria,
+  button:not(.pastilla) { min-height: 44px; }
+}
+
+/* ============================================================
+   PROGRAMA DE MANTENIMIENTO — la rejilla del FOR-MTO-17
+   ============================================================ */
+
+.marco-programa {
+  overflow-x: auto;
+  border: 1px solid var(--color-borde);
+  border-bottom-color: var(--color-borde-fuerte);
+  border-radius: 6px;
+  background: var(--color-panel);
+}
+
+.programa {
+  border-collapse: collapse;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+
+.programa th,
+.programa td {
+  border-bottom: 1px solid var(--color-borde-suave);
+  padding: 0;
+}
+.programa tbody tr:last-child th,
+.programa tbody tr:last-child td { border-bottom: none; }
+
+.programa thead th {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--color-sin-info);
+  background: var(--color-hundido);
+  padding: 8px 4px;
+  font-weight: 500;
+}
+
+/* La columna del equipo se queda fija al desplazar los doce meses:
+   sin esto, en el celular se pierde de vista de que fila se trata. */
+.programa .col-equipo {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--color-panel);
+  text-align: left;
+  padding: 7px 12px;
+  min-width: 148px;
+  border-right: 1px solid var(--color-borde);
+}
+.programa thead .col-equipo { background: var(--color-hundido); }
+
+.prg-id {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.prg-nombre {
+  display: block;
+  font-size: 11.5px;
+  color: var(--color-tenue);
+  margin-top: 1px;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.programa .col-mes { width: 52px; text-align: center; }
+.programa .col-cumple {
+  width: 66px;
+  text-align: center;
+  padding: 7px 8px;
+  border-left: 1px solid var(--color-borde);
+}
+
+/* ---- La casilla de cada mes ---- */
+
+/* Se llama `celda-mes` y no `celda` por una razon concreta: `.celda` es
+   tambien la clase de cada casilla del acta, y este bloque le metia
+   `display: grid` y `height: 44px`. Las celdas del acta dejaban de
+   crecer con su contenido, asi que la firma y las fotos se salian del
+   recuadro y se pintaban encima de lo de abajo. Un selector de una sola
+   palabra en una hoja global alcanza a todo el sistema. */
+.celda-mes {
+  width: 100%;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+.celda-mes:disabled { cursor: default; }
+.celda-mes:not(:disabled):hover { background: var(--color-campo); }
+.celda-mes:focus-visible {
+  outline: 2px solid var(--color-activo);
+  outline-offset: -2px;
+}
+
+.celda-mes .marca {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+}
+/* Tres estados distintos, no dos. Lo vencido —programado, ya pasado y
+   sin hacer— es lo unico que hay que perseguir, y en la hoja de papel
+   se ve igual que un mes de diciembre que ni ha llegado. */
+.celda-pendiente .marca {
+  border: 2px dashed var(--color-borde-fuerte);
+}
+.celda-vencida .marca {
+  border: 2px solid var(--color-critico);
+  background: color-mix(in srgb, var(--color-critico) 16%, transparent);
+}
+.celda-cumplida .marca {
+  background: var(--color-operativo);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-operativo) 20%, transparent);
+}
+.celda-mes .raya {
+  width: 9px;
+  height: 1px;
+  background: var(--color-borde-fuerte);
+}
+
+/* La semana, discreta: sirve al planear, estorba al leer el año. */
+.celda-mes .sem {
+  position: absolute;
+  right: 6px;
+  bottom: 4px;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  color: var(--color-sin-info);
+}
+
+.prg-pct {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.programa tfoot th,
+.programa tfoot td {
+  border-top: 1px solid var(--color-borde-fuerte);
+  background: var(--color-hundido);
+  padding: 9px 4px;
+}
+.programa tfoot .col-equipo {
+  background: var(--color-hundido);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--color-tenue);
+  font-weight: 500;
+}
+.prg-pct-mes {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.leyenda { width: 13px; height: 13px; border-radius: 50%; display: inline-block; }
+.leyenda-pendiente { border: 2px dashed var(--color-borde-fuerte); }
+.leyenda-vencida {
+  border: 2px solid var(--color-critico);
+  background: color-mix(in srgb, var(--color-critico) 16%, transparent);
+}
+.leyenda-cumplido { background: var(--color-operativo); }
+.leyenda-vacio {
+  width: 9px; height: 1px; border-radius: 0;
+  background: var(--color-borde-fuerte);
+}
+
+@media (max-width: 640px) {
+  .programa .col-equipo { min-width: 116px; padding: 7px 9px; }
+  .prg-nombre { max-width: 104px; }
+  .programa .col-mes { width: 46px; }
+}
+
+/* ---- Tabla de indicadores: misma rejilla, otras columnas ---- */
+
+.tabla-indicadores th,
+.tabla-indicadores td { padding: 9px 8px; }
+.tabla-indicadores thead th {
+  text-align: right;
+  white-space: nowrap;
+}
+.tabla-indicadores thead .col-equipo { text-align: left; }
+.tabla-indicadores .num {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tabla-indicadores .col-logro {
+  text-align: left;
+  border-left: 1px solid var(--color-borde);
+  min-width: 168px;
+}
+.tabla-indicadores .banda { font-size: 11.5px; line-height: 1.3; }
+
+/* El punto avisa de que ese numero lo escribio una persona, no el
+   conteo automatico de correctivas. */
+.marca-mano {
+  color: var(--color-pendiente);
+  margin-left: 3px;
+  font-weight: 700;
+}
+
+.fila-editable { cursor: pointer; }
+.fila-editable:hover td,
+.fila-editable:hover th { background: var(--color-campo); }
+
+/* Un dato que no puede ser: se marca en el propio numero. */
+.aviso-dato {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 4px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--color-critico);
+  vertical-align: 1px;
+  cursor: help;
+}
+
+/* ============================================================
+   GRAFICAS DE INDICADORES
+   ============================================================ */
+
+.grafica-titulo {
+  font-family: var(--font-placa);
+  font-weight: 600;
+  font-size: 17px;
+  letter-spacing: 0.01em;
+}
+.grafica-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-sin-info);
+  white-space: nowrap;
+}
+.grafica-lienzo { overflow: visible; }
+
+/* El texto lleva tinta de texto, nunca el color de la serie: el color
+   es del dato, no de la etiqueta. */
+.grafica-eje,
+.grafica-mes {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  fill: var(--color-sin-info);
+}
+.grafica-mes-activo { fill: var(--color-tinta); font-weight: 500; }
+.grafica-ultimo {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  fill: var(--color-tinta);
+}
+.grafica-pie {
+  font-size: 12px;
+  margin-top: 6px;
+  min-height: 18px;
+  color: var(--color-tenue);
+}
+
+/* ============================================================
+   QUE SE PUEDE TOCAR
+
+   Una celda que abre algo tiene que parecerlo antes de tocarla,
+   no despues. Sin esto, la rejilla del programa y la tabla de
+   indicadores se leen como papel impreso.
+   ============================================================ */
+
+.pista {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--color-tenue);
+  background: var(--color-campo);
+  border: 1px solid var(--color-borde);
+  border-radius: 4px;
+  padding: 7px 11px;
+  margin-top: 12px;
+}
+.pista-icono { color: var(--color-accion-hondo); flex-shrink: 0; }
+
+/* La celda del programa: marco tenue en reposo para que se lea como
+   casilla, no como dibujo. */
+.celda-mes:not(:disabled) { border-radius: 4px; }
+.celda-mes:not(:disabled):hover {
+  background: var(--color-campo);
+  box-shadow: inset 0 0 0 1px var(--color-borde-fuerte);
+}
+.celda-mes:not(:disabled):active { transform: scale(0.94); }
+
+/* La fila de indicadores: el lapiz aparece al acercarse, y en el
+   celular —donde no hay raton— se queda siempre visible. */
+.col-editar { width: 40px; text-align: center; }
+.icono-editar {
+  opacity: 0;
+  color: var(--color-activo);
+  transition: opacity 120ms ease;
+}
+.fila-editable:hover .icono-editar,
+.fila-editable:focus-within .icono-editar { opacity: 1; }
+@media (hover: none) {
+  .icono-editar { opacity: 0.55; }
+}
+
+/* Este numero no lo escribio nadie: salio de restar dos horometros. */
+.marca-auto {
+  color: var(--color-activo);
+  margin-left: 4px;
+  font-size: 10px;
+}
+
+/* El mes en curso: una banda de fondo. Sin ella hay que contar
+   columnas para saber donde esta uno parado, y en doce nadie cuenta
+   bien. */
+.col-mes-hoy { background: color-mix(in srgb, var(--color-accion) 9%, transparent); }
+.programa thead .col-mes-hoy {
+  color: var(--color-accion-hondo);
+  font-weight: 600;
+}
+
+.rejilla-titulo {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-sin-info);
+  margin: 22px 0 7px;
+}
+
+/* ============================================================
+   SINCRONIZACION CON LA HOJA
+   Una barra, no un panel: es un testigo, no una seccion. Lo que
+   tiene que decir cabe en una linea y el boton va al final, donde
+   se busca. En telefono se apila, que en una sola linea el correo
+   de la cuenta de servicio no cabe de ninguna manera.
+   ============================================================ */
+
+.sinc {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 8px;
+  background: var(--color-campo);
+}
+
+.sinc-luz {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  /* El halo dice "esto esta vivo" sin necesidad de animarlo. */
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 0%, transparent);
+  outline: 3px solid color-mix(in srgb, var(--color-panel) 60%, transparent);
+}
+
+.sinc-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+.sinc-titulo {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+
+.sinc-detalle {
+  font-size: 12px;
+  color: var(--color-tenue);
+  font-family: var(--font-mono);
+}
+
+.sinc-nota {
+  grid-column: 1 / -1;
+  font-size: 12.5px;
+  color: var(--color-tenue);
+  line-height: 1.5;
+}
+
+.sinc-correo {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--color-panel);
+  border: 1px solid var(--color-borde-suave);
+  /* El correo de una cuenta de servicio no tiene espacios y desborda
+     cualquier ancho: se le deja partir. */
+  word-break: break-all;
+}
+
+
+
+/* ============================================================
+   VENTANA DE TIEMPO
+   Treinta dias, tres meses, un ano. Van juntos en un mismo raiz
+   porque son una sola eleccion, y la elegida se hunde en vez de
+   pintarse de color: el color de esta pagina significa combustible.
+   ============================================================ */
+
+.ventana {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 8px;
+  background: var(--color-campo);
+}
+
+.ventana-rotulo {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-sin-info);
+  padding: 0 8px 0 6px;
+}
+
+.ventana-opcion {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--color-tenue);
+  font: inherit;
+  font-size: 12.5px;
+  padding: 5px 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.ventana-opcion:hover { color: var(--color-tinta); }
+
+.ventana-opcion.es-activa {
+  background: var(--color-panel);
+  color: var(--color-tinta);
+  font-weight: 600;
+  box-shadow: var(--sombra-1);
+}
+
+/* ============================================================
+   DOS GRAFICAS EN UNA TARJETA
+   Cuando dos series miden cosas distintas —galones y kilos— no se
+   superponen: se ponen una debajo de otra, cada una con su escala
+   y su rotulo. Es lo contrario de un eje doble.
+   ============================================================ */
+
+.doble { display: grid; gap: 14px; }
+
+.doble-rotulo {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+/* ============================================================
+   CABECERA FIJA
+   La pantalla de operacion mide veinte mil pixeles de alto en un
+   celular. Con la cabecera quieta, bajar tres pantallas dejaba el
+   menu y las pestañas veinticinco pantallas atras: el sistema
+   entero se volvia inalcanzable sin volver arriba del todo.
+   Ahora acompaña. Se queda por debajo de la hoja del menu, que va
+   en z-60, para que al abrirlo no le pase por encima.
+   ============================================================ */
+
+.cabecera {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+/* La sombra solo aparece cuando hay algo debajo pasando por detras:
+   quieta arriba del todo seria una raya que no dice nada. */
+.cabecera::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 14px;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-tinta) 11%, transparent),
+    transparent
+  );
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+/* `animation-timeline` deja preguntar por el scroll sin JavaScript.
+   Donde no exista, la sombra simplemente no sale y no se pierde nada:
+   el pegado, que es lo que importa, funciona igual. */
+@supports (animation-timeline: scroll()) {
+  .cabecera::after {
+    animation: sombra-al-bajar linear both;
+    animation-timeline: scroll();
+    animation-range: 0 90px;
+  }
+}
+
+@keyframes sombra-al-bajar {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cabecera::after { transition: none; }
+}
+
+/* El renglon de totales de una tabla de programa: mismo peso que una
+   fila, pero separado por una linea mas firme para que se lea como
+   cierre y no como un equipo mas. */
+.programa tfoot th,
+.programa tfoot td {
+  border-top: 2px solid var(--color-borde-fuerte);
+  background: var(--color-campo);
+  font-weight: 600;
+}
+
+/* ============================================================
+   LAS CUATRO CIFRAS DE OPERACION
+   Dos por fila en el telefono y cuatro en pantalla ancha. El
+   numero manda, la unidad lo acompaña pequeña y en la misma
+   linea: partirla a otra linea rompia la lectura en el movil,
+   que era justo donde peor se veia.
+   ============================================================ */
+
+.cifras {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+@media (min-width: 900px) {
+  .cifras { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.cifra {
+  min-width: 0;
+  padding: 11px 13px;
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 8px;
+  background: var(--color-panel);
+  box-shadow: var(--sombra-1);
+}
+
+.cifra-valor {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  /* El numero y su unidad no se separan nunca. */
+  white-space: nowrap;
+}
+
+@media (min-width: 900px) {
+  .cifra-valor { font-size: 25px; }
+}
+
+.cifra-unidad {
+  font-size: 11px;
+  margin-left: 3px;
+  color: var(--color-tenue);
+}
+
+.cifra-etiqueta {
+  margin-top: 7px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.045em;
+  color: var(--color-tenue);
+  /* Dos palabras largas caben en dos lineas sin ensanchar la caja. */
+  overflow-wrap: anywhere;
+}
+
+.cifra-pie {
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--color-sin-info);
+  overflow-wrap: anywhere;
+}
+
+/* ============================================================
+   EQUIPOS EN FICHAS, AGRUPADOS POR COMBUSTIBLE
+   Una tabla de siete columnas no cabe en un telefono: o se sale
+   por el lado o se aprieta hasta no leerse. Aqui son seis
+   equipos, no cien filas, asi que cada uno lleva su ficha con
+   los renglones en columna. El grupo dice de que combustible es
+   —y de paso, por que el GLP no trae cifra por maquina.
+   ============================================================ */
+
+.grupo-equipos { margin-top: 16px; }
+
+.grupo-titulo {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 9px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-tinta);
+}
+
+.grupo-marca {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+.grupo-nota {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-tenue);
+}
+
+.ficha-equipo {
+  min-width: 0;
+  padding: 11px 13px 12px;
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 8px;
+  background: var(--color-panel);
+  box-shadow: var(--sombra-1);
+}
+
+.ficha-equipo[data-vacia="si"] { opacity: 0.62; }
+
+.ficha-equipo header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 8px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--color-borde-suave);
+}
+
+.ficha-id {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.ficha-nombre {
+  font-size: 12.5px;
+  color: var(--color-tenue);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ficha-equipo dl { display: grid; gap: 1px; }
+
+.ficha-equipo dl > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2.5px 0;
+}
+
+.ficha-equipo dt {
+  font-size: 12px;
+  color: var(--color-tenue);
+  white-space: nowrap;
+}
+
+.ficha-equipo dd {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* El rendimiento es lo que se busca primero: se separa y pesa mas. */
+.ficha-equipo dl > div[data-destacado="si"] {
+  margin-top: 5px;
+  padding-top: 6px;
+  border-top: 1px solid var(--color-borde-suave);
+}
+
+.ficha-equipo dl > div[data-destacado="si"] dd { font-weight: 600; }
+
+.ficha-unidad {
+  font-size: 10.5px;
+  margin-left: 3px;
+  color: var(--color-sin-info);
+}
+
+.ficha-vacia {
+  font-size: 12.5px;
+  color: var(--color-sin-info);
+  padding: 6px 0 2px;
+}
+
+/* El total del grupo, cuando la medida es del grupo y no del equipo. */
+.grupo-total {
+  display: grid;
+  /* En el telefono, uno debajo de otro: apretados en dos columnas, el
+     rotulo parte de linea y el numero se despega de su nombre. */
+  grid-template-columns: 1fr;
+  gap: 4px 18px;
+  margin-top: 8px;
+  padding: 10px 13px;
+  border: 1px solid;
+  border-radius: 8px;
+  background: var(--color-campo);
+}
+
+.grupo-total > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .grupo-total { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.grupo-total-rotulo { font-size: 12px; color: var(--color-tenue); }
+
+.grupo-total-valor {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }

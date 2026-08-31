@@ -1,0 +1,1562 @@
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { soloEditables, camposQueCambian } from "./edicion-intervencion";
+import type { CambiosIntervencion } from "./edicion-intervencion";
+import type {
+  Sede, Equipo, Controlador, Intervencion, IntervencionFoto, ReporteFalla,
+  Backup, Documento,
+} from "./tipos";
+import type { EntradaIntervencion, EntradaReporteFalla } from "./db-json";
+import type { LecturaHorometro } from "./horometro";
+import type {
+  Consumible, MovimientoConsumible, InstalacionConsumible,
+} from "./consumibles";
+import type { AdicionAceite } from "./aceite";
+import type { RegistroOperacion } from "./operacion";
+import type { DiaEnPantalla } from "./generacion";
+import type { EntradaAceite } from "./db-json";
+import { depurarChecklist } from "./checklist";
+import type { IntervencionParaContar } from "./mantenimiento";
+import type { TareaPrograma, ActaDelPrograma } from "./programa";
+import type { IndicadorMes } from "./indicadores";
+import {
+  siguienteId, sedeNueva, equipoNuevo, controladorNuevo,
+} from "./altas";
+import type { Familia } from "./altas";
+
+/**
+ * Misma capa de datos, contra PostgreSQL (Supabase).
+ *
+ * Las tablas y los nombres de columna son los de `schema.sql`, que son
+ * también los de `lib/tipos.ts`. Por eso aquí casi no hay traducción:
+ * se consulta y se devuelve.
+ */
+
+let clienteCache: SupabaseClient | null = null;
+
+export function configurado(): boolean {
+  return Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() && process.env.SUPABASE_SERVICE_KEY?.trim(),
+  );
+}
+
+function cliente(): SupabaseClient {
+  if (clienteCache) return clienteCache;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const llave = process.env.SUPABASE_SERVICE_KEY?.trim();
+  if (!url || !llave) {
+    throw new Error(
+      "Faltan NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_KEY en .env.local",
+    );
+  }
+  clienteCache = createClient(url, llave, {
+    auth: { persistSession: false },
+  });
+  return clienteCache;
+}
+
+async function pedir<T>(
+  consulta: PromiseLike<{ data: T | null; error: { message: string } | null }>,
+): Promise<T> {
+  const { data, error } = await consulta;
+  if (error) throw new Error(error.message);
+  return (data ?? []) as T;
+}
+
+const porFecha = <T extends { fecha: string; hora?: string }>(l: T[]) =>
+  [...l].sort((a, b) =>
+    `${b.fecha} ${b.hora ?? ""}`.localeCompare(`${a.fecha} ${a.hora ?? ""}`),
+  );
+
+/* ---------- Consultas ---------- */
+
+export async function listarEquipos() {
+  const db = cliente();
+  const [equipos, sedes, controladores, intervenciones] = await Promise.all([
+    pedir<Equipo[]>(db.from("equipos").select("*").order("id_equipo")),
+    pedir<Sede[]>(db.from("sedes").select("*")),
+    pedir<Controlador[]>(db.from("controladores").select("*")),
+    pedir<Intervencion[]>(
+      db.from("intervenciones").select("id_equipo, fecha, hora"),
+    ),
+  ]);
+
+  return equipos.map((e) => {
+    const suyas = intervenciones.filter((i) => i.id_equipo === e.id_equipo);
+    return {
+      ...e,
+      sede: sedes.find((s) => s.id_sede === e.id_sede) ?? null,
+      controladores: controladores.filter((c) => c.id_equipo === e.id_equipo),
+      total_intervenciones: suyas.length,
+      ultima_intervencion: porFecha(suyas)[0] ?? null,
+    };
+  });
+}
+
+export async function obtenerFichaEquipo(idEquipo: string) {
+  const db = cliente();
+  const equipos = await pedir<Equipo[]>(
+    db.from("equipos").select("*").eq("id_equipo", idEquipo).limit(1),
+  );
+  const equipo = equipos[0];
+  if (!equipo) return null;
+
+  const [sedes, controladores, intervenciones] = await Promise.all([
+    pedir<Sede[]>(db.from("sedes").select("*").eq("id_sede", equipo.id_sede)),
+    pedir<Controlador[]>(
+      db.from("controladores").select("*").eq("id_equipo", equipo.id_equipo),
+    ),
+    pedir<Intervencion[]>(
+      db.from("intervenciones").select("*").eq("id_equipo", equipo.id_equipo),
+    ),
+  ]);
+
+  const ids = controladores.map((c) => c.id_controlador);
+  const [backups, documentos] = await Promise.all([
+    ids.length
+      ? pedir<Backup[]>(db.from("backups").select("*").in("id_controlador", ids))
+      : Promise.resolve([] as Backup[]),
+    ids.length
+      ? pedir<Documento[]>(
+          db.from("documentos").select("*").in("id_controlador", ids),
+        )
+      : Promise.resolve([] as Documento[]),
+  ]);
+
+  return {
+    equipo,
+    sede: sedes[0] ?? null,
+    controlador: controladores[0] ?? null,
+    controladores,
+    intervenciones: porFecha(intervenciones),
+    backups: porFecha(backups),
+    documentos,
+  };
+}
+
+export async function equipoDeControlador(idControlador: string) {
+  const filas = await pedir<{ id_equipo: string }[]>(
+    cliente()
+      .from("controladores")
+      .select("id_equipo")
+      .eq("id_controlador", idControlador)
+      .limit(1),
+  );
+  return filas[0]?.id_equipo ?? null;
+}
+
+export async function obtenerIntervencion(id: string) {
+  const db = cliente();
+  const filas = await pedir<Intervencion[]>(
+    db.from("intervenciones").select("*").eq("id_intervencion", id).limit(1),
+  );
+  const intervencion = filas[0];
+  if (!intervencion) return null;
+
+  const [equipos, sedes, controladores, fotos] = await Promise.all([
+    pedir<Equipo[]>(
+      db.from("equipos").select("*").eq("id_equipo", intervencion.id_equipo),
+    ),
+    pedir<Sede[]>(
+      db.from("sedes").select("*").eq("id_sede", intervencion.id_sede),
+    ),
+    intervencion.id_controlador
+      ? pedir<Controlador[]>(
+          db
+            .from("controladores")
+            .select("*")
+            .eq("id_controlador", intervencion.id_controlador),
+        )
+      : Promise.resolve([] as Controlador[]),
+    pedir<IntervencionFoto[]>(
+      db
+        .from("intervencion_fotos")
+        .select("*")
+        .eq("id_intervencion", id)
+        .order("orden"),
+    ),
+  ]);
+
+  return {
+    intervencion,
+    equipo: equipos[0] ?? null,
+    sede: sedes[0] ?? null,
+    controlador: controladores[0] ?? null,
+    fotos,
+  };
+}
+
+export async function listarIntervenciones(idEquipo?: string) {
+  const db = cliente();
+  const consulta = db.from("intervenciones").select("*");
+  const intervenciones = await pedir<Intervencion[]>(
+    idEquipo ? consulta.eq("id_equipo", idEquipo) : consulta,
+  );
+  const [equipos, sedes] = await Promise.all([
+    pedir<Equipo[]>(db.from("equipos").select("*")),
+    pedir<Sede[]>(db.from("sedes").select("*")),
+  ]);
+  return porFecha(intervenciones).map((i) => ({
+    ...i,
+    equipo: equipos.find((e) => e.id_equipo === i.id_equipo) ?? null,
+    sede: sedes.find((s) => s.id_sede === i.id_sede) ?? null,
+  }));
+}
+
+/**
+ * Los preventivos de cada equipo, con lo justo para contar horas.
+ *
+ * La pantalla de inicio necesita esto de todos los equipos a la vez.
+ * Trayendo solo tres columnas, un historial de años sigue cabiendo en
+ * una petición.
+ */
+export async function preventivosPorEquipo(): Promise<
+  Record<string, IntervencionParaContar[]>
+> {
+  const filas = await pedir<
+    (IntervencionParaContar & { id_equipo: string })[]
+  >(
+    cliente()
+      .from("intervenciones")
+      .select("id_equipo, tipo_intervencion, fecha, horometro")
+      .eq("tipo_intervencion", "preventiva")
+      .order("fecha", { ascending: false }),
+  );
+
+  const mapa: Record<string, IntervencionParaContar[]> = {};
+  for (const f of filas) {
+    (mapa[f.id_equipo] ??= []).push({
+      tipo_intervencion: f.tipo_intervencion,
+      fecha: f.fecha,
+      horometro: f.horometro,
+    });
+  }
+  return mapa;
+}
+
+export async function listarSedesConEquipos() {
+  const db = cliente();
+  const [sedes, equipos] = await Promise.all([
+    pedir<Sede[]>(db.from("sedes").select("*").order("id_sede")),
+    pedir<Equipo[]>(db.from("equipos").select("*")),
+  ]);
+  return sedes.map((s) => ({
+    ...s,
+    equipos: equipos.filter((e) => e.id_sede === s.id_sede),
+  }));
+}
+
+export async function resumen() {
+  const db = cliente();
+  const [sedes, equipos, controladores, intervenciones] = await Promise.all([
+    pedir<Sede[]>(db.from("sedes").select("id_sede")),
+    pedir<Equipo[]>(db.from("equipos").select("id_equipo, estado, tipo_activo")),
+    pedir<Controlador[]>(db.from("controladores").select("id_controlador")),
+    pedir<Intervencion[]>(db.from("intervenciones").select("id_intervencion")),
+  ]);
+  // Solo generadores: el programa cubre tambien tanques y oficinas, pero
+  // un tanque contado como "operativo" vacia de sentido el tablero.
+  const generadores = equipos.filter(
+    (e) => (e.tipo_activo ?? "generador") === "generador",
+  );
+  return {
+    sedes: sedes.length,
+    equipos: generadores.length,
+    controladores: controladores.length,
+    operativos: generadores.filter((e) => e.estado === "operativo").length,
+    con_observaciones: generadores.filter(
+      (e) =>
+        e.estado === "operativo_con_observaciones" || e.estado === "pendiente",
+    ).length,
+    fuera_de_servicio: generadores.filter((e) => e.estado === "fuera_de_servicio")
+      .length,
+    // Sin este, los equipos que aun no tienen estado no salen en ningun
+    // contador: la pantalla decia "15 equipos" y los numeros sumaban 5.
+    sin_informacion: generadores.filter((e) => e.estado === "sin_informacion").length,
+    intervenciones: intervenciones.length,
+  };
+}
+
+export async function equipoConSede(idEquipo: string) {
+  const db = cliente();
+  const equipos = await pedir<Equipo[]>(
+    db.from("equipos").select("*").eq("id_equipo", idEquipo).limit(1),
+  );
+  const equipo = equipos[0];
+  if (!equipo) return null;
+  const sedes = await pedir<Sede[]>(
+    db.from("sedes").select("*").eq("id_sede", equipo.id_sede).limit(1),
+  );
+  return sedes[0] ? { equipo, sede: sedes[0] } : null;
+}
+
+export async function equiposConSede() {
+  const db = cliente();
+  const [equipos, sedes] = await Promise.all([
+    pedir<Equipo[]>(db.from("equipos").select("*").order("id_equipo")),
+    pedir<Sede[]>(db.from("sedes").select("*")),
+  ]);
+  return equipos
+    .map((equipo) => ({
+      equipo,
+      sede: sedes.find((s) => s.id_sede === equipo.id_sede) ?? null,
+    }))
+    .filter(
+      (x): x is { equipo: Equipo; sede: Sede } => x.sede !== null,
+    );
+}
+
+/* ---------- Escritura ---------- */
+
+export async function crearIntervencion(
+  datos: EntradaIntervencion,
+): Promise<Intervencion> {
+  const db = cliente();
+
+  const par = await equipoConSede(datos.id_equipo);
+  if (!par) throw new Error(`El equipo ${datos.id_equipo} no existe`);
+  const { equipo } = par;
+
+  const controladores = await pedir<Controlador[]>(
+    datos.id_controlador
+      ? db
+          .from("controladores")
+          .select("*")
+          .eq("id_controlador", datos.id_controlador)
+      : db.from("controladores").select("*").eq("id_equipo", equipo.id_equipo),
+  );
+  const controlador = controladores[0] ?? null;
+
+  const ahora = new Date();
+  const fecha = datos.fecha || ahora.toISOString().slice(0, 10);
+  const hora = datos.hora || ahora.toTimeString().slice(0, 5);
+
+  // El consecutivo lo genera la base con un lock de fila, así dos
+  // técnicos guardando a la vez no pueden colisionar.
+  const { data: idGenerado, error: errorId } = await db.rpc(
+    "siguiente_id_intervencion",
+  );
+  if (errorId) throw new Error(errorId.message);
+
+  const fila = {
+    id_intervencion: idGenerado as string,
+    id_controlador: controlador?.id_controlador ?? null,
+    id_equipo: equipo.id_equipo,
+    id_sede: equipo.id_sede,
+    fecha,
+    hora,
+    tecnico_nombre: datos.tecnico_nombre,
+    tecnico_cargo: datos.tecnico_cargo ?? "",
+    orden_servicio: datos.orden_servicio ?? "",
+    permiso_trabajo: datos.permiso_trabajo ?? "",
+    tipo_intervencion: datos.tipo_intervencion,
+    fabricante_equipo: equipo.fabricante,
+    modelo_equipo: equipo.modelo,
+    serial_equipo: equipo.serial,
+    horometro: datos.horometro ?? null,
+    motivo: datos.motivo ?? "",
+    estado_inicial: datos.estado_inicial ?? "",
+    actividades_realizadas: datos.actividades_realizadas,
+    diagnostico: datos.diagnostico ?? "",
+    causa_falla: datos.causa_falla ?? "",
+    repuestos: datos.repuestos ?? "",
+    checklist: depurarChecklist(datos.checklist),
+    estado_final: datos.estado_final ?? null,
+    motor_obs: datos.motor_obs ?? "",
+    alternador_obs: datos.alternador_obs ?? "",
+    combustible: datos.combustible ?? equipo.combustible ?? null,
+    potencia_kw: datos.potencia_kw ?? null,
+    horas_operacion: datos.horas_operacion ?? null,
+    estado_equipo_obs: datos.estado_equipo_obs ?? "",
+    marca_controlador: datos.marca_controlador ?? controlador?.fabricante ?? "",
+    modelo_controlador: datos.modelo_controlador ?? controlador?.modelo ?? "",
+    serial_controlador: datos.serial_controlador ?? controlador?.serial ?? "",
+    firmware_controlador:
+      datos.firmware_controlador ?? controlador?.firmware ?? "",
+    alarmas_eventos: datos.alarmas_eventos ?? "",
+    parametros_modificados: datos.parametros_modificados ?? "",
+    configuracion_realizada: datos.configuracion_realizada ?? "",
+    observaciones_controlador: datos.observaciones_controlador ?? "",
+    backup_realizado: datos.backup_realizado ?? false,
+    resultado: datos.resultado ?? null,
+    recomendaciones: datos.recomendaciones ?? "",
+    pendientes: datos.pendientes ?? "",
+    recibido_por: datos.recibido_por ?? "",
+    responsable_cliente: datos.responsable_cliente ?? "",
+    observaciones_finales: datos.observaciones_finales ?? "",
+    // Si la base va por detrás de la migración 16, `sinColumnasAusentes`
+    // guarda el acta sin este campo en vez de perderla entera.
+    registrado_por: datos.registrado_por ?? "",
+    carpeta_drive_id: "",
+    carpeta_drive_url: "",
+    pdf_drive_id: "",
+    pdf_drive_url: "",
+  };
+
+  const insertadas = await sinColumnasAusentes<Intervencion[]>(
+    "intervenciones",
+    fila,
+    (f) => db.from("intervenciones").insert(f).select(),
+  );
+
+  // El equipo queda con su último valor conocido.
+  const cambios: Record<string, unknown> = {};
+  if (fila.horometro != null) cambios.horometro_actual = fila.horometro;
+  if (fila.estado_final) cambios.estado = fila.estado_final;
+  if (Object.keys(cambios).length) {
+    await db.from("equipos").update(cambios).eq("id_equipo", equipo.id_equipo);
+  }
+
+  return insertadas[0];
+}
+
+/**
+ * Ejecuta una escritura aunque a la base le falte alguna columna nueva.
+ *
+ * El técnico acaba de pasar media hora llenando el formulario delante
+ * del equipo. Si la base va una migración por detrás del código, perder
+ * el acta entera por un campo accesorio es el peor resultado posible:
+ * mejor guardarla sin ese campo y dejar el aviso en el registro.
+ *
+ * No sustituye a la migración — es el paracaídas para el rato que va
+ * entre publicar el código y ejecutarla.
+ */
+/**
+ * Un Error que conserva el codigo de PostgreSQL.
+ *
+ * Quien llama necesita distinguir «clave duplicada» (23505, se reintenta
+ * con otro numero) de un error de verdad. Mirar el texto del mensaje
+ * funciona hasta que PostgREST cambia una palabra.
+ */
+function errorConCodigo(error: { code?: string; message: string }): Error {
+  const e = new Error(error.message) as Error & { code?: string };
+  e.code = error.code;
+  return e;
+}
+
+async function sinColumnasAusentes<T>(
+  tabla: string,
+  fila: Record<string, unknown>,
+  escribir: (f: Record<string, unknown>) => PromiseLike<{
+    data: unknown;
+    error: { code?: string; message: string } | null;
+  }>,
+): Promise<T> {
+  const intento = { ...fila };
+
+  // Una vuelta por cada columna que pueda faltar, con tope para no
+  // quedarnos dando vueltas si el error fuera otro.
+  for (let n = 0; n < 8; n++) {
+    const { data, error } = await escribir(intento);
+    if (!error) return data as T;
+
+    // PGRST204: PostgREST no encuentra una columna del cuerpo.
+    const falta =
+      error.code === "PGRST204"
+        ? error.message.match(/'([^']+)' column/)?.[1]
+        : null;
+    if (!falta || !(falta in intento)) throw errorConCodigo(error);
+
+    console.error(
+      `${tabla}: la base no tiene la columna «${falta}». Se guarda sin ese ` +
+        `dato. Ejecuta las migraciones pendientes en Supabase.`,
+    );
+    delete intento[falta];
+  }
+
+  throw new Error(
+    "La base de datos va varias migraciones por detrás del sistema. " +
+      "Ejecuta las migraciones pendientes en Supabase.",
+  );
+}
+
+export async function guardarCarpetasEquipo(
+  idEquipo: string,
+  carpetaEquipoId: string,
+  carpetaIntervencionesId: string,
+): Promise<void> {
+  await cliente()
+    .from("equipos")
+    .update({
+      carpeta_drive_id: carpetaEquipoId,
+      carpeta_intervenciones_drive_id: carpetaIntervencionesId,
+    })
+    .eq("id_equipo", idEquipo);
+}
+
+export async function guardarPdfIntervencion(
+  idIntervencion: string,
+  pdfDriveId: string,
+  pdfDriveUrl: string,
+): Promise<void> {
+  await cliente()
+    .from("intervenciones")
+    .update({ pdf_drive_id: pdfDriveId, pdf_drive_url: pdfDriveUrl })
+    .eq("id_intervencion", idIntervencion);
+}
+
+export async function guardarFotosIntervencion(
+  idIntervencion: string,
+  fotos: {
+    drive_file_id: string;
+    drive_url: string;
+    nombre_archivo: string;
+    orden: number;
+  }[],
+): Promise<void> {
+  if (!fotos.length) return;
+  await cliente()
+    .from("intervencion_fotos")
+    .insert(fotos.map((f) => ({ id_intervencion: idIntervencion, ...f })));
+}
+
+/* ---------- Edicion de fichas ---------- */
+
+export async function actualizarEquipo(
+  idEquipo: string,
+  cambios: Record<string, unknown>,
+  quien: string,
+): Promise<void> {
+  const { depurarCambios, CAMPOS_EDITABLES_EQUIPO } = await import("./db-json");
+  const limpio = depurarCambios(cambios, CAMPOS_EDITABLES_EQUIPO);
+  const db = cliente();
+  await sinColumnasAusentes("equipos", { ...limpio, actualizado_por: quien }, (f) =>
+    db.from("equipos").update(f).eq("id_equipo", idEquipo),
+  );
+}
+
+export async function actualizarControlador(
+  idControlador: string,
+  cambios: Record<string, unknown>,
+  quien: string,
+): Promise<void> {
+  const { depurarCambios, CAMPOS_EDITABLES_CONTROLADOR } = await import("./db-json");
+  const limpio = depurarCambios(cambios, CAMPOS_EDITABLES_CONTROLADOR);
+  const { error } = await cliente()
+    .from("controladores")
+    .update({ ...limpio, actualizado_por: quien })
+    .eq("id_controlador", idControlador);
+  if (error) throw new Error(error.message);
+}
+
+/* ---------- Altas ---------- */
+
+/**
+ * Inserta reintentando si el identificador se lo ganó otro.
+ *
+ * El numero sale de mirar el mayor que hay, asi que dos personas dando
+ * de alta un equipo en el mismo minuto pedirian el mismo GE-016. La
+ * clave primaria lo rechaza (23505) y aqui se vuelve a calcular, en vez
+ * de mostrarle un error a quien llego segundo.
+ */
+async function insertarConIdLibre<T>(
+  tabla: string,
+  familia: Familia,
+  columnaId: string,
+  armar: (id: string) => Record<string, unknown>,
+): Promise<T> {
+  const db = cliente();
+
+  for (let intento = 0; intento < 5; intento++) {
+    const usados = await pedir<Record<string, string>[]>(
+      db.from(tabla).select(columnaId),
+    );
+    const id = siguienteId(familia, usados.map((f) => f[columnaId]));
+
+    try {
+      // Tolerante a columnas que la base todavia no tenga, igual que al
+      // guardar una ficha o un acta: si la base va una migracion por
+      // detras, se da de alta el equipo sin ese dato en vez de negarse.
+      const filas = await sinColumnasAusentes<Record<string, unknown>[]>(
+        tabla,
+        armar(id),
+        (f) => db.from(tabla).insert(f).select(),
+      );
+      return (filas ?? [])[0] as T;
+    } catch (e) {
+      // 23505 es clave duplicada: alguien se llevo ese numero mientras
+      // tanto. Se vuelve a calcular. Cualquier otro error es de verdad.
+      if ((e as { code?: string })?.code !== "23505") throw e;
+    }
+  }
+
+  throw new Error(
+    "No se pudo asignar un identificador libre. Vuelve a intentarlo.",
+  );
+}
+
+export async function crearSede(datos: Partial<Sede>): Promise<Sede> {
+  return insertarConIdLibre<Sede>("sedes", "sede", "id_sede", (id) =>
+    sedeNueva(id, datos),
+  );
+}
+
+export async function crearEquipo(datos: Partial<Equipo>): Promise<Equipo> {
+  const sedes = await pedir<{ id_sede: string }[]>(
+    cliente().from("sedes").select("id_sede").eq("id_sede", datos.id_sede ?? ""),
+  );
+  if (!sedes.length) throw new Error("Esa sede no existe");
+
+  return insertarConIdLibre<Equipo>("equipos", "equipo", "id_equipo", (id) =>
+    equipoNuevo(id, datos),
+  );
+}
+
+export async function crearControlador(
+  datos: Partial<Controlador>,
+): Promise<Controlador> {
+  const equipos = await pedir<{ id_equipo: string; id_sede: string }[]>(
+    cliente()
+      .from("equipos")
+      .select("id_equipo, id_sede")
+      .eq("id_equipo", datos.id_equipo ?? ""),
+  );
+  const equipo = equipos[0];
+  if (!equipo) throw new Error("Ese equipo no existe");
+
+  return insertarConIdLibre<Controlador>(
+    "controladores",
+    "controlador",
+    "id_controlador",
+    (id) => controladorNuevo(id, { ...datos, id_sede: equipo.id_sede }),
+  );
+}
+
+/* ---------- Programa de mantenimiento ---------- */
+
+/**
+ * Falta la tabla del programa: la migracion 03 no se ha ejecutado.
+ *
+ * Se distingue a proposito de un error de verdad, para poder decirselo
+ * al usuario con instrucciones en vez de con una pantalla rota.
+ */
+export class FaltaProgramaError extends Error {
+  constructor() {
+    super("La tabla del programa de mantenimiento todavia no existe.");
+    this.name = "FaltaProgramaError";
+  }
+}
+
+function esTablaAusente(e: { code?: string; message?: string }) {
+  // 42P01 es "relation does not exist"; PGRST205 es la version que
+  // devuelve PostgREST cuando no la encuentra en su cache de esquema.
+  return (
+    e?.code === "42P01" ||
+    e?.code === "PGRST205" ||
+    /programa_mantenimiento/i.test(e?.message ?? "")
+  );
+}
+
+export async function programaDelAnio(anio: number) {
+  const db = cliente();
+
+  const { data: tareas, error } = await db
+    .from("programa_mantenimiento")
+    .select("*")
+    .eq("anio", anio);
+  if (error) {
+    if (esTablaAusente(error)) throw new FaltaProgramaError();
+    throw new Error(error.message);
+  }
+
+  // Solo lo que hace falta para cruzar con el programa: un acta entera
+  // por cada equipo y mes seria traerse el año completo para nada.
+  const actas = await pedir<ActaDelPrograma[]>(
+    db
+      .from("intervenciones")
+      .select(
+        "id_intervencion, id_equipo, fecha, tipo_intervencion, actividades_realizadas, tecnico_nombre",
+      )
+      .gte("fecha", `${anio}-01-01`)
+      .lte("fecha", `${anio}-12-31`),
+  );
+
+  return { tareas: (tareas ?? []) as TareaPrograma[], actas };
+}
+
+export async function guardarTareaPrograma(datos: {
+  id_equipo: string;
+  anio: number;
+  mes: number;
+  semana?: number;
+  programado?: string;
+  ejecutado?: string;
+  semana_ejecucion?: number | null;
+  actualizado_por?: string;
+}): Promise<TareaPrograma> {
+  const fila: Record<string, unknown> = {
+    id_equipo: datos.id_equipo,
+    anio: datos.anio,
+    mes: datos.mes,
+  };
+  if (datos.semana !== undefined) fila.semana = datos.semana;
+  if (datos.programado !== undefined) fila.programado = datos.programado;
+  if (datos.ejecutado !== undefined) fila.ejecutado = datos.ejecutado;
+  if (datos.semana_ejecucion !== undefined)
+    fila.semana_ejecucion = datos.semana_ejecucion;
+  if (datos.actualizado_por !== undefined)
+    fila.actualizado_por = datos.actualizado_por;
+
+  const { data, error } = await cliente()
+    .from("programa_mantenimiento")
+    .upsert(fila, { onConflict: "id_equipo,anio,mes" })
+    .select();
+  if (error) {
+    if (esTablaAusente(error)) throw new FaltaProgramaError();
+    throw new Error(error.message);
+  }
+  return (data ?? [])[0] as TareaPrograma;
+}
+
+export async function borrarTareaPrograma(
+  idEquipo: string,
+  anio: number,
+  mes: number,
+): Promise<void> {
+  const { error } = await cliente()
+    .from("programa_mantenimiento")
+    .delete()
+    .eq("id_equipo", idEquipo)
+    .eq("anio", anio)
+    .eq("mes", mes);
+  if (error) {
+    if (esTablaAusente(error)) throw new FaltaProgramaError();
+    throw new Error(error.message);
+  }
+}
+
+/* ---------- Indicadores mensuales ---------- */
+
+/** Falta la tabla de indicadores: la migracion 04 no se ha ejecutado. */
+export class FaltaIndicadoresError extends Error {
+  constructor() {
+    super("La tabla de indicadores todavia no existe.");
+    this.name = "FaltaIndicadoresError";
+  }
+}
+
+export async function indicadoresDelAnio(idEquipo: string, anio: number) {
+  const db = cliente();
+
+  const { data: meses, error } = await db
+    .from("indicadores_mensuales")
+    .select("*")
+    .eq("id_equipo", idEquipo)
+    .eq("anio", anio);
+  if (error) {
+    if (
+      error.code === "42P01" ||
+      error.code === "PGRST205" ||
+      /indicadores_mensuales/i.test(error.message ?? "")
+    ) {
+      throw new FaltaIndicadoresError();
+    }
+    throw new Error(error.message);
+  }
+
+  // El numero de fallas no se guarda: se cuenta desde las correctivas.
+  const correctivas = await pedir<
+    { fecha: string; id_intervencion: string }[]
+  >(
+    db
+      .from("intervenciones")
+      .select("fecha, id_intervencion")
+      .eq("id_equipo", idEquipo)
+      .eq("tipo_intervencion", "correctiva")
+      .gte("fecha", `${anio}-01-01`)
+      .lte("fecha", `${anio}-12-31`),
+  );
+
+  return { meses: (meses ?? []) as IndicadorMes[], correctivas };
+}
+
+export async function guardarIndicadorMes(
+  datos: Partial<IndicadorMes> & { id_equipo: string; anio: number; mes: number },
+): Promise<IndicadorMes> {
+  const fila: Record<string, unknown> = {
+    id_equipo: datos.id_equipo,
+    anio: datos.anio,
+    mes: datos.mes,
+  };
+  for (const campo of [
+    "horometro", "horas_operacion", "horas_requeridas", "fallas",
+    "obs_disponibilidad", "tendencia_disponibilidad",
+    "obs_confiabilidad", "tendencia_confiabilidad", "actualizado_por",
+  ] as const) {
+    if (datos[campo] !== undefined) fila[campo] = datos[campo];
+  }
+
+  const { data, error } = await cliente()
+    .from("indicadores_mensuales")
+    .upsert(fila, { onConflict: "id_equipo,anio,mes" })
+    .select();
+  if (error) {
+    if (
+      error.code === "42P01" ||
+      error.code === "PGRST205" ||
+      /indicadores_mensuales/i.test(error.message ?? "")
+    ) {
+      throw new FaltaIndicadoresError();
+    }
+    throw new Error(error.message);
+  }
+  return (data ?? [])[0] as IndicadorMes;
+}
+
+/**
+ * Corrige un acta ya guardada.
+ *
+ * Solo toca los campos de la lista blanca y deja constancia de quien la
+ * corrigio, cuando y por que: el acta lo imprime al pie. Si no cambia
+ * nada de verdad, no se marca como editada — asi abrir el formulario y
+ * cerrarlo no ensucia el historial.
+ *
+ * Va por `sinColumnasAusentes` para que la correccion siga funcionando
+ * aunque la migracion 07 no se haya ejecutado todavia: se guarda el
+ * dato corregido, que es lo que importa, y se avisa por consola de que
+ * la marca de edicion no se pudo escribir.
+ */
+export async function actualizarIntervencion(
+  id: string,
+  crudo: Record<string, unknown>,
+  quien: string,
+  motivo: string,
+): Promise<{ intervencion: Intervencion; cambiados: string[] }> {
+  const db = cliente();
+
+  const previas = await pedir<Intervencion[]>(
+    db.from("intervenciones").select("*").eq("id_intervencion", id).limit(1),
+  );
+  const antes = previas[0];
+  if (!antes) throw new Error(`La intervención ${id} no existe`);
+
+  const cambios: CambiosIntervencion = soloEditables(crudo);
+  if ("checklist" in cambios) {
+    cambios.checklist = depurarChecklist(cambios.checklist);
+  }
+  const cambiados = camposQueCambian(antes, cambios);
+  if (!cambiados.length) return { intervencion: antes, cambiados: [] };
+
+  const fila = {
+    ...cambios,
+    editada_en: new Date().toISOString(),
+    editada_por: quien,
+    motivo_edicion: motivo,
+  };
+
+  const filas = await sinColumnasAusentes<Intervencion[]>(
+    "intervenciones",
+    fila as Record<string, unknown>,
+    (f) =>
+      db.from("intervenciones").update(f).eq("id_intervencion", id).select(),
+  );
+  const intervencion = filas[0] ?? { ...antes, ...fila };
+
+  // La ficha del equipo guarda el ultimo valor conocido: corregir un
+  // horometro mal tecleado tiene que arreglarla tambien.
+  const delEquipo: Record<string, unknown> = {};
+  if (intervencion.horometro != null) {
+    delEquipo.horometro_actual = intervencion.horometro;
+  }
+  if (intervencion.estado_final) delEquipo.estado = intervencion.estado_final;
+  if (Object.keys(delEquipo).length) {
+    await db.from("equipos").update(delEquipo).eq("id_equipo", antes.id_equipo);
+  }
+
+  return { intervencion, cambiados };
+}
+
+/**
+ * Quita fotos de un acta corregida.
+ *
+ * Borra la fila; el archivo de Drive lo manda a la papelera quien
+ * llama, que es el unico que sabe hablar con Drive. Devuelve las que
+ * de verdad existian para no mandar a la papelera lo que no era.
+ */
+export async function borrarFotosIntervencion(
+  idIntervencion: string,
+  driveIds: string[],
+): Promise<{ drive_file_id: string }[]> {
+  if (!driveIds.length) return [];
+  const filas = await pedir<{ drive_file_id: string }[]>(
+    cliente()
+      .from("intervencion_fotos")
+      .delete()
+      .eq("id_intervencion", idIntervencion)
+      .in("drive_file_id", driveIds)
+      .select("drive_file_id"),
+  );
+  return filas;
+}
+
+/* ---------- Reportes de falla (FOR-MTO-53) ---------- */
+
+/** Falta la tabla de reportes: la migracion 08 no se ha ejecutado. */
+export class FaltaReportesFallaError extends Error {
+  constructor() {
+    super("La tabla de reportes de falla todavia no existe.");
+    this.name = "FaltaReportesFallaError";
+  }
+}
+
+function faltaTablaReportes(e: { code?: string; message?: string }) {
+  return (
+    e?.code === "42P01" ||
+    e?.code === "PGRST205" ||
+    /reportes_falla/i.test(e?.message ?? "")
+  );
+}
+
+export async function crearReporteFalla(
+  datos: EntradaReporteFalla,
+): Promise<ReporteFalla> {
+  const db = cliente();
+
+  const par = await equipoConSede(datos.id_equipo);
+  if (!par) throw new Error(`El equipo ${datos.id_equipo} no existe`);
+  const { equipo, sede } = par;
+
+  const anio = new Date(`${datos.fecha_evento}T00:00:00`).getFullYear();
+
+  const fila = {
+    id_equipo: equipo.id_equipo,
+    id_sede: equipo.id_sede,
+    bloque: datos.bloque || sede?.nombre || "",
+    campo: datos.campo || sede?.ubicacion || sede?.nombre || "",
+    sistema: datos.sistema || "GENERACIÓN",
+    denominacion_equipos:
+      datos.denominacion_equipos ||
+      [equipo.fabricante, equipo.modelo].filter(Boolean).join(" "),
+    codigo_serial: datos.codigo_serial || equipo.serial || equipo.id_equipo,
+    horometro: datos.horometro ?? equipo.horometro_actual ?? null,
+    fecha_evento: datos.fecha_evento,
+    hora_inicio: datos.hora_inicio ?? "",
+    hora_fin: datos.hora_fin ?? "",
+    fecha_final: datos.fecha_final || null,
+    descripcion_evento: datos.descripcion_evento ?? "",
+    conclusion: datos.conclusion ?? "",
+    id_intervencion: datos.id_intervencion || null,
+    creado_por: datos.creado_por ?? "",
+  };
+
+  // El consecutivo se calcula aqui y se reintenta si dos reportes
+  // caen a la vez, igual que el de las actas.
+  for (let intento = 0; intento < 6; intento++) {
+    const { data: previos, error: errorPrevios } = await db
+      .from("reportes_falla")
+      .select("id_reporte")
+      .like("id_reporte", `RF-${anio}-%`);
+    if (errorPrevios) {
+      if (faltaTablaReportes(errorPrevios)) throw new FaltaReportesFallaError();
+      throw errorConCodigo(errorPrevios);
+    }
+
+    const marca = `RF-${anio}-`;
+    const ultimo = (previos ?? [])
+      .map((p) => parseInt(String(p.id_reporte).slice(marca.length), 10))
+      .filter((n) => !Number.isNaN(n))
+      .reduce((max, n) => Math.max(max, n), 0);
+    const id = `${marca}${String(ultimo + 1 + intento).padStart(4, "0")}`;
+
+    const { data, error } = await db
+      .from("reportes_falla")
+      .insert({ id_reporte: id, ...fila })
+      .select();
+
+    if (!error) return (data as ReporteFalla[])[0];
+    if (faltaTablaReportes(error)) throw new FaltaReportesFallaError();
+    // 23505: otro reporte se llevo ese consecutivo. Se prueba el
+    // siguiente en vez de fallar.
+    if (error.code !== "23505") throw errorConCodigo(error);
+  }
+
+  throw new Error("No se pudo asignar un consecutivo al reporte de falla.");
+}
+
+export async function listarReportesFalla(filtro?: {
+  anio?: number;
+  idEquipo?: string;
+}): Promise<ReporteFalla[]> {
+  const db = cliente();
+  let consulta = db.from("reportes_falla").select("*");
+  if (filtro?.idEquipo) consulta = consulta.eq("id_equipo", filtro.idEquipo);
+  if (filtro?.anio) {
+    consulta = consulta
+      .gte("fecha_evento", `${filtro.anio}-01-01`)
+      .lte("fecha_evento", `${filtro.anio}-12-31`);
+  }
+
+  const { data, error } = await consulta.order("fecha_evento", {
+    ascending: false,
+  });
+  if (error) {
+    if (faltaTablaReportes(error)) throw new FaltaReportesFallaError();
+    throw errorConCodigo(error);
+  }
+  return (data ?? []) as ReporteFalla[];
+}
+
+export async function obtenerReporteFalla(id: string) {
+  const db = cliente();
+  const { data, error } = await db
+    .from("reportes_falla")
+    .select("*")
+    .eq("id_reporte", id)
+    .limit(1);
+  if (error) {
+    if (faltaTablaReportes(error)) throw new FaltaReportesFallaError();
+    throw errorConCodigo(error);
+  }
+  const reporte = (data ?? [])[0] as ReporteFalla | undefined;
+  if (!reporte) return null;
+
+  const par = await equipoConSede(reporte.id_equipo);
+  return { reporte, equipo: par?.equipo ?? null, sede: par?.sede ?? null };
+}
+
+export async function guardarPdfReporteFalla(
+  id: string,
+  driveId: string,
+  driveUrl: string,
+): Promise<void> {
+  await cliente()
+    .from("reportes_falla")
+    .update({ pdf_drive_id: driveId, pdf_drive_url: driveUrl })
+    .eq("id_reporte", id);
+}
+
+/* ---------- Lecturas de horómetro ---------- */
+
+/** Falta la tabla de lecturas: la migracion 11 no se ha ejecutado. */
+export class FaltaLecturasError extends Error {
+  constructor() {
+    super("La tabla de lecturas de horometro todavia no existe.");
+    this.name = "FaltaLecturasError";
+  }
+}
+
+function faltaTablaLecturas(e: { code?: string; message?: string }) {
+  return (
+    e?.code === "42P01" ||
+    e?.code === "PGRST205" ||
+    /lecturas_horometro/i.test(e?.message ?? "")
+  );
+}
+
+export async function registrarLectura(
+  lectura: Omit<LecturaHorometro, "id">,
+): Promise<LecturaHorometro> {
+  const { data, error } = await cliente()
+    .from("lecturas_horometro")
+    .insert(lectura)
+    .select();
+
+  if (error) {
+    if (faltaTablaLecturas(error)) throw new FaltaLecturasError();
+    // 23505: ya habia una lectura de ese equipo en ese instante. Es la
+    // misma lectura digitada dos veces, no un error.
+    if (error.code === "23505") {
+      const { data: ya } = await cliente()
+        .from("lecturas_horometro")
+        .select("*")
+        .eq("id_equipo", lectura.id_equipo)
+        .eq("momento", lectura.momento)
+        .limit(1);
+      if (ya?.[0]) return ya[0] as LecturaHorometro;
+    }
+    throw errorConCodigo(error);
+  }
+  // El horometro de la ficha lo pone al dia el disparador de la
+  // migracion 11, no este codigo: asi da igual quien escriba.
+  return (data as LecturaHorometro[])[0];
+}
+
+/** Las lecturas de un rango, para cerrar los meses de un año. */
+export async function lecturasEntre(
+  idEquipo: string,
+  desde: string,
+  hasta: string,
+): Promise<LecturaHorometro[]> {
+  const salida: LecturaHorometro[] = [];
+  // Supabase corta en mil por peticion; un año son unas cuatro mil.
+  for (let pagina = 0; pagina < 12; pagina++) {
+    const { data, error } = await cliente()
+      .from("lecturas_horometro")
+      .select("*")
+      .eq("id_equipo", idEquipo)
+      .gte("momento", desde)
+      .lte("momento", hasta)
+      .order("momento", { ascending: true })
+      .range(pagina * 1000, pagina * 1000 + 999);
+
+    if (error) {
+      if (faltaTablaLecturas(error)) throw new FaltaLecturasError();
+      throw errorConCodigo(error);
+    }
+    const lote = (data ?? []) as LecturaHorometro[];
+    salida.push(...lote);
+    if (lote.length < 1000) break;
+  }
+  return salida;
+}
+
+export async function lecturasDe(
+  idEquipo: string,
+  limite = 400,
+): Promise<LecturaHorometro[]> {
+  const { data, error } = await cliente()
+    .from("lecturas_horometro")
+    .select("*")
+    .eq("id_equipo", idEquipo)
+    .order("momento", { ascending: false })
+    .limit(limite);
+
+  if (error) {
+    if (faltaTablaLecturas(error)) throw new FaltaLecturasError();
+    throw errorConCodigo(error);
+  }
+  return ((data ?? []) as LecturaHorometro[]).reverse();
+}
+
+/* ---------- Consumibles ---------- */
+
+/** Faltan las tablas de consumibles: la migracion 12 no se ha ejecutado. */
+export class FaltaConsumiblesError extends Error {
+  constructor() {
+    super("Las tablas de consumibles todavia no existen.");
+    this.name = "FaltaConsumiblesError";
+  }
+}
+
+function faltaTablaConsumibles(e: { code?: string; message?: string }) {
+  return (
+    e?.code === "42P01" ||
+    e?.code === "PGRST205" ||
+    /consumible/i.test(e?.message ?? "")
+  );
+}
+
+export async function listarConsumibles(): Promise<
+  (Consumible & { existencia: number })[]
+> {
+  const db = cliente();
+  const [cat, saldos] = await Promise.all([
+    db.from("consumibles").select("*").order("nombre"),
+    db.from("existencias_consumible").select("*"),
+  ]);
+  if (cat.error) {
+    if (faltaTablaConsumibles(cat.error)) throw new FaltaConsumiblesError();
+    throw errorConCodigo(cat.error);
+  }
+  const porId = new Map(
+    ((saldos.data ?? []) as { id_consumible: string; existencia: number }[]).map(
+      (x) => [x.id_consumible, Number(x.existencia) || 0],
+    ),
+  );
+  return ((cat.data ?? []) as Consumible[]).map((c) => ({
+    ...c,
+    existencia: porId.get(c.id_consumible) ?? 0,
+  }));
+}
+
+export async function crearConsumible(
+  datos: Partial<Consumible> & { nombre: string },
+): Promise<Consumible> {
+  const db = cliente();
+
+  // El consecutivo se calcula y se reintenta si dos caen a la vez,
+  // igual que el de las actas.
+  for (let intento = 0; intento < 6; intento++) {
+    const { data: previos, error: e1 } = await db
+      .from("consumibles")
+      .select("id_consumible");
+    if (e1) {
+      if (faltaTablaConsumibles(e1)) throw new FaltaConsumiblesError();
+      throw errorConCodigo(e1);
+    }
+    const ultimo = (previos ?? [])
+      .map((p) => parseInt(String(p.id_consumible).slice(3), 10))
+      .filter((n) => !Number.isNaN(n))
+      .reduce((max, n) => Math.max(max, n), 0);
+    const id = `CN-${String(ultimo + 1 + intento).padStart(4, "0")}`;
+
+    const { data, error } = await db
+      .from("consumibles")
+      .insert({
+        id_consumible: id,
+        nombre: datos.nombre,
+        tipo: datos.tipo ?? "otro",
+        referencia: datos.referencia ?? "",
+        marca: datos.marca ?? "",
+        unidad: datos.unidad || "unidad",
+        vida_util_horas: datos.vida_util_horas ?? null,
+        stock_minimo: datos.stock_minimo ?? 0,
+        observaciones: datos.observaciones ?? "",
+      })
+      .select();
+
+    if (!error) return (data as Consumible[])[0];
+    if (faltaTablaConsumibles(error)) throw new FaltaConsumiblesError();
+    if (error.code !== "23505") throw errorConCodigo(error);
+  }
+  throw new Error("No se pudo asignar un consecutivo al consumible.");
+}
+
+export async function registrarMovimiento(
+  m: Omit<MovimientoConsumible, "id">,
+): Promise<MovimientoConsumible> {
+  const { data, error } = await cliente()
+    .from("movimientos_consumible")
+    .insert(m)
+    .select();
+  if (error) {
+    if (faltaTablaConsumibles(error)) throw new FaltaConsumiblesError();
+    throw errorConCodigo(error);
+  }
+  return (data as MovimientoConsumible[])[0];
+}
+
+export async function movimientosDe(
+  idConsumible?: string,
+): Promise<MovimientoConsumible[]> {
+  let q = cliente().from("movimientos_consumible").select("*");
+  if (idConsumible) q = q.eq("id_consumible", idConsumible);
+  const { data, error } = await q.order("fecha", { ascending: false }).limit(500);
+  if (error) {
+    if (faltaTablaConsumibles(error)) throw new FaltaConsumiblesError();
+    throw errorConCodigo(error);
+  }
+  return (data ?? []) as MovimientoConsumible[];
+}
+
+export async function instalacionesDe(
+  idEquipo: string,
+  soloPuestas = true,
+): Promise<InstalacionConsumible[]> {
+  let q = cliente()
+    .from("instalaciones_consumible")
+    .select("*")
+    .eq("id_equipo", idEquipo);
+  if (soloPuestas) q = q.is("retirado_en", null);
+  const { data, error } = await q.order("instalado_en", { ascending: false });
+  if (error) {
+    if (faltaTablaConsumibles(error)) throw new FaltaConsumiblesError();
+    throw errorConCodigo(error);
+  }
+  return (data ?? []) as InstalacionConsumible[];
+}
+
+export async function instalarConsumible(
+  i: Omit<InstalacionConsumible, "id">,
+): Promise<InstalacionConsumible> {
+  const { data, error } = await cliente()
+    .from("instalaciones_consumible")
+    .insert(i)
+    .select();
+  if (error) {
+    if (faltaTablaConsumibles(error)) throw new FaltaConsumiblesError();
+    throw errorConCodigo(error);
+  }
+  return (data as InstalacionConsumible[])[0];
+}
+
+export async function retirarInstalacion(
+  id: string,
+  datos: { retirado_en: string; horometro_retiro: number | null; motivo_retiro: string },
+): Promise<void> {
+  const { error } = await cliente()
+    .from("instalaciones_consumible")
+    .update(datos)
+    .eq("id", id);
+  if (error) throw errorConCodigo(error);
+}
+
+/* ---------- Adiciones de aceite ---------- */
+
+/** Falta la tabla de aceite: la migracion 13 no se ha ejecutado. */
+export class FaltaAceiteError extends Error {
+  constructor() {
+    super("La tabla de adiciones de aceite todavia no existe.");
+    this.name = "FaltaAceiteError";
+  }
+}
+
+function faltaTablaAceite(e: { code?: string; message?: string }) {
+  return (
+    e?.code === "42P01" ||
+    e?.code === "PGRST205" ||
+    /adiciones_aceite/i.test(e?.message ?? "")
+  );
+}
+
+export async function registrarAdicionAceite(
+  datos: EntradaAceite,
+): Promise<AdicionAceite> {
+  const db = cliente();
+
+  const par = await equipoConSede(datos.id_equipo);
+  if (!par) throw new Error(`El equipo ${datos.id_equipo} no existe`);
+  const { equipo } = par;
+
+  const anio = new Date(`${datos.fecha}T00:00:00`).getFullYear();
+  const fila = {
+    id_equipo: equipo.id_equipo,
+    id_sede: equipo.id_sede,
+    fecha: datos.fecha,
+    marca: datos.marca || equipo.fabricante || "",
+    modelo: datos.modelo || equipo.modelo || "",
+    tag: datos.tag || equipo.tag || equipo.id_equipo,
+    horometro: datos.horometro ?? null,
+    nombre_aceite: datos.nombre_aceite ?? "",
+    cantidad_gln: datos.cantidad_gln,
+    operacion: datos.operacion ?? "reposicion",
+    observacion: datos.observacion ?? "",
+    id_consumible: datos.id_consumible ?? null,
+    id_intervencion: datos.id_intervencion ?? null,
+    registrado_por: datos.registrado_por ?? "",
+  };
+
+  for (let intento = 0; intento < 6; intento++) {
+    const marca = `AC-${anio}-`;
+    const { data: previos, error: e1 } = await db
+      .from("adiciones_aceite")
+      .select("id_adicion")
+      .like("id_adicion", `${marca}%`);
+    if (e1) {
+      if (faltaTablaAceite(e1)) throw new FaltaAceiteError();
+      throw errorConCodigo(e1);
+    }
+    const ultimo = (previos ?? [])
+      .map((p) => parseInt(String(p.id_adicion).slice(marca.length), 10))
+      .filter((n) => !Number.isNaN(n))
+      .reduce((max, n) => Math.max(max, n), 0);
+    const id = `${marca}${String(ultimo + 1 + intento).padStart(4, "0")}`;
+
+    const { data, error } = await db
+      .from("adiciones_aceite")
+      .insert({ id_adicion: id, ...fila })
+      .select();
+
+    if (!error) return (data as AdicionAceite[])[0];
+    if (faltaTablaAceite(error)) throw new FaltaAceiteError();
+    if (error.code !== "23505") throw errorConCodigo(error);
+  }
+  throw new Error("No se pudo asignar un consecutivo a la adición de aceite.");
+}
+
+export async function adicionesAceite(filtro?: {
+  idEquipo?: string;
+  idSede?: string;
+  anio?: number;
+}): Promise<AdicionAceite[]> {
+  let q = cliente().from("adiciones_aceite").select("*");
+  if (filtro?.idEquipo) q = q.eq("id_equipo", filtro.idEquipo);
+  if (filtro?.idSede) q = q.eq("id_sede", filtro.idSede);
+  if (filtro?.anio) {
+    q = q
+      .gte("fecha", `${filtro.anio}-01-01`)
+      .lte("fecha", `${filtro.anio}-12-31`);
+  }
+  const { data, error } = await q.order("fecha", { ascending: false }).limit(2000);
+  if (error) {
+    if (faltaTablaAceite(error)) throw new FaltaAceiteError();
+    throw errorConCodigo(error);
+  }
+  return (data ?? []) as AdicionAceite[];
+}
+
+/* ---------- Registro horario de operación ---------- */
+
+/** Falta la tabla de operacion: la migracion 14 no se ha ejecutado. */
+export class FaltaOperacionError extends Error {
+  constructor() {
+    super("La tabla de registros de operacion todavia no existe.");
+    this.name = "FaltaOperacionError";
+  }
+}
+
+export async function registrosOperacion(filtro?: {
+  idEquipo?: string;
+  desde?: string;
+  hasta?: string;
+  soloSospechosos?: boolean;
+  limite?: number;
+}): Promise<RegistroOperacion[]> {
+  let q = cliente().from("registros_operacion").select("*");
+  if (filtro?.idEquipo) q = q.eq("id_equipo", filtro.idEquipo);
+  if (filtro?.desde) q = q.gte("fecha", filtro.desde);
+  if (filtro?.hasta) q = q.lte("fecha", filtro.hasta);
+  if (filtro?.soloSospechosos) q = q.neq("sospechoso", "");
+
+  const { data, error } = await q
+    .order("fecha", { ascending: false })
+    .order("hora", { ascending: false })
+    .limit(filtro?.limite ?? 2000);
+
+  if (error) {
+    if (
+      error.code === "42P01" ||
+      error.code === "PGRST205" ||
+      /registros_operacion/i.test(error.message ?? "")
+    ) {
+      throw new FaltaOperacionError();
+    }
+    throw errorConCodigo(error);
+  }
+  return (data ?? []) as RegistroOperacion[];
+}
+
+/** Cuántos hay, sin traérselos. Es lo que permite decir «25.318». */
+export async function contarOperacion(idEquipo?: string): Promise<{
+  total: number;
+  sospechosos: number;
+}> {
+  const db = cliente();
+  const base = db
+    .from("registros_operacion")
+    .select("*", { count: "exact", head: true });
+  const uno = idEquipo ? base.eq("id_equipo", idEquipo) : base;
+  const { count, error } = await uno;
+  if (error) {
+    if (error.code === "42P01" || error.code === "PGRST205") {
+      throw new FaltaOperacionError();
+    }
+    throw errorConCodigo(error);
+  }
+
+  const s = db
+    .from("registros_operacion")
+    .select("*", { count: "exact", head: true })
+    .neq("sospechoso", "");
+  const { count: sos } = await (idEquipo ? s.eq("id_equipo", idEquipo) : s);
+
+  return { total: count ?? 0, sospechosos: sos ?? 0 };
+}
+
+/**
+ * Borra un acta, con sus fotos y su rastro.
+ *
+ * El PDF y las fotos de Drive no se tocan aqui: se mandan a la papelera
+ * desde la ruta, que es la que sabe hablar con Drive. Y a la papelera,
+ * no a borrado definitivo — un acta borrada por error tiene que poder
+ * recuperarse.
+ */
+export async function borrarIntervencion(id: string): Promise<void> {
+  const db = cliente();
+
+  // Las fotos primero: cuelgan del acta.
+  await db.from("intervencion_fotos").delete().eq("id_intervencion", id);
+
+  const { error } = await db
+    .from("intervenciones")
+    .delete()
+    .eq("id_intervencion", id);
+  if (error) throw errorConCodigo(error);
+}
+
+/* ---------- Generación diaria y sincronización con la hoja ---------- */
+
+/** Falta la tabla: la migración 15 no se ha ejecutado. */
+export class FaltaGeneracionError extends Error {
+  constructor() {
+    super("Las tablas de generacion diaria todavia no existen.");
+    this.name = "FaltaGeneracionError";
+  }
+}
+
+const noExiste = (error: { code?: string; message?: string }) =>
+  error.code === "42P01" || error.code === "PGRST205";
+
+/**
+ * El cierre de cada día, por equipo.
+ *
+ * Es lo que la página muestra en Operación y en la ficha del equipo:
+ * horómetro, combustible y kilovatios, un renglón por día. Lo llena el
+ * sincronizador desde la hoja de Google.
+ */
+/**
+ * Las columnas que la pantalla de operacion usa de verdad.
+ *
+ * Pedir `*` traia diecisiete columnas por fila, y de un ano son dos mil
+ * doscientas filas que ademas viajan enteras al navegador dentro del
+ * HTML. Las siete que sobran —el id, la sede, el origen, la marca de
+ * tiempo— no las mira nadie y pesan en cada carga, que en campo se hace
+ * desde un telefono con la senal que haya.
+ */
+const COLUMNAS_GENERACION =
+  "id_equipo,fecha,combustible,horometro,horas_dia,kwh_dia," +
+  "diesel_gln,glp_m3,glp_kg,nota";
+
+export async function generacionDiaria(filtro?: {
+  idEquipo?: string;
+  desde?: string;
+  hasta?: string;
+  combustible?: string;
+  limite?: number;
+}): Promise<DiaEnPantalla[]> {
+  let q = cliente().from("generacion_diaria").select(COLUMNAS_GENERACION);
+  if (filtro?.idEquipo) q = q.eq("id_equipo", filtro.idEquipo);
+  if (filtro?.combustible) q = q.eq("combustible", filtro.combustible);
+  if (filtro?.desde) q = q.gte("fecha", filtro.desde);
+  if (filtro?.hasta) q = q.lte("fecha", filtro.hasta);
+
+  const { data, error } = await q
+    .order("fecha", { ascending: false })
+    .limit(filtro?.limite ?? 2000);
+
+  if (error) {
+    if (noExiste(error)) throw new FaltaGeneracionError();
+    throw errorConCodigo(error);
+  }
+  // La nota se cambia por un si/no antes de salir de aqui. La pantalla
+  // solo cuenta cuantos dias hay que mirar; mandarle el texto entero de
+  // cada uno serian cien kilobytes que nadie lee.
+  return ((data ?? []) as unknown as (DiaEnPantalla & { nota?: string })[]).map(
+    ({ nota, ...resto }) => ({ ...resto, revisar: Boolean(nota) }),
+  );
+}
+
+/** Lo que gastó la planta cada día, medido en el tanque. */
+export async function consumoPlanta(filtro?: {
+  desde?: string;
+  hasta?: string;
+  limite?: number;
+}): Promise<Record<string, unknown>[]> {
+  let q = cliente()
+    .from("consumo_planta")
+    .select("fecha,diesel_gln,nivel_tanque_gln,glp_kg,kwh_glp");
+  if (filtro?.desde) q = q.gte("fecha", filtro.desde);
+  if (filtro?.hasta) q = q.lte("fecha", filtro.hasta);
+
+  const { data, error } = await q
+    .order("fecha", { ascending: false })
+    .limit(filtro?.limite ?? 400);
+
+  if (error) {
+    if (noExiste(error)) throw new FaltaGeneracionError();
+    throw errorConCodigo(error);
+  }
+  return (data ?? []) as Record<string, unknown>[];
+}
+
+/**
+ * Las últimas corridas del sincronizador.
+ *
+ * Sin este diario, «se actualiza solo con el Excel» es una promesa que
+ * nadie puede comprobar. Con él, la pantalla puede decir cuándo entró la
+ * última y qué trajo.
+ */
+export async function ultimasSincronizaciones(
+  cuantas = 5,
+): Promise<Record<string, unknown>[]> {
+  const { data, error } = await cliente()
+    .from("sincronizaciones")
+    .select("*")
+    .order("momento", { ascending: false })
+    .limit(cuantas);
+
+  if (error) {
+    if (noExiste(error)) throw new FaltaGeneracionError();
+    throw errorConCodigo(error);
+  }
+  return (data ?? []) as Record<string, unknown>[];
+}

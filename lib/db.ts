@@ -1,196 +1,294 @@
-import fs from "node:fs/promises";
-import path from "node:path";
-import type {
-  BaseDatos, Controlador, Equipo, Sede, Backup,
-  Documento, Intervencion, Novedad,
-} from "./tipos";
+import * as json from "./db-json";
+import * as supabase from "./db-supabase";
 
 /**
  * Capa de datos del sistema.
  *
- * Hoy guarda todo en un archivo JSON local para poder usar el sistema
- * sin depender de ningún servicio externo. Cuando conectemos Supabase,
- * SOLO se reescriben las funciones de este archivo: las pantallas no
- * se tocan.
+ * Si hay Supabase configurado (NEXT_PUBLIC_SUPABASE_URL y
+ * SUPABASE_SERVICE_KEY en .env.local), todo va contra PostgreSQL.
+ * Si no, funciona con el archivo local — así el sistema nunca deja de
+ * arrancar y se puede trabajar mientras la base real se configura.
+ *
+ * Las pantallas importan siempre desde aquí y no saben cuál está activo.
  */
 
-const RUTA_DATOS = path.join(process.cwd(), ".data", "db.json");
-const RUTA_SEMILLA = path.join(process.cwd(), "data", "seed.json");
+const usarSupabase = () => supabase.configurado();
 
-async function leer(): Promise<BaseDatos> {
-  try {
-    return JSON.parse(await fs.readFile(RUTA_DATOS, "utf8"));
-  } catch {
-    const semilla = JSON.parse(await fs.readFile(RUTA_SEMILLA, "utf8"));
-    await escribir(semilla);
-    return semilla;
-  }
+export function motorDeDatos(): "supabase" | "archivo" {
+  return usarSupabase() ? "supabase" : "archivo";
 }
 
-async function escribir(datos: BaseDatos): Promise<void> {
-  await fs.mkdir(path.dirname(RUTA_DATOS), { recursive: true });
-  await fs.writeFile(RUTA_DATOS, JSON.stringify(datos, null, 2), "utf8");
-}
+export const listarEquipos = (...a: Parameters<typeof json.listarEquipos>) =>
+  usarSupabase() ? supabase.listarEquipos(...a) : json.listarEquipos(...a);
 
-/* ---------- Consultas ---------- */
+export const obtenerFichaEquipo = (
+  ...a: Parameters<typeof json.obtenerFichaEquipo>
+) =>
+  usarSupabase()
+    ? supabase.obtenerFichaEquipo(...a)
+    : json.obtenerFichaEquipo(...a);
 
-export async function listarControladores() {
-  const db = await leer();
-  return db.controladores.map((c) => ({
-    ...c,
-    equipo: db.equipos.find((e) => e.id === c.equipoId) ?? null,
-    sede: db.sedes.find((s) => s.id === c.sedeId) ?? null,
-    totalIntervenciones: db.intervenciones.filter(
-      (i) => i.controladorId === c.id,
-    ).length,
-  }));
-}
+export const equipoDeControlador = (
+  ...a: Parameters<typeof json.equipoDeControlador>
+) =>
+  usarSupabase()
+    ? supabase.equipoDeControlador(...a)
+    : json.equipoDeControlador(...a);
 
-export async function obtenerFicha(id: string) {
-  const db = await leer();
-  const controlador = db.controladores.find((c) => c.id === id);
-  if (!controlador) return null;
+export const obtenerIntervencion = (
+  ...a: Parameters<typeof json.obtenerIntervencion>
+) =>
+  usarSupabase()
+    ? supabase.obtenerIntervencion(...a)
+    : json.obtenerIntervencion(...a);
 
-  const intervenciones = db.intervenciones
-    .filter((i) => i.controladorId === id)
-    .sort((a, b) => b.fecha.localeCompare(a.fecha));
+export const listarIntervenciones = (
+  ...a: Parameters<typeof json.listarIntervenciones>
+) =>
+  usarSupabase()
+    ? supabase.listarIntervenciones(...a)
+    : json.listarIntervenciones(...a);
 
-  const backups = db.backups
-    .filter((b) => b.controladorId === id)
-    .sort((a, b) => b.fecha.localeCompare(a.fecha));
+export const listarSedesConEquipos = (
+  ...a: Parameters<typeof json.listarSedesConEquipos>
+) =>
+  usarSupabase()
+    ? supabase.listarSedesConEquipos(...a)
+    : json.listarSedesConEquipos(...a);
 
-  return {
-    controlador,
-    equipo: db.equipos.find((e) => e.id === controlador.equipoId) ?? null,
-    sede: db.sedes.find((s) => s.id === controlador.sedeId) ?? null,
-    backups,
-    backupReciente: backups[0] ?? null,
-    documentos: db.documentos.filter((d) => d.controladorId === id),
-    intervenciones,
-    novedades: db.novedades
-      .filter((n) => n.controladorId === id)
-      .sort((a, b) => b.fecha.localeCompare(a.fecha)),
-  };
-}
+export const preventivosPorEquipo = (
+  ...a: Parameters<typeof json.preventivosPorEquipo>
+) =>
+  usarSupabase()
+    ? supabase.preventivosPorEquipo(...a)
+    : json.preventivosPorEquipo(...a);
 
-export async function obtenerIntervencion(id: string) {
-  const db = await leer();
-  const intervencion = db.intervenciones.find((i) => i.id === id);
-  if (!intervencion) return null;
-  return {
-    intervencion,
-    controlador:
-      db.controladores.find((c) => c.id === intervencion.controladorId) ?? null,
-    equipo: db.equipos.find((e) => e.id === intervencion.equipoId) ?? null,
-    sede: db.sedes.find((s) => s.id === intervencion.sedeId) ?? null,
-  };
-}
+export const resumen = (...a: Parameters<typeof json.resumen>) =>
+  usarSupabase() ? supabase.resumen(...a) : json.resumen(...a);
 
-export async function listarIntervenciones() {
-  const db = await leer();
-  return db.intervenciones
-    .sort((a, b) => b.fecha.localeCompare(a.fecha))
-    .map((i) => ({
-      ...i,
-      controlador: db.controladores.find((c) => c.id === i.controladorId) ?? null,
-      sede: db.sedes.find((s) => s.id === i.sedeId) ?? null,
-    }));
-}
+export const equipoConSede = (...a: Parameters<typeof json.equipoConSede>) =>
+  usarSupabase() ? supabase.equipoConSede(...a) : json.equipoConSede(...a);
 
-export async function listarNovedades() {
-  const db = await leer();
-  return db.novedades
-    .sort((a, b) => b.fecha.localeCompare(a.fecha))
-    .map((n) => ({
-      ...n,
-      controlador: db.controladores.find((c) => c.id === n.controladorId) ?? null,
-      sede: db.sedes.find((s) => s.id === n.sedeId) ?? null,
-    }));
-}
+export const equiposConSede = (...a: Parameters<typeof json.equiposConSede>) =>
+  usarSupabase() ? supabase.equiposConSede(...a) : json.equiposConSede(...a);
 
-export async function resumen() {
-  const db = await leer();
-  const hoy = new Date().toISOString().slice(0, 10);
-  return {
-    sedes: db.sedes.length,
-    equipos: db.equipos.length,
-    controladores: db.controladores.length,
-    operativos: db.controladores.filter((c) => c.estado === "OPERATIVO").length,
-    revisionVencida: db.controladores.filter((c) => c.proximaRevision < hoy).length,
-    intervenciones: db.intervenciones.length,
-    novedadesAbiertas: db.novedades.filter((n) => n.estado === "Abierta").length,
-  };
-}
+export const actualizarIntervencion = (
+  ...a: Parameters<typeof json.actualizarIntervencion>
+) =>
+  usarSupabase()
+    ? supabase.actualizarIntervencion(...a)
+    : json.actualizarIntervencion(...a);
 
-/* ---------- Escritura ---------- */
+export const crearIntervencion = (
+  ...a: Parameters<typeof json.crearIntervencion>
+) =>
+  usarSupabase()
+    ? supabase.crearIntervencion(...a)
+    : json.crearIntervencion(...a);
 
-/**
- * Genera el consecutivo INT-AAAA-NNNN mirando las intervenciones
- * que ya existen del mismo año.
- */
-function siguienteId(existentes: string[], prefijo: string, anio: number) {
-  const marca = `${prefijo}-${anio}-`;
-  const ultimo = existentes
-    .filter((id) => id.startsWith(marca))
-    .map((id) => parseInt(id.slice(marca.length), 10))
-    .filter((n) => !Number.isNaN(n))
-    .reduce((max, n) => Math.max(max, n), 0);
-  return `${marca}${String(ultimo + 1).padStart(4, "0")}`;
-}
+export const guardarCarpetasEquipo = (
+  ...a: Parameters<typeof json.guardarCarpetasEquipo>
+) =>
+  usarSupabase()
+    ? supabase.guardarCarpetasEquipo(...a)
+    : json.guardarCarpetasEquipo(...a);
 
-export async function crearIntervencion(
-  datos: Omit<Intervencion, "id" | "fecha" | "documentoPdf"> &
-    { fecha?: string },
-): Promise<Intervencion> {
-  const db = await leer();
-  const fecha = datos.fecha || new Date().toISOString();
-  const anio = new Date(fecha).getFullYear();
+export const guardarPdfIntervencion = (
+  ...a: Parameters<typeof json.guardarPdfIntervencion>
+) =>
+  usarSupabase()
+    ? supabase.guardarPdfIntervencion(...a)
+    : json.guardarPdfIntervencion(...a);
 
-  const intervencion: Intervencion = {
-    ...datos,
-    fecha,
-    id: siguienteId(db.intervenciones.map((i) => i.id), "INT", anio),
-    documentoPdf: "",
-  };
+export const borrarFotosIntervencion = (
+  ...a: Parameters<typeof json.borrarFotosIntervencion>
+) =>
+  usarSupabase()
+    ? supabase.borrarFotosIntervencion(...a)
+    : json.borrarFotosIntervencion(...a);
 
-  db.intervenciones.push(intervencion);
+export const guardarFotosIntervencion = (
+  ...a: Parameters<typeof json.guardarFotosIntervencion>
+) =>
+  usarSupabase()
+    ? supabase.guardarFotosIntervencion(...a)
+    : json.guardarFotosIntervencion(...a);
 
-  // La intervención es el último contacto real con el equipo.
-  const controlador = db.controladores.find(
-    (c) => c.id === intervencion.controladorId,
-  );
-  if (controlador) {
-    controlador.ultimaVerificacion = fecha.slice(0, 10);
-    controlador.ultimaRevision = fecha.slice(0, 10);
-  }
+export const indicadoresDelAnio = (
+  ...a: Parameters<typeof json.indicadoresDelAnio>
+) =>
+  usarSupabase() ? supabase.indicadoresDelAnio(...a) : json.indicadoresDelAnio(...a);
 
-  await escribir(db);
-  return intervencion;
-}
+export const guardarIndicadorMes = (
+  ...a: Parameters<typeof json.guardarIndicadorMes>
+) =>
+  usarSupabase()
+    ? supabase.guardarIndicadorMes(...a)
+    : json.guardarIndicadorMes(...a);
 
-export async function crearNovedad(
-  datos: Omit<Novedad, "id" | "fecha" | "estado"> & { fecha?: string },
-): Promise<Novedad> {
-  const db = await leer();
-  const fecha = datos.fecha || new Date().toISOString();
-  const anio = new Date(fecha).getFullYear();
+export const programaDelAnio = (...a: Parameters<typeof json.programaDelAnio>) =>
+  usarSupabase() ? supabase.programaDelAnio(...a) : json.programaDelAnio(...a);
 
-  const novedad: Novedad = {
-    ...datos,
-    fecha,
-    id: siguienteId(db.novedades.map((n) => n.id), "NOV", anio),
-    estado: "Abierta",
-  };
+export const guardarTareaPrograma = (
+  ...a: Parameters<typeof json.guardarTareaPrograma>
+) =>
+  usarSupabase()
+    ? supabase.guardarTareaPrograma(...a)
+    : json.guardarTareaPrograma(...a);
 
-  db.novedades.push(novedad);
-  await escribir(db);
-  return novedad;
-}
+export const borrarTareaPrograma = (
+  ...a: Parameters<typeof json.borrarTareaPrograma>
+) =>
+  usarSupabase()
+    ? supabase.borrarTareaPrograma(...a)
+    : json.borrarTareaPrograma(...a);
 
-export async function listarSedes(): Promise<Sede[]> {
-  return (await leer()).sedes;
-}
-export async function listarEquipos(): Promise<Equipo[]> {
-  return (await leer()).equipos;
-}
-export type { Controlador, Equipo, Sede, Backup, Documento, Intervencion, Novedad };
+export const crearSede = (...a: Parameters<typeof json.crearSede>) =>
+  usarSupabase() ? supabase.crearSede(...a) : json.crearSede(...a);
+
+export const crearEquipo = (...a: Parameters<typeof json.crearEquipo>) =>
+  usarSupabase() ? supabase.crearEquipo(...a) : json.crearEquipo(...a);
+
+export const crearControlador = (
+  ...a: Parameters<typeof json.crearControlador>
+) =>
+  usarSupabase() ? supabase.crearControlador(...a) : json.crearControlador(...a);
+
+export const actualizarEquipo = (...a: Parameters<typeof json.actualizarEquipo>) =>
+  usarSupabase() ? supabase.actualizarEquipo(...a) : json.actualizarEquipo(...a);
+
+export const actualizarControlador = (
+  ...a: Parameters<typeof json.actualizarControlador>
+) =>
+  usarSupabase()
+    ? supabase.actualizarControlador(...a)
+    : json.actualizarControlador(...a);
+
+export type { EntradaIntervencion } from "./db-json";
+export type { Intervencion, Equipo, Sede, Controlador } from "./tipos";
+
+/* ---------- Reportes de falla (FOR-MTO-53) ---------- */
+
+export const crearReporteFalla = (
+  ...a: Parameters<typeof json.crearReporteFalla>
+) =>
+  usarSupabase() ? supabase.crearReporteFalla(...a) : json.crearReporteFalla(...a);
+
+export const listarReportesFalla = (
+  ...a: Parameters<typeof json.listarReportesFalla>
+) =>
+  usarSupabase()
+    ? supabase.listarReportesFalla(...a)
+    : json.listarReportesFalla(...a);
+
+export const obtenerReporteFalla = (
+  ...a: Parameters<typeof json.obtenerReporteFalla>
+) =>
+  usarSupabase()
+    ? supabase.obtenerReporteFalla(...a)
+    : json.obtenerReporteFalla(...a);
+
+export const guardarPdfReporteFalla = (
+  ...a: Parameters<typeof json.guardarPdfReporteFalla>
+) =>
+  usarSupabase()
+    ? supabase.guardarPdfReporteFalla(...a)
+    : json.guardarPdfReporteFalla(...a);
+
+/* ---------- Lecturas de horómetro ---------- */
+
+export const registrarLectura = (
+  ...a: Parameters<typeof json.registrarLectura>
+) =>
+  usarSupabase() ? supabase.registrarLectura(...a) : json.registrarLectura(...a);
+
+export const lecturasDe = (...a: Parameters<typeof json.lecturasDe>) =>
+  usarSupabase() ? supabase.lecturasDe(...a) : json.lecturasDe(...a);
+
+export const lecturasEntre = (...a: Parameters<typeof json.lecturasEntre>) =>
+  usarSupabase() ? supabase.lecturasEntre(...a) : json.lecturasEntre(...a);
+
+/* ---------- Consumibles ---------- */
+
+export const listarConsumibles = (
+  ...a: Parameters<typeof json.listarConsumibles>
+) =>
+  usarSupabase() ? supabase.listarConsumibles(...a) : json.listarConsumibles(...a);
+
+export const crearConsumible = (...a: Parameters<typeof json.crearConsumible>) =>
+  usarSupabase() ? supabase.crearConsumible(...a) : json.crearConsumible(...a);
+
+export const registrarMovimiento = (
+  ...a: Parameters<typeof json.registrarMovimiento>
+) =>
+  usarSupabase()
+    ? supabase.registrarMovimiento(...a)
+    : json.registrarMovimiento(...a);
+
+export const movimientosDe = (...a: Parameters<typeof json.movimientosDe>) =>
+  usarSupabase() ? supabase.movimientosDe(...a) : json.movimientosDe(...a);
+
+export const instalacionesDe = (...a: Parameters<typeof json.instalacionesDe>) =>
+  usarSupabase() ? supabase.instalacionesDe(...a) : json.instalacionesDe(...a);
+
+export const instalarConsumible = (
+  ...a: Parameters<typeof json.instalarConsumible>
+) =>
+  usarSupabase()
+    ? supabase.instalarConsumible(...a)
+    : json.instalarConsumible(...a);
+
+export const retirarInstalacion = (
+  ...a: Parameters<typeof json.retirarInstalacion>
+) =>
+  usarSupabase()
+    ? supabase.retirarInstalacion(...a)
+    : json.retirarInstalacion(...a);
+
+/* ---------- Adiciones de aceite ---------- */
+
+export const registrarAdicionAceite = (
+  ...a: Parameters<typeof json.registrarAdicionAceite>
+) =>
+  usarSupabase()
+    ? supabase.registrarAdicionAceite(...a)
+    : json.registrarAdicionAceite(...a);
+
+export const adicionesAceite = (...a: Parameters<typeof json.adicionesAceite>) =>
+  usarSupabase() ? supabase.adicionesAceite(...a) : json.adicionesAceite(...a);
+
+/* ---------- Registro horario de operación ---------- */
+
+export const registrosOperacion = (
+  ...a: Parameters<typeof json.registrosOperacion>
+) =>
+  usarSupabase()
+    ? supabase.registrosOperacion(...a)
+    : json.registrosOperacion(...a);
+
+export const contarOperacion = (...a: Parameters<typeof json.contarOperacion>) =>
+  usarSupabase() ? supabase.contarOperacion(...a) : json.contarOperacion(...a);
+
+/* ---------- Generación diaria y sincronización con la hoja ---------- */
+
+export const generacionDiaria = (
+  ...a: Parameters<typeof json.generacionDiaria>
+) =>
+  usarSupabase() ? supabase.generacionDiaria(...a) : json.generacionDiaria(...a);
+
+export const consumoPlanta = (...a: Parameters<typeof json.consumoPlanta>) =>
+  usarSupabase() ? supabase.consumoPlanta(...a) : json.consumoPlanta(...a);
+
+export const ultimasSincronizaciones = (
+  ...a: Parameters<typeof json.ultimasSincronizaciones>
+) =>
+  usarSupabase()
+    ? supabase.ultimasSincronizaciones(...a)
+    : json.ultimasSincronizaciones(...a);
+
+export const borrarIntervencion = (
+  ...a: Parameters<typeof json.borrarIntervencion>
+) =>
+  usarSupabase()
+    ? supabase.borrarIntervencion(...a)
+    : json.borrarIntervencion(...a);

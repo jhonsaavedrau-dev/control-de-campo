@@ -6,6 +6,7 @@ build/
 *.log
 .env
 .env.*
+!.env.ejemplo
 !.env.example
 .DS_Store
 Thumbs.db
@@ -13,3 +14,19 @@ Thumbs.db
 
 # La base de trabajo se genera sola a partir de data/seed.json
 .data/
+
+# Credenciales de Google Drive - NUNCA se suben
+credenciales-drive.json
+service-account*.json
+
+# Variables preparadas para el despliegue
+vercel-variables.txt
+.vercel
+
+.vercel
+
+# Credenciales iniciales de usuarios
+usuarios-iniciales.txt
+
+# La guia se genera desde /api/guia
+Guia-tecnico-Control-de-Generacion.pdf

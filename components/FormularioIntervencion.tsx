@@ -2,211 +2,1052 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { TIPOS_INTERVENCION, RESULTADOS } from "@/lib/tipos";
 import { guardarPendiente } from "@/lib/pendientes";
+import { CHECKLIST } from "@/lib/checklist";
+import {
+  IcoCamara, IcoGaleria, IcoPersona, IcoHerramienta, IcoGenerador,
+  IcoChip, IcoBandera, IcoLista,
+} from "@/components/Iconos";
+import {
+  ETIQUETA_TIPO, ETIQUETA_ESTADO, ETIQUETA_RESULTADO, CARGOS_TECNICO,
+} from "@/lib/tipos";
+import type {
+  TipoIntervencion, EstadoEquipo, ResultadoIntervencion,
+  Intervencion, IntervencionFoto,
+} from "@/lib/tipos";
 
+/** Lo que cabe en el acta. El mismo numero que aplica el servidor. */
+const MAX_FOTOS = 6;
+
+/**
+ * Lo que no puede faltar, en el orden en que aparece en la hoja.
+ *
+ * El orden importa: si faltan tres cosas se lleva al tecnico a la
+ * primera, no a la ultima. Y cada una dice que dato falta, no
+ * "complete el campo": delante de la maquina, con guantes, "falta decir
+ * que se le hizo al equipo" se entiende y "actividades_realizadas es
+ * obligatorio" no.
+ */
+const OBLIGATORIOS = [
+  { campo: "fecha", falta: "Falta la fecha del trabajo." },
+  { campo: "tecnico_nombre", falta: "Falta el nombre del técnico que intervino." },
+  { campo: "tecnico_cargo", falta: "Falta el cargo con el que firma el técnico." },
+  { campo: "tipo_intervencion", falta: "Falta decir si fue preventiva, correctiva, diagnóstico, inspección u otra." },
+  { campo: "actividades_realizadas", falta: "Falta escribir qué se le hizo al equipo." },
+  { campo: "resultado", falta: "Falta el resultado: cómo quedó la intervención." },
+] as const;
+
+const TIPOS = Object.keys(ETIQUETA_TIPO) as TipoIntervencion[];
+const ESTADOS = Object.keys(ETIQUETA_ESTADO) as EstadoEquipo[];
+const RESULTADOS = Object.keys(ETIQUETA_RESULTADO) as ResultadoIntervencion[];
+
+/**
+ * El formulario de intervencion, en sus dos modos.
+ *
+ * Sin `edicion` registra un acta nueva. Con `edicion` corrige una ya
+ * guardada: los campos vienen rellenos, aparecen la fecha y la hora
+ * —que al registrar se ponen solas y por eso se apuntan mal cuando el
+ * acta se llena al dia siguiente— y hay que decir que se corrige.
+ *
+ * En correccion no hay cola sin señal. Guardar sin conexion un acta que
+ * todavia no existe tiene sentido; guardar a ciegas una correccion
+ * sobre algo que pudo cambiar mientras tanto, no.
+ */
 export default function FormularioIntervencion({
-  controladorId,
-  equipoId,
-  sedeId,
-  responsable,
+  idEquipo,
+  idControlador,
+  horometroActual,
+  tecnicoSugerido,
+  edicion,
 }: {
-  controladorId: string;
-  equipoId: string;
-  sedeId: string;
-  responsable: string;
+  idEquipo: string;
+  idControlador: string;
+  horometroActual: number | null;
+  tecnicoSugerido: string;
+  edicion?: { intervencion: Intervencion; fotos: IntervencionFoto[] };
 }) {
   const router = useRouter();
+  const previa = edicion?.intervencion;
+  const corrigiendo = Boolean(previa);
+
+  // Con quién se firma. Viene puesto —de la cuenta de quien entró, o
+  // del acta si se está corrigiendo— pero se puede cambiar: mientras el
+  // equipo aprende, una sola persona registra a nombre de sus
+  // compañeros. Quién lo escribió queda anotado aparte, en el servidor.
+  const nombreSugerido = previa?.tecnico_nombre || tecnicoSugerido;
+
+  const [tipo, setTipo] = useState<TipoIntervencion | "">(
+    previa?.tipo_intervencion ?? "",
+  );
+  const [fotos, setFotos] = useState<File[]>([]);
+  // Las que ya estaban archivadas y se marcan para quitar.
+  const [quitar, setQuitar] = useState<string[]>([]);
+
+  const yaArchivadas = (edicion?.fotos ?? []).filter(
+    (f) => !quitar.includes(f.drive_file_id),
+  );
+  const hueco = Math.max(0, MAX_FOTOS - yaArchivadas.length);
+  // De aqui cuelga toda la hoja: un correctivo pide diagnostico, causa
+  // y repuestos, y un preventivo pide la rutina marcada.
+  const esCorrectiva = tipo === "correctiva";
+  const esRutina = tipo === "preventiva" || tipo === "inspeccion";
+
+  // Solo como valor inicial del formulario: lo que vale es lo que el
+  // tecnico deje escrito.
+  const hoy = new Date().toISOString().slice(0, 10);
+  const ahora = new Date().toTimeString().slice(0, 5);
+
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [avisoFotos, setAvisoFotos] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  /** Cual es el campo que falta, para pintarlo y llevar hasta el. */
+  const [faltante, setFaltante] = useState<string | null>(null);
+
+  /**
+   * Se pueden elegir varias de una vez, y las que no caben se dicen.
+   *
+   * Antes se recortaba en silencio: quien elegia nueve veia entrar seis
+   * y las otras tres desaparecian sin explicacion, lo que parece que el
+   * boton no admite varias.
+   */
+  function agregarFotos(ev: React.ChangeEvent<HTMLInputElement>) {
+    const nuevas = Array.from(ev.target.files ?? []);
+    ev.target.value = "";
+    if (!nuevas.length) return;
+
+    setAvisoFotos(null);
+    setFotos((prev) => {
+      const juntas = [...prev, ...nuevas];
+      const caben = juntas.slice(0, hueco);
+      const sobran = juntas.length - caben.length;
+      if (sobran > 0) {
+        setAvisoFotos(
+          `El acta admite ${MAX_FOTOS} fotos. ${sobran === 1 ? "Una quedó" : `${sobran} quedaron`} fuera: quita alguna si querías otra.`,
+        );
+      }
+      return caben;
+    });
+  }
+
+  /**
+   * Lleva hasta el campo que falta y lo deja enfocado.
+   *
+   * Se hace a mano y no con la validacion del navegador porque en un
+   * formulario de cinco secciones el globo nativo aparece pegado al
+   * campo —que puede estar tres pantallas mas abajo, o dentro de una
+   * seccion plegada— y no se ve. Aqui se abre lo que haga falta, se
+   * baja hasta el, se pinta en rojo y se dice que dato es.
+   */
+  function llevarA(formulario: HTMLFormElement, campo: string) {
+    setFaltante(campo);
+    const destino =
+      formulario.querySelector<HTMLElement>(`[data-campo="${campo}"]`) ??
+      formulario.elements.namedItem(campo);
+    if (!(destino instanceof HTMLElement)) return;
+
+    // Si esta dentro de un plegable cerrado, se abre: llevar a un campo
+    // invisible es lo mismo que no llevar a ninguno.
+    destino.closest("details")?.setAttribute("open", "");
+
+    destino.scrollIntoView({ behavior: "smooth", block: "center" });
+    const foco =
+      destino.matches("input, select, textarea, button")
+        ? destino
+        : destino.querySelector<HTMLElement>("input, select, textarea, button");
+    // El foco va despues del desplazamiento: si se enfoca antes, el
+    // navegador salta de golpe y se pierde el hilo de donde estaba.
+    window.setTimeout(() => foco?.focus({ preventScroll: true }), 320);
+  }
 
   async function enviar(evento: React.FormEvent<HTMLFormElement>) {
     evento.preventDefault();
-    setEnviando(true);
-    setAviso(null);
+    setError(null);
+    setFaltante(null);
 
-    const form = new FormData(evento.currentTarget);
-    const datos = {
-      controladorId,
-      equipoId,
-      sedeId,
-      tecnico: String(form.get("tecnico") || ""),
-      tipo: String(form.get("tipo") || ""),
-      horometro: String(form.get("horometro") || ""),
-      trabajoRealizado: String(form.get("trabajoRealizado") || ""),
-      novedad: String(form.get("novedad") || ""),
-      resultado: String(form.get("resultado") || ""),
-      backup: String(form.get("backup") || "No"),
-      observaciones: String(form.get("observaciones") || ""),
+    const formulario = evento.currentTarget;
+    const f = new FormData(formulario);
+
+    for (const o of OBLIGATORIOS) {
+      const valor =
+        o.campo === "tipo_intervencion"
+          ? tipo
+          : String(f.get(o.campo) ?? "").trim();
+      if (!valor) {
+        setError(o.falta);
+        llevarA(formulario, o.campo);
+        return;
+      }
+    }
+
+    setEnviando(true);
+    const texto = (k: string) => String(f.get(k) ?? "").trim();
+    const num = (k: string) => {
+      const v = texto(k).replace(/\s/g, "").replace(",", ".");
+      return v === "" ? null : Number(v);
     };
 
+    const datos = {
+      id_equipo: idEquipo,
+      id_controlador: idControlador,
+      tipo_intervencion: tipo,
+
+      tecnico_nombre: texto("tecnico_nombre"),
+      tecnico_cargo: texto("tecnico_cargo"),
+      orden_servicio: texto("orden_servicio"),
+      permiso_trabajo: texto("permiso_trabajo"),
+      horometro: num("horometro"),
+
+      motivo: texto("motivo"),
+      estado_inicial: texto("estado_inicial"),
+      actividades_realizadas: texto("actividades_realizadas"),
+      diagnostico: texto("diagnostico"),
+      causa_falla: texto("causa_falla"),
+      repuestos: texto("repuestos"),
+      checklist: f.getAll("checklist").map(String),
+      estado_final: texto("estado_final") || null,
+
+      motor_obs: texto("motor_obs"),
+      alternador_obs: texto("alternador_obs"),
+      potencia_kw: num("potencia_kw"),
+      horas_operacion: num("horas_operacion"),
+      estado_equipo_obs: texto("estado_equipo_obs"),
+
+      alarmas_eventos: texto("alarmas_eventos"),
+      parametros_modificados: texto("parametros_modificados"),
+      configuracion_realizada: texto("configuracion_realizada"),
+      observaciones_controlador: texto("observaciones_controlador"),
+      backup_realizado: f.get("backup_realizado") === "si",
+
+      resultado: texto("resultado") || null,
+      recomendaciones: texto("recomendaciones"),
+      pendientes: texto("pendientes"),
+      recibido_por: texto("recibido_por"),
+      responsable_cliente: texto("responsable_cliente"),
+      observaciones_finales: texto("observaciones_finales"),
+
+      // La fecha va siempre: es del trabajo, no del momento en que se
+      // registra. Un acta se llena a menudo al día siguiente.
+      fecha: texto("fecha"),
+      hora: texto("hora"),
+      ...(corrigiendo ? { motivo_edicion: texto("motivo_edicion") } : {}),
+    };
+
+    if (corrigiendo) {
+      try {
+        const paquete = new FormData();
+        paquete.append("datos", JSON.stringify(datos));
+        paquete.append("fotos_a_quitar", JSON.stringify(quitar));
+        for (const f of fotos) paquete.append("fotos", f);
+
+        const r = await fetch(`/api/intervenciones/${previa!.id_intervencion}`, {
+          method: "PATCH",
+          body: paquete,
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(j.error || "El servidor rechazó la corrección");
+
+        if (j.aviso) {
+          // La correccion esta guardada; lo que fallo es el archivado.
+          setEnviando(false);
+          setAviso(j.aviso);
+          return;
+        }
+        router.push(`/intervencion/${previa!.id_intervencion}`);
+        router.refresh();
+      } catch (e) {
+        setEnviando(false);
+        setError(
+          e instanceof Error ? e.message : "No se pudo guardar la corrección",
+        );
+      }
+      return;
+    }
+
     try {
+      let cuerpo: BodyInit;
+      let cabeceras: HeadersInit | undefined;
+      if (fotos.length) {
+        const paquete = new FormData();
+        paquete.append("datos", JSON.stringify(datos));
+        for (const f of fotos) paquete.append("fotos", f);
+        cuerpo = paquete; // el navegador pone el Content-Type con su limite
+      } else {
+        cuerpo = JSON.stringify(datos);
+        cabeceras = { "Content-Type": "application/json" };
+      }
+
       const respuesta = await fetch("/api/intervenciones", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(datos),
+        headers: cabeceras,
+        body: cuerpo,
       });
-      if (!respuesta.ok) throw new Error("El servidor rechazó el registro");
+      if (!respuesta.ok) {
+        const cuerpo = await respuesta.json().catch(() => ({}));
+        throw new Error(cuerpo.error || "El servidor rechazó el registro");
+      }
       const { intervencion } = await respuesta.json();
-      router.push(`/intervencion/${intervencion.id}`);
+      router.push(`/intervencion/${intervencion.id_intervencion}`);
       router.refresh();
-    } catch {
-      // Sin señal: la intervención se queda guardada en el teléfono
-      // y se sube sola cuando vuelva la conexión.
-      guardarPendiente(datos);
-      setEnviando(false);
-      setAviso(
-        "No hay conexión en este momento. La intervención quedó guardada en este dispositivo y se enviará sola cuando vuelva la señal.",
-      );
+    } catch (e) {
+      const sinRed =
+        typeof navigator !== "undefined" && !navigator.onLine;
+      if (sinRed) {
+        try {
+          await guardarPendiente(datos, fotos);
+        } catch {
+          // Guardar en el propio equipo es el ultimo recurso: si falla,
+          // hay que decirlo y no dejar que se cierre la pantalla creyendo
+          // que el acta esta a salvo.
+          setEnviando(false);
+          setError(
+            "Sin señal y este equipo no pudo guardar el registro. No cierres " +
+              "esta pantalla: apunta los datos o busca señal antes de salir.",
+          );
+          return;
+        }
+        setEnviando(false);
+        setAviso(
+          fotos.length
+            ? `Sin señal. La intervención quedó guardada en este equipo con sus ${fotos.length} fotografía${fotos.length === 1 ? "" : "s"}, y se enviará sola cuando vuelva la conexión.`
+            : "Sin señal. La intervención quedó guardada en este equipo y se enviará sola cuando vuelva la conexión.",
+        );
+      } else {
+        setEnviando(false);
+        setError(e instanceof Error ? e.message : "No se pudo guardar");
+      }
     }
   }
 
   return (
-    <form onSubmit={enviar} className="p-5 space-y-4">
+    <form
+      onSubmit={enviar}
+      noValidate
+      // Al corregir lo que faltaba se apaga el rojo solo, sin esperar a
+      // que vuelva a intentar guardar.
+      onInput={() => (faltante ? setFaltante(null) : undefined)}
+      onChange={() => (faltante ? setFaltante(null) : undefined)}
+      className="px-5 pt-4 pb-6"
+    >
       {aviso ? (
-        <div className="bg-[#fff5e0] border border-[#ffe0a3] text-[#7a4f00] rounded-lg px-4 py-3 text-[13px]">
-          {aviso}
-        </div>
+        <Nota tono="pendiente">{aviso}</Nota>
+      ) : null}
+      {error ? <Nota tono="critico">{error}</Nota> : null}
+
+      {corrigiendo ? (
+        <>
+          <Seccion
+            titulo="Qué se está corrigiendo"
+            icono={<IcoBandera />}
+            numero={previa!.id_intervencion}
+            tono="activo"
+          />
+          <Grupo
+            etiqueta="Motivo de la corrección"
+            obligatorio
+            ayuda="Queda impreso al pie del acta, con tu nombre y la fecha."
+          >
+            <textarea
+              name="motivo_edicion"
+              required
+              rows={2}
+              className="entrada"
+              placeholder="Ej.: el horómetro se digitó 12500 en vez de 1250."
+            />
+          </Grupo>
+        </>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Campo etiqueta="Técnico responsable" obligatorio>
+      {/* Lo primero, porque decide todo lo demas: un preventivo y un
+          correctivo no piden los mismos datos, y hasta ahora la hoja
+          era la misma para los dos. */}
+      <Seccion titulo="¿Qué se va a registrar?" icono={<IcoBandera />} numero="1 de 5" />
+      <Grupo
+        etiqueta="Tipo de intervención"
+        obligatorio
+        campo="tipo_intervencion"
+        mal={faltante === "tipo_intervencion"}
+        ayuda="Según lo que elijas, la hoja pide unas cosas u otras."
+      >
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+          {TIPOS.map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => {
+                setTipo(t);
+                setFaltante(null);
+              }}
+              className={tipo === t ? "pastilla pastilla-activa" : "pastilla"}
+              style={{ padding: "13px 8px", fontSize: "12.5px" }}
+            >
+              {ETIQUETA_TIPO[t]}
+            </button>
+          ))}
+        </div>
+      </Grupo>
+
+      <Seccion titulo="Datos de la intervención" icono={<IcoPersona />} numero="2 de 5" />
+
+      {/* La fecha se puede escribir siempre, no solo al corregir. Un acta
+          se llena a menudo al dia siguiente, o se suben trabajos
+          antiguos, y ponerles la fecha de hoy las manda al mes
+          equivocado del programa. */}
+      <div className="grid grid-cols-2 gap-3">
+        <Grupo
+          etiqueta="Fecha del trabajo"
+          obligatorio
+          campo="fecha"
+          mal={faltante === "fecha"}
+          ayuda="Cuándo se hizo, no cuándo se registra."
+        >
           <input
-            name="tecnico"
+            type="date"
+            name="fecha"
             required
-            defaultValue={responsable}
-            placeholder="Nombre y apellido"
-            className="campo"
+            defaultValue={previa?.fecha ?? hoy}
+            max={hoy}
+            className="entrada font-[family-name:var(--font-mono)]"
           />
-        </Campo>
-
-        <Campo etiqueta="Tipo de intervención" obligatorio>
-          <select name="tipo" required defaultValue="" className="campo">
-            <option value="" disabled>
-              Seleccione…
-            </option>
-            {TIPOS_INTERVENCION.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </Campo>
-
-        <Campo etiqueta="Horómetro" ayuda="Horas de operación del equipo">
+        </Grupo>
+        <Grupo etiqueta="Hora">
           <input
-            name="horometro"
-            inputMode="numeric"
-            placeholder="Ej. 5430"
-            className="campo"
+            type="time"
+            name="hora"
+            defaultValue={previa?.hora ?? ahora}
+            className="entrada font-[family-name:var(--font-mono)]"
           />
-        </Campo>
+        </Grupo>
+      </div>
+      {/* Quién intervino. Viene puesto el de la cuenta, y se puede
+          cambiar: mientras el equipo aprende a usar el sistema, una
+          persona registra las intervenciones de sus compañeros.
 
-        <Campo etiqueta="Resultado" obligatorio>
-          <select name="resultado" required defaultValue="Exitoso" className="campo">
-            {RESULTADOS.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
-        </Campo>
+          Conviene saber qué hace este campo, porque no es solo un
+          rótulo: la firma digital del acta se busca POR ESTE NOMBRE. Si
+          quien se escribe aquí tiene firma cargada, el acta sale firmada
+          por él. Por eso la ayuda lo dice en vez de que se descubra al
+          ver el PDF. */}
+      <Grupo
+        etiqueta="Técnico responsable"
+        obligatorio
+        campo="tecnico_nombre"
+        mal={faltante === "tecnico_nombre"}
+        ayuda="Quien hizo el trabajo. Si tiene firma cargada, el acta sale firmada con ella."
+      >
+        <input
+          name="tecnico_nombre"
+          required
+          defaultValue={nombreSugerido}
+          className="entrada"
+          placeholder="Nombre y apellido"
+        />
+      </Grupo>
+
+      {/* El cargo se elige, no se escribe: va impreso junto a la firma
+          del acta y tiene que decir siempre lo mismo. */}
+      <Grupo
+        etiqueta="Cargo"
+        obligatorio
+        campo="tecnico_cargo"
+        mal={faltante === "tecnico_cargo"}
+      >
+        <select
+          name="tecnico_cargo"
+          required
+          defaultValue={previa?.tecnico_cargo ?? ""}
+          className="entrada"
+        >
+          <option value="" disabled>
+            Selecciona el cargo
+          </option>
+          {CARGOS_TECNICO.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+      </Grupo>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Grupo etiqueta="Orden de servicio">
+          <input name="orden_servicio" defaultValue={previa?.orden_servicio ?? ""} className="entrada" placeholder="OS-2026-000" />
+        </Grupo>
+        <Grupo etiqueta="Permiso de trabajo">
+          <input name="permiso_trabajo" defaultValue={previa?.permiso_trabajo ?? ""} className="entrada" placeholder="PT-2026-000" />
+        </Grupo>
       </div>
 
-      <Campo etiqueta="Trabajo realizado" obligatorio>
+      <Grupo etiqueta="Horómetro" ayuda="Lectura al momento de la intervención">
+        <input
+          name="horometro"
+          inputMode="decimal"
+          defaultValue={previa ? (previa.horometro ?? "") : (horometroActual ?? "")}
+          className="entrada font-[family-name:var(--font-mono)]"
+        />
+      </Grupo>
+
+      <Seccion
+        titulo={
+          esCorrectiva ? "La falla y su solución" : "El trabajo realizado"
+        }
+        icono={<IcoHerramienta />}
+        numero="3 de 5"
+      />
+      <Grupo
+        etiqueta={esCorrectiva ? "Síntoma reportado" : "Motivo"}
+        ayuda={
+          esCorrectiva
+            ? "Qué se reportó o qué se vio que estaba mal."
+            : undefined
+        }
+      >
         <textarea
-          name="trabajoRealizado"
+          name="motivo"
+          defaultValue={previa?.motivo ?? ""}
+          rows={2}
+          className="entrada"
+          placeholder={
+            esCorrectiva
+              ? "El equipo se apagó solo, marcaba alarma de baja presión…"
+              : "Por qué se interviene el equipo."
+          }
+        />
+      </Grupo>
+      <Grupo etiqueta="Estado inicial">
+        <textarea name="estado_inicial" defaultValue={previa?.estado_inicial ?? ""} rows={2} className="entrada" placeholder="Cómo se encontró el equipo." />
+      </Grupo>
+
+      {/* Solo en correctiva. Son las tres preguntas que un preventivo no
+          tiene por que responder, y que hasta ahora se acababan
+          escribiendo todas revueltas en "actividades realizadas". */}
+      {esCorrectiva ? (
+        <>
+          <Grupo
+            etiqueta="Diagnóstico"
+            ayuda="Qué se revisó y qué se encontró."
+          >
+            <textarea
+              name="diagnostico"
+              defaultValue={previa?.diagnostico ?? ""}
+              rows={3}
+              className="entrada"
+              placeholder="Se midió presión de gas, se revisó el historial del controlador…"
+            />
+          </Grupo>
+          <Grupo
+            etiqueta="Causa de la falla"
+            ayuda="Por qué falló. Es lo que se mira después para que no vuelva a pasar."
+          >
+            <textarea
+              name="causa_falla"
+              defaultValue={previa?.causa_falla ?? ""}
+              rows={2}
+              className="entrada"
+              placeholder="Baja presión de gas combustible en la línea de suministro."
+            />
+          </Grupo>
+          <Grupo
+            etiqueta="Repuestos utilizados"
+            ayuda="Uno por línea, con cantidad."
+          >
+            <textarea
+              name="repuestos"
+              defaultValue={previa?.repuestos ?? ""}
+              rows={3}
+              className="entrada"
+              placeholder={"2 x filtro de aceite" + String.fromCharCode(10) + "1 x correa de alternador"}
+            />
+          </Grupo>
+        </>
+      ) : null}
+      {/* La rutina solo en preventiva e inspeccion. En un correctivo
+          no aplica —no se va a "marcar cambio de aceite" cuando el
+          equipo se apago solo— y ocupaba media hoja. */}
+      {esRutina ? (
+      <Grupo
+          etiqueta="Qué se le hizo"
+          ayuda="Marca lo que aplique. Lo que no esté en la lista va abajo."
+        >
+          <div className="space-y-3">
+            {CHECKLIST.map((g) => (
+              <div key={g.grupo}>
+                <div
+                  className="flex items-center gap-2 font-[family-name:var(--font-mono)] text-[11.5px] uppercase tracking-[0.1em] mb-2"
+                  style={{ color: "var(--color-tenue)" }}
+                >
+                  <IcoLista className="w-3 h-3" />
+                  {g.grupo}
+                  <span className="flex-1 h-px" style={{ background: "var(--color-borde-suave)" }} />
+                </div>
+                <div className="grid sm:grid-cols-2 gap-1.5">
+                  {g.tareas.map((t) => (
+                    <label
+                      key={t}
+                      className="flex items-center gap-2.5 text-[14.5px] cursor-pointer py-2 px-2.5 rounded transition-colors has-checked:bg-[color-mix(in_srgb,var(--color-activo)_9%,transparent)] hover:bg-[var(--color-realce)]"
+                      style={{ border: "1px solid var(--color-borde-suave)" }}
+                    >
+                      <input
+                        type="checkbox"
+                        name="checklist"
+                        value={t}
+                        defaultChecked={previa?.checklist?.includes(t) ?? false}
+                        className="w-[19px] h-[19px] shrink-0"
+                        style={{ accentColor: "var(--color-activo)" }}
+                      />
+                      {t}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Grupo>
+      ) : null}
+
+      <Grupo
+        etiqueta={esCorrectiva ? "Ejecución" : "Actividades realizadas"}
+        obligatorio
+        campo="actividades_realizadas"
+        mal={faltante === "actividades_realizadas"}
+        ayuda={
+          esRutina
+            ? "Lo que no esté en la rutina de arriba."
+            : esCorrectiva
+              ? "Qué se hizo para dejarlo operando."
+              : undefined
+        }
+      >
+        <textarea
+          name="actividades_realizadas" defaultValue={previa?.actividades_realizadas ?? ""}
           required
-          rows={3}
-          placeholder="Describa la actividad ejecutada sobre el controlador o el equipo."
-          className="campo resize-y"
+          rows={4}
+          className="entrada"
+          placeholder="Qué se hizo, en orden."
         />
-      </Campo>
+      </Grupo>
+      <Grupo etiqueta="Estado final del equipo">
+        <select
+          name="estado_final"
+          defaultValue={previa?.estado_final ?? ""}
+          className="entrada"
+        >
+          <option value="">Sin especificar</option>
+          {ESTADOS.map((e) => (
+            <option key={e} value={e}>
+              {ETIQUETA_ESTADO[e]}
+            </option>
+          ))}
+        </select>
+      </Grupo>
 
-      <Campo etiqueta="Novedad encontrada">
-        <textarea
-          name="novedad"
-          rows={2}
-          placeholder="Si no hubo novedades, escriba «Sin novedades»."
-          className="campo resize-y"
-        />
-      </Campo>
-
-      <Campo etiqueta="¿Se realizó backup del controlador?">
-        <div className="flex gap-4 pt-1">
-          <Opcion nombre="backup" valor="Sí" />
-          <Opcion nombre="backup" valor="No" porDefecto />
+      {/* 3 */}
+      <Plegable titulo="Grupo electrógeno" detalle="3 de 5 · opcional" icono={<IcoGenerador />}>
+        <Grupo etiqueta="Observaciones del motor">
+          <textarea name="motor_obs" defaultValue={previa?.motor_obs ?? ""} rows={2} className="entrada" />
+        </Grupo>
+        <Grupo etiqueta="Observaciones del alternador">
+          <textarea name="alternador_obs" defaultValue={previa?.alternador_obs ?? ""} rows={2} className="entrada" />
+        </Grupo>
+        <div className="grid grid-cols-2 gap-3">
+          <Grupo etiqueta="Potencia (kW)">
+            <input name="potencia_kw" inputMode="decimal" defaultValue={previa?.potencia_kw ?? ""} className="entrada font-[family-name:var(--font-mono)]" />
+          </Grupo>
+          <Grupo etiqueta="Horas de operación">
+            <input name="horas_operacion" inputMode="decimal" defaultValue={previa?.horas_operacion ?? ""} className="entrada font-[family-name:var(--font-mono)]" />
+          </Grupo>
         </div>
-      </Campo>
+        <Grupo etiqueta="Estado del equipo">
+          <textarea name="estado_equipo_obs" defaultValue={previa?.estado_equipo_obs ?? ""} rows={2} className="entrada" />
+        </Grupo>
+      </Plegable>
 
-      <Campo etiqueta="Observaciones">
-        <textarea
-          name="observaciones"
-          rows={2}
-          placeholder="Recomendaciones, pendientes o seguimiento sugerido."
-          className="campo resize-y"
-        />
-      </Campo>
+      {/* 4 */}
+      <Plegable titulo="Controlador" detalle="4 de 5 · opcional" icono={<IcoChip />}>
+        <Grupo etiqueta="Alarmas y eventos">
+          <textarea name="alarmas_eventos" defaultValue={previa?.alarmas_eventos ?? ""} rows={2} className="entrada" />
+        </Grupo>
+        <Grupo etiqueta="Parámetros modificados">
+          <textarea name="parametros_modificados" defaultValue={previa?.parametros_modificados ?? ""} rows={2} className="entrada" />
+        </Grupo>
+        <Grupo etiqueta="Configuración realizada">
+          <textarea name="configuracion_realizada" defaultValue={previa?.configuracion_realizada ?? ""} rows={2} className="entrada" />
+        </Grupo>
+        <Grupo etiqueta="Observaciones del controlador">
+          <textarea name="observaciones_controlador" defaultValue={previa?.observaciones_controlador ?? ""} rows={2} className="entrada" />
+        </Grupo>
+        <Grupo etiqueta="¿Se realizó backup?">
+          <div className="flex gap-4 pt-1">
+            <Radio
+              nombre="backup_realizado"
+              valor="si"
+              etiqueta="Sí"
+              porDefecto={previa?.backup_realizado === true}
+            />
+            <Radio
+              nombre="backup_realizado"
+              valor="no"
+              etiqueta="No"
+              porDefecto={!previa?.backup_realizado}
+            />
+          </div>
+        </Grupo>
+      </Plegable>
 
-      <div className="pt-2 border-t border-[#f0f3f8] flex flex-col sm:flex-row gap-3 sm:justify-end">
+      <Seccion titulo="Cierre" icono={<IcoBandera />} numero="5 de 5" />
+      <Grupo
+        etiqueta="Resultado"
+        obligatorio
+        campo="resultado"
+        mal={faltante === "resultado"}
+      >
+        <select
+          name="resultado"
+          required
+          defaultValue={previa?.resultado ?? ""}
+          className="entrada"
+        >
+          <option value="" disabled>
+            Seleccione…
+          </option>
+          {RESULTADOS.map((r) => (
+            <option key={r} value={r}>
+              {ETIQUETA_RESULTADO[r]}
+            </option>
+          ))}
+        </select>
+      </Grupo>
+      <Grupo etiqueta="Recomendaciones">
+        <textarea name="recomendaciones" defaultValue={previa?.recomendaciones ?? ""} rows={2} className="entrada" />
+      </Grupo>
+      <Grupo etiqueta="Pendientes">
+        <textarea name="pendientes" defaultValue={previa?.pendientes ?? ""} rows={2} className="entrada" placeholder="Lo que queda por hacer." />
+      </Grupo>
+      <div className="grid grid-cols-2 gap-3">
+        <Grupo etiqueta="Recibido por">
+          <input name="recibido_por" defaultValue={previa?.recibido_por ?? ""} className="entrada" />
+        </Grupo>
+        <Grupo etiqueta="Responsable del cliente">
+          <input name="responsable_cliente" defaultValue={previa?.responsable_cliente ?? ""} className="entrada" />
+        </Grupo>
+      </div>
+      <Grupo etiqueta="Observaciones finales">
+        <textarea name="observaciones_finales" defaultValue={previa?.observaciones_finales ?? ""} rows={2} className="entrada" />
+      </Grupo>
+
+      <Grupo
+        etiqueta="Evidencia fotográfica"
+        ayuda="Hasta 6 fotos. Todas salen en el acta y quedan en Drive."
+      >
+        {edicion?.fotos.length ? (
+          <div className="mb-3">
+            <p
+              className="text-[12.5px] mb-2"
+              style={{ color: "var(--color-tenue)" }}
+            >
+              Ya en el acta. Toca la × para quitar una: se va a la papelera
+              de Drive y desaparece del PDF.
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {edicion.fotos.map((f, idx) => {
+                const fuera = quitar.includes(f.drive_file_id);
+                return (
+                  <div
+                    key={f.drive_file_id}
+                    className="relative aspect-square rounded overflow-hidden border"
+                    style={{
+                      borderColor: fuera
+                        ? "var(--color-critico)"
+                        : "var(--color-borde)",
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`/api/imagen/${f.drive_file_id}?w=300`}
+                      alt={`Foto ${idx + 1} del acta`}
+                      className="w-full h-full object-cover"
+                      style={{ opacity: fuera ? 0.3 : 1 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setQuitar((p) =>
+                          fuera
+                            ? p.filter((x) => x !== f.drive_file_id)
+                            : [...p, f.drive_file_id],
+                        )
+                      }
+                      className="absolute top-1 right-1 w-6 h-6 rounded-full text-[14.5px] leading-none flex items-center justify-center"
+                      style={{
+                        background: fuera
+                          ? "var(--color-activo)"
+                          : "var(--color-critico)",
+                        color: "#fff",
+                      }}
+                      aria-label={
+                        fuera
+                          ? `Conservar la foto ${idx + 1}`
+                          : `Quitar la foto ${idx + 1}`
+                      }
+                    >
+                      {fuera ? "↺" : "×"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
+        {/* Dos entradas separadas a proposito: con capture el telefono
+            abre la camara y no deja llegar a la galeria, asi que la
+            galeria necesita su propio boton sin ese atributo. */}
+        <div className="grid grid-cols-2 gap-2">
+          <label
+            className="accion accion-secundaria cursor-pointer"
+            style={{ fontSize: "12.5px", padding: "12px 8px" }}
+          >
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              multiple
+              className="hidden"
+              onChange={agregarFotos}
+            />
+            <IcoCamara className="w-4 h-4" />
+            Tomar foto
+          </label>
+
+          <label
+            className="accion accion-secundaria cursor-pointer"
+            style={{ fontSize: "12.5px", padding: "12px 8px" }}
+          >
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={agregarFotos}
+            />
+            <IcoGaleria className="w-4 h-4" />
+            De la galería
+          </label>
+        </div>
+
+        {fotos.length ? (
+          <>
+            <div className="grid grid-cols-3 gap-2 mt-3">
+              {fotos.map((f, idx) => (
+                <div
+                  key={f.name + f.size + idx}
+                  className="relative aspect-square rounded overflow-hidden border"
+                  style={{ borderColor: "var(--color-borde)" }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={URL.createObjectURL(f)}
+                    alt={`Foto ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <span
+                    className="absolute bottom-0 left-0 right-0 font-[family-name:var(--font-mono)] text-[10.5px] px-1.5 py-0.5"
+                    style={{ background: "rgba(15,20,25,0.72)", color: "#fff" }}
+                  >
+                    {yaArchivadas.length + idx + 1}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setFotos((p) => p.filter((_, i) => i !== idx))}
+                    className="absolute top-1 right-1 w-6 h-6 rounded-full text-[14.5px] leading-none flex items-center justify-center"
+                    style={{ background: "var(--color-critico)", color: "#fff" }}
+                    aria-label={`Quitar foto ${idx + 1}`}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+            <p
+              className="text-[12.5px] mt-2"
+              style={{ color: "var(--color-sin-info)" }}
+            >
+              {yaArchivadas.length + fotos.length} de 6 · toca la × para quitar una
+            </p>
+          </>
+        ) : yaArchivadas.length ? null : (
+          <p
+            className="text-[12.5px] mt-2 text-center"
+            style={{ color: "var(--color-sin-info)" }}
+          >
+            Ninguna foto todavía
+          </p>
+        )}
+
+        {avisoFotos ? (
+          <p
+            className="text-[12.5px] mt-2"
+            style={{ color: "var(--color-pendiente)" }}
+          >
+            {avisoFotos}
+          </p>
+        ) : null}
+
+        {hueco === 0 ? (
+          <p
+            className="text-[12.5px] mt-2 text-center"
+            style={{ color: "var(--color-pendiente)" }}
+          >
+            El acta ya tiene las seis fotos. Quita alguna para poder añadir otra.
+          </p>
+        ) : null}
+      </Grupo>
+
+      <div className="mt-6 space-y-2">
+        <button disabled={enviando} className="accion accion-registrar">
+          <IcoHerramienta className="w-4 h-4" />
+          {enviando
+            ? "Guardando…"
+            : corrigiendo
+              ? "Guardar la corrección"
+              : "Guardar intervención"}
+        </button>
         <button
           type="button"
           onClick={() => router.back()}
-          className="border border-[#d3dae6] rounded-lg px-5 py-2.5 text-[13px] font-semibold text-marino-900 hover:bg-marino-50 transition-colors"
+          className="accion accion-secundaria"
         >
           Cancelar
         </button>
-        <button
-          disabled={enviando}
-          className="bg-[#16a34a] hover:bg-[#13873e] disabled:opacity-60 text-white rounded-lg px-6 py-2.5 text-[13px] font-bold tracking-wide transition-colors"
-        >
-          {enviando ? "GUARDANDO…" : "GUARDAR INTERVENCIÓN"}
-        </button>
       </div>
 
-      <p className="text-[11.5px] text-[#98a2b3] text-center">
-        Al guardar, el sistema asigna el consecutivo INT-{new Date().getFullYear()}-NNNN
-        y genera el acta de la intervención.
+      <p
+        className="text-center mt-4 font-[family-name:var(--font-mono)] text-[11.5px]"
+        style={{ color: "var(--color-sin-info)" }}
+      >
+        {corrigiendo
+          ? "Al guardar se rehace el PDF y se reemplaza el archivado en Drive."
+          : `El consecutivo INT-${new Date().getFullYear()}-NNNN se asigna al guardar.`}
       </p>
     </form>
   );
 }
 
-function Campo({
-  etiqueta, children, obligatorio, ayuda,
+/* ---------- Piezas del formulario ---------- */
+
+function Seccion({
+  titulo, icono, numero, tono,
+}: {
+  titulo: string;
+  icono: React.ReactNode;
+  numero: string;
+  tono?: "activo";
+}) {
+  const clase = tono ? `bloque-cabeza bloque-cabeza-${tono}` : "bloque-cabeza";
+  return (
+    <div className={clase} style={{ borderRadius: "5px", marginTop: "22px", marginBottom: "14px" }}>
+      {icono}
+      {titulo}
+      <span className="cuenta">{numero}</span>
+    </div>
+  );
+}
+
+function Grupo({
+  etiqueta, children, obligatorio, ayuda, campo, mal,
 }: {
   etiqueta: string; children: React.ReactNode;
   obligatorio?: boolean; ayuda?: string;
+  /** El nombre del campo: es por donde lo encuentra `llevarA`. */
+  campo?: string;
+  /** Este es el que falta: se pinta y se salta hasta el. */
+  mal?: boolean;
 }) {
   return (
-    <div>
-      <label className="campo-etiqueta">
+    <div className="mb-4" data-campo={campo} data-falta={mal ? "si" : undefined}>
+      <label
+        className="entrada-rotulo"
+        style={mal ? { color: "var(--color-critico)" } : undefined}
+      >
         {etiqueta}
-        {obligatorio ? <span className="text-[#d92d20] ml-0.5">*</span> : null}
+        {obligatorio ? <span className="req"> *</span> : null}
       </label>
       {children}
       {ayuda ? (
-        <p className="text-[11.5px] text-[#98a2b3] mt-1">{ayuda}</p>
+        <p className="text-[12.5px] mt-1" style={{ color: "var(--color-sin-info)" }}>
+          {ayuda}
+        </p>
       ) : null}
     </div>
   );
 }
 
-function Opcion({
-  nombre, valor, porDefecto,
+function Plegable({
+  titulo, detalle, children, icono,
 }: {
-  nombre: string; valor: string; porDefecto?: boolean;
+  titulo: string; detalle: string; children: React.ReactNode;
+  icono: React.ReactNode;
 }) {
   return (
-    <label className="inline-flex items-center gap-2 text-[13.5px] text-[#344054] cursor-pointer">
+    <details className="mb-4 group">
+      <summary
+        className="bloque-cabeza cursor-pointer list-none"
+        style={{
+          borderRadius: "5px",
+          marginTop: "22px",
+          background: "var(--color-marino-alto)",
+        }}
+      >
+        {icono}
+        {titulo}
+        <span className="cuenta">{detalle}</span>
+        <span
+          className="font-[family-name:var(--font-mono)] text-[14.5px] leading-none transition-transform group-open:rotate-90"
+          style={{ color: "var(--color-amarillo)", marginLeft: "8px" }}
+        >
+          ›
+        </span>
+      </summary>
+      <div className="pt-4">{children}</div>
+    </details>
+  );
+}
+
+function Radio({
+  nombre, valor, etiqueta, porDefecto,
+}: {
+  nombre: string; valor: string; etiqueta: string; porDefecto?: boolean;
+}) {
+  return (
+    <label className="inline-flex items-center gap-2 text-[14.5px] cursor-pointer">
       <input
         type="radio"
         name={nombre}
         value={valor}
         defaultChecked={porDefecto}
-        className="w-4 h-4 accent-[#16a34a]"
+        className="w-4 h-4"
+        style={{ accentColor: "var(--color-activo)" }}
       />
-      {valor}
+      {etiqueta}
     </label>
+  );
+}
+
+function Nota({
+  tono, children,
+}: {
+  tono: "pendiente" | "critico"; children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="border rounded px-3 py-2.5 mb-4 text-[13.5px]"
+      style={{
+        borderColor: `var(--color-${tono})`,
+        color: `var(--color-${tono})`,
+        background: "var(--color-campo)",
+      }}
+    >
+      {children}
+    </div>
   );
 }

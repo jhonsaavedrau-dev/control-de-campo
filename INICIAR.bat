@@ -1,10 +1,11 @@
 @echo off
-title Sistema de Control de Campo - PBI
+title Control de Generacion - PBI
 cd /d "%~dp0"
 
 echo.
 echo   ====================================================
-echo    SISTEMA DE CONTROL DE CAMPO - PBI
+echo    CONTROL DE GENERACION - PBI
+echo    Petroleum Blending International SAS ESP
 echo   ====================================================
 echo.
 
@@ -18,21 +19,22 @@ if errorlevel 1 (
   exit /b 1
 )
 
-if not exist "node_modules" (
-  echo   Primera vez: instalando lo necesario.
-  echo   Esto puede tardar un par de minutos...
+if not exist "node_modules\next" (
+  echo   Instalando lo necesario. Puede tardar un par de minutos...
   echo.
   call npm install --no-audit --no-fund
   echo.
 )
 
-echo   Abriendo el sistema en el navegador...
+echo   Abriendo en el navegador...
 echo.
-echo   Direccion:  http://localhost:3000
+echo   En este computador:  http://localhost:3000
+echo.
+echo   Para el celular, busca abajo la linea que dice
+echo   "Network" y usa esa direccion (mismo wifi).
 echo.
 echo   ----------------------------------------------------
-echo    Para APAGAR el sistema: cierra esta ventana negra
-echo    o presiona Ctrl + C
+echo    Para APAGAR: cierra esta ventana o Ctrl + C
 echo   ----------------------------------------------------
 echo.
 
