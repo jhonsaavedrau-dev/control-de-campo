@@ -1,7 +1,10 @@
 /**
  * Convierte el Excel de turnos en el calendario que lee el sistema.
  *
- *   node scripts/importar-turnos.mjs "C:/ruta/TURNOS 2026.xlsx" [Nombre de la hoja]
+ *   node scripts/importar-turnos.mjs "TURNOS 2026.xlsx" "TURNOS 2026" KAROL
+ *
+ * El tercer argumento es el nombre de la columna que la hoja deja sin
+ * rotular. Sin él, esa persona sale como «Operador por confirmar».
  *
  * Escribe `lib/rotacion-<anio>.ts`. No toca nada más: los nombres de los
  * operadores y las horas de cada turno viven en `lib/turnos.ts`, porque
@@ -27,7 +30,18 @@ import fs from "node:fs";
 import path from "node:path";
 import { unzipSync, strFromU8 } from "fflate";
 
-const [, , archivo, hojaPedida] = process.argv;
+const [, , archivo, hojaPedida, nombrePrimera] = process.argv;
+
+/**
+ * La columna de turno de la izquierda va SIN ROTULAR en los doce meses.
+ * Sus turnos están completos; lo que la hoja no dice es de quién son.
+ *
+ * Se pasa por argumento en vez de adivinarlo, y si no se pasa queda
+ * como «sinNombre», que en pantalla sale «Operador por confirmar». Un
+ * nombre puesto a ojo en un calendario de turnos manda a alguien a
+ * trabajar el día que no le toca.
+ */
+const PRIMERA = (nombrePrimera || "sinNombre").toUpperCase();
 
 if (!archivo) {
   console.error("Falta la ruta del Excel.");
@@ -251,7 +265,7 @@ for (const fila of hoja.filas.slice(FILA_NOMBRES)) {
       continue;
     }
     porFecha.set(fecha, {
-      sinNombre: turnos[0],
+      [PRIMERA]: turnos[0],
       [quienes.b]: turnos[1],
       [quienes.c]: turnos[2],
     });
@@ -287,7 +301,7 @@ for (const [fecha, dia] of porFecha) {
 
 /* ---------- Escribir ---------- */
 
-const orden = ["sinNombre", ...nombres];
+const orden = [PRIMERA, ...nombres];
 const porMes = new Map();
 for (const fecha of fechas) {
   const mes = fecha.slice(0, 7);
@@ -331,7 +345,11 @@ fs.writeFileSync(destino, salida);
 console.log(`Hoja: ${hoja.nombre}`);
 console.log(`Bloques de mes encontrados: ${bloques.length}`);
 console.log(`Operadores con nombre: ${nombres.join(", ")}`);
-console.log(`Operadores sin nombre en la hoja: 1 (la columna de la izquierda)`);
+console.log(
+  PRIMERA === "SINNOMBRE"
+    ? "La columna de la izquierda va sin rotular: pásale el nombre como tercer argumento."
+    : `La columna sin rotular se ha nombrado: ${PRIMERA}`,
+);
 console.log(`Días leídos: ${fechas.length} (${fechas[0]} a ${fechas[fechas.length - 1]})`);
 console.log(`Escrito: ${destino}`);
 

@@ -167,6 +167,29 @@ describe("quién está de turno", () => {
   });
 });
 
+describe("un relevo de verdad, con nombres", () => {
+  /**
+   * El 31 de agosto de 2026, según el Excel: Karol de noche, Camilo
+   * descansa, Jaime de día. Sirve de ejemplo leíble de todo lo de
+   * arriba junto, y de aviso si alguien reimporta el calendario y sale
+   * otra cosa.
+   */
+  const quien = (utc: string) => enTurno(enColombia(utc))[0];
+
+  it("de día está Jaime y de noche Karol", () => {
+    expect(quien("2026-08-31T15:00:00Z").operador.nombre).toBe("Jaime"); // 10:00
+    expect(quien("2026-09-01T00:00:00Z").operador.nombre).toBe("Karol Saavedra"); // 19:00
+  });
+
+  it("y a las tres de la madrugada del día siguiente sigue Karol", () => {
+    // Aunque ya sea 1 de septiembre: su noche empezó el 31.
+    const madrugada = quien("2026-09-01T08:00:00Z");
+    expect(madrugada.operador.nombre).toBe("Karol Saavedra");
+    expect(madrugada.turno.id).toBe("T-NOCHE");
+    expect(madrugada.faltan).toBe(3 * 60);
+  });
+});
+
 describe("cómo se escribe", () => {
   it("dice lo que falta en horas y minutos", () => {
     expect(comoFalta(200)).toBe("3 h 20 min");

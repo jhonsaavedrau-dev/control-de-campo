@@ -19,20 +19,6 @@ import { ROTACION, ORDEN_OPERADORES, ANIO } from "./rotacion-2026";
 /* ---------- Lo que falta por saber ---------- */
 
 /**
- * El nombre del tercer operador, que en el Excel no está.
- *
- * La hoja tiene tres columnas de turno por mes y solo dos llevan nombre
- * —CAMILO y JAIME—. La tercera, la de la izquierda, va sin rotular en
- * los doce meses. Sus turnos sí están completos: lo único que falta es
- * cómo se llama.
- *
- * No se inventa. Mientras esté así, la pantalla dice «Operador por
- * confirmar» en vez de poner un nombre que podría no ser el suyo en una
- * pantalla que mira el cliente.
- */
-export const FALTA_UN_NOMBRE = true;
-
-/**
  * ¿Las fotos siguen siendo las genéricas?
  *
  * Mientras esté en `true` el módulo lo dice, para que una silueta no se
@@ -59,9 +45,17 @@ export type Operador = {
  * Los tres operadores que cubren la planta.
  *
  * Los identificadores son los que usa el calendario importado, así que
- * no se cambian a mano: salen del Excel. Lo que sí se rellena aquí es lo
- * que el Excel no trae —el nombre completo, el cargo, la foto y el
- * teléfono—.
+ * no se cambian a mano: salen del Excel —y el de Karol, del argumento
+ * que se le pasa al importador, porque su columna va sin rotular—. Lo
+ * que sí se rellena aquí es lo que el Excel no trae: el nombre
+ * completo, el cargo, la foto y el teléfono.
+ *
+ * Lo que aquí NO es dato y conviene repasar: los apellidos de Camilo y
+ * Jaime, que todavía no sabemos —el de Karol sale de su propia cuenta
+ * en el sistema, de un acta que corrigió—, y el cargo de los tres. Se
+ * ha puesto «Operador Mantenedor» a los tres porque es lo que dice la
+ * rotación que hacen; si alguno firma con otro, se corrige aquí. Los
+ * cargos válidos son los de CARGOS_TECNICO en lib/tipos.ts.
  *
  * Las fotos son una URL, no un archivo incrustado: hoy apuntan a
  * `public/operadores/`, y el día que las fotos se guarden en Drive como
@@ -69,8 +63,8 @@ export type Operador = {
  */
 export const OPERADORES: Operador[] = [
   {
-    id: "sinNombre",
-    nombre: "Operador por confirmar",
+    id: "KAROL",
+    nombre: "Karol Saavedra",
     cargo: "Operador Mantenedor",
     foto: "/operadores/generica-1.png",
     telefono: "",

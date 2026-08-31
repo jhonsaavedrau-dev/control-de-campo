@@ -15,7 +15,7 @@
  */
 
 /** El orden en que va cada operador dentro del código de cada día. */
-export const ORDEN_OPERADORES = ["sinNombre","CAMILO","JAIME"] as const;
+export const ORDEN_OPERADORES = ["KAROL","CAMILO","JAIME"] as const;
 
 export const ANIO = 2026;
 
